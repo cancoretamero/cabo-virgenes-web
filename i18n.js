@@ -679,50 +679,72 @@ const dict = {
   es: {}, // ES = original, no map needed
 };
 
-// ----- TreeWalker: capta TODOS los text nodes con texto traducible -----
-// Excluye scripts, styles, code, pre, números puros, símbolos y rutas/emails.
-const SKIP_PARENT = /^(SCRIPT|STYLE|CODE|PRE|NOSCRIPT|TEXTAREA|INPUT)$/;
-const SKIP_CLASS = /\b(skip-translate|leaflet-|cv-marker|cv-map-tooltip|fab-pulse|sv-cell|sv-rays|cf-lines|v-wave|phc-wave)\b/;
-const PURE_SYMBOLS = /^[0-9°·%+×/\-\s.,()'":;!?ºª&ºª·×÷±·–—•…]+$/;
-function isSkippable(text, parent){
+// ----- Identificador de UNIDADES traducibles -----
+// Una "unidad" = elemento con sólo texto + inline tags simples (br/strong/em/span).
+// Se traduce el textContent completo como bloque (preserva contexto = mejor traducción)
+const PURE_SYMBOLS = /^[0-9°·%+×/\-\s.,()'":;!?ºª&·×÷±–—•…]+$/;
+const INLINE_TAGS = new Set(['BR','STRONG','EM','B','I','SPAN','SUP','SUB','U','MARK','SMALL','CODE']);
+const SKIP_TAGS = new Set(['SCRIPT','STYLE','NOSCRIPT','TEXTAREA','INPUT','SELECT','SVG','OPTION']);
+const SKIP_SELECTORS = '#worldMap,.leaflet-container,.fab-stack,.cert-marquee,.skip-translate,.cv-marker-hq,.cv-marker-mkt,.solar-viz,.cf-lines,.cf-ring,.lang-flag,.cf-emoji,.bc-illus';
+
+function isUntranslatable(text){
   if (!text || text.trim().length < 2) return true;
-  if (PURE_SYMBOLS.test(text.trim())) return true;
-  if (/^https?:\/\//.test(text.trim())) return true;
-  if (/^[\w.+-]+@[\w.-]+\.\w+$/.test(text.trim())) return true;
-  if (/^\+?[\d\s().-]+$/.test(text.trim())) return true; // teléfonos
-  if (parent && SKIP_PARENT.test(parent.tagName)) return true;
-  if (parent && parent.closest && parent.closest('script,style,.skip-translate,#worldMap,.leaflet-container,.fab-stack,.cert-marquee')) return true;
+  const t = text.trim();
+  if (PURE_SYMBOLS.test(t)) return true;
+  if (/^https?:\/\//.test(t)) return true;
+  if (/^[\w.+-]+@[\w.-]+\.\w+$/.test(t)) return true;
+  if (/^\+?[\d\s().-]{6,}$/.test(t)) return true;
   return false;
 }
 
-// Decodifica entidades HTML (&amp; → &, etc.)
+// Decode entidades HTML (&amp; → &)
 const _decoder = document.createElement('textarea');
 function decodeEntities(s){ _decoder.innerHTML = s; return _decoder.value; }
 
-// Snapshot por TEXT NODE (no por elemento). Captura TODO el texto visible.
-const textNodes = []; // [{ node, original }]
-const originals = new WeakMap(); // backup por elemento (innerHTML) por compatibilidad
-function snapshotTextNodes(){
-  textNodes.length = 0;
+// Captura unidades traducibles. Cada unidad = { el, originalText, originalHTML, parentTag }
+// Para elementos con sólo inline children, capturamos el elemento padre y traducimos su textContent.
+const units = [];
+function collectUnits(){
+  units.length = 0;
   const root = document.querySelector('main') || document.body;
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-    acceptNode(n){
-      const t = n.textContent;
-      const p = n.parentElement;
-      if (isSkippable(t, p)) return NodeFilter.FILTER_REJECT;
-      // Skip si ya está dentro de un elemento que dijimos saltar
-      if (p && p.className && typeof p.className === 'string' && SKIP_CLASS.test(p.className)) return NodeFilter.FILTER_REJECT;
-      return NodeFilter.FILTER_ACCEPT;
+  const seen = new Set();
+
+  function isUnit(el){
+    if (!el || SKIP_TAGS.has(el.tagName)) return false;
+    if (el.closest(SKIP_SELECTORS)) return false;
+    // Sin hijos elemento → es text leaf
+    if (el.children.length === 0) return el.textContent.trim().length > 0;
+    // Tiene hijos: pero TODOS son inline simples (BR/STRONG/EM/SPAN sin nested complex)
+    for (const c of el.children) {
+      if (!INLINE_TAGS.has(c.tagName)) return false;
+      // hijo inline con hijos complejos → recursivo
+      for (const cc of c.children) {
+        if (!INLINE_TAGS.has(cc.tagName)) return false;
+      }
     }
-  });
-  let n;
-  while (n = walker.nextNode()) {
-    textNodes.push({ node: n, original: n.textContent });
+    return el.textContent.trim().length > 0;
   }
+
+  function walk(el){
+    if (!el || SKIP_TAGS.has(el.tagName)) return;
+    if (el.closest && el.closest(SKIP_SELECTORS)) return;
+    if (seen.has(el)) return;
+
+    if (isUnit(el)) {
+      const text = el.textContent;
+      if (!isUntranslatable(text)) {
+        units.push({ el, originalText: text, originalHTML: el.innerHTML });
+        seen.add(el);
+      }
+      return; // no recurrir más en una unidad
+    }
+    for (const child of el.children) walk(child);
+  }
+  walk(root);
 }
-// Para retrocompatibilidad con setLanguage que aún usa originals
-function collectElements(){ return []; }
-function snapshot(){ snapshotTextNodes(); }
+function snapshotTextNodes(){ collectUnits(); }
+function snapshot(){ collectUnits(); }
+const textNodes = units; // alias retrocompatible
 
 // ----- AI translation: MyMemory API (gratis, sin auth, sin descargas) -----
 // Cache en localStorage para evitar re-llamar la API en re-visitas.
@@ -766,14 +788,15 @@ function setLoadingState(active){
   document.documentElement.classList.toggle('translating', active);
 }
 async function setLanguage(lang){
-  // Capturamos TODO el texto sólo la primera vez
-  if (textNodes.length === 0) snapshotTextNodes();
+  if (units.length === 0) collectUnits();
   document.documentElement.lang = lang;
   try { localStorage.setItem('cv-lang', lang); } catch(_){}
 
-  // 1) Restaurar español original
+  // 1) Restaurar HTML original
   if (lang === 'es') {
-    textNodes.forEach(({ node, original }) => { node.textContent = original; });
+    units.forEach(({ el, originalHTML }) => {
+      if (el && el.isConnected) el.innerHTML = originalHTML;
+    });
     window.dispatchEvent(new CustomEvent('langchange', { detail:{ lang } }));
     return;
   }
@@ -781,25 +804,19 @@ async function setLanguage(lang){
   // 2) Apply dictionary primero (instantáneo)
   const map = dict[lang] || {};
   const toAI = [];
-  textNodes.forEach((entry) => {
-    const { node, original } = entry;
-    if (!node.parentElement) return; // node desaparecido del DOM
-    const txt = original.trim().replace(/\s+/g,' ');
-    if (!txt) return;
-
-    // Preserva whitespace inicial/final del original
-    const leading = original.match(/^\s*/)[0];
-    const trailing = original.match(/\s*$/)[0];
-
-    // Lookup en dictionary (con y sin entidades)
-    const decoded = decodeEntities(txt);
-    const trans = map[txt] || map[decoded];
+  units.forEach((u) => {
+    const { el, originalText, originalHTML } = u;
+    if (!el || !el.isConnected) return;
+    const text = originalText.trim().replace(/\s+/g,' ');
+    if (!text) return;
+    const decoded = decodeEntities(text);
+    const trans = map[text] || map[decoded];
     if (trans) {
-      node.textContent = leading + trans + trailing;
+      el.textContent = trans;
     } else {
-      // Mantén el texto original (visible aún en ES) y manda a AI
-      node.textContent = original;
-      toAI.push({ node, txt: decoded, leading, trailing });
+      // Aún en ES, mandamos a AI
+      el.innerHTML = originalHTML;
+      toAI.push({ el, text: decoded });
     }
   });
 
@@ -812,13 +829,12 @@ async function setLanguage(lang){
     for (let i = 0; i < toAI.length; i += batch) {
       if (document.documentElement.lang !== lang) break;
       const slice = toAI.slice(i, i + batch);
-      await Promise.all(slice.map(async ({ node, txt, leading, trailing }) => {
-        const tr = await aiTranslate(txt, lang);
+      await Promise.all(slice.map(async ({ el, text }) => {
+        const tr = await aiTranslate(text, lang);
         if (document.documentElement.lang !== lang) return;
-        if (!tr || !node.parentElement) return;
-        node.textContent = leading + tr + trailing;
+        if (!tr || tr === text || !el.isConnected) return;
+        el.textContent = tr;
       }));
-      // Pequeño respiro entre lotes para no saturar el API
       if (i + batch < toAI.length) await new Promise(r => setTimeout(r, 120));
     }
     setLoadingState(false);

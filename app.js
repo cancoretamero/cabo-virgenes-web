@@ -591,26 +591,20 @@ const initWorldMap = async () => {
   mapIO.observe(mapEl);
   setTimeout(() => map.invalidateSize(), 500);
 };
-// Pre-carga Leaflet en idle + init cuando sección visible
+// Pre-carga Leaflet + init mapa
 const mapSection = document.getElementById('worldMap');
 if (mapSection) {
-  // 1) Cargar Leaflet en background al terminar carga (sin bloquear)
-  const preloadLeaflet = () => ensureLeaflet().catch(()=>{});
+  // En cuanto la página está idle, carga Leaflet Y inicializa el mapa
+  const bootMap = async () => {
+    try {
+      await ensureLeaflet();
+      await initWorldMap();
+    } catch(e){ console.warn('Map boot failed:', e); }
+  };
   if ('requestIdleCallback' in window) {
-    requestIdleCallback(preloadLeaflet, { timeout: 2000 });
+    requestIdleCallback(bootMap, { timeout: 2000 });
   } else {
-    setTimeout(preloadLeaflet, 1500);
-  }
-  // 2) Init cuando sección entra/se acerca al viewport
-  if ('IntersectionObserver' in window) {
-    const mapLazyIO = new IntersectionObserver((entries) => {
-      for (const e of entries) {
-        if (e.isIntersecting) { initWorldMap(); mapLazyIO.disconnect(); break; }
-      }
-    }, { rootMargin: '600px' });
-    mapLazyIO.observe(mapSection);
-  } else {
-    initWorldMap();
+    setTimeout(bootMap, 1000);
   }
 }
 
