@@ -746,41 +746,100 @@ function snapshotTextNodes(){ collectUnits(); }
 function snapshot(){ collectUnits(); }
 const textNodes = units; // alias retrocompatible
 
-// ----- AI translation: MyMemory API (gratis, sin auth, sin descargas) -----
+// ----- AI translation: RunPod custom API (Argos Translate, GPU, batch) -----
 // Cache en localStorage para evitar re-llamar la API en re-visitas.
-const AI_CACHE_KEY = 'cv-ai-cache-v1';
+const AI_CACHE_KEY = 'cv-ai-cache-v2';
+const AI_ENDPOINT = 'https://rendering-totally-production-looksmart.trycloudflare.com/translate';
 let aiCache;
 try { aiCache = JSON.parse(localStorage.getItem(AI_CACHE_KEY) || '{}'); }
 catch(_){ aiCache = {}; }
 function saveCache(){
   try { localStorage.setItem(AI_CACHE_KEY, JSON.stringify(aiCache)); } catch(_){}
 }
-const langPair = { en:'es|en', fr:'es|fr', pt:'es|pt-pt', zh:'es|zh-CN' };
+
+// MyMemory de fallback si el RunPod no responde
+async function aiTranslateMyMemory(text, lang){
+  const map = { en:'es|en', fr:'es|fr', pt:'es|pt-pt', zh:'es|zh-CN', de:'es|de', it:'es|it' };
+  const pair = map[lang]; if (!pair) return text;
+  try {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${pair}&de=info@cabovirgenes.com`;
+    const r = await fetch(url); if (!r.ok) return text;
+    const data = await r.json();
+    const out = data?.responseData?.translatedText;
+    if (!out || /MYMEMORY WARNING|INVALID/i.test(out)) return text;
+    return out;
+  } catch(e){ return text; }
+}
+
+// Translate single text — primero RunPod, luego MyMemory fallback
 async function aiTranslate(text, lang){
   if (lang === 'es') return text;
   const key = lang + '||' + text;
   if (aiCache[key]) return aiCache[key];
-  const pair = langPair[lang];
-  if (!pair) return text;
+  // Intentar batch RunPod primero
   try {
-    // MyMemory limita ~500 chars por request. Texto más largo se divide.
-    if (text.length > 480) {
-      const halves = text.match(/[^.!?]+[.!?]+|.+/g) || [text];
-      const parts = [];
-      for (const h of halves) parts.push(await aiTranslate(h.trim(), lang));
-      const joined = parts.join(' ');
-      aiCache[key] = joined; saveCache();
-      return joined;
+    const r = await fetch(AI_ENDPOINT, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ texts:[text], target_lang: lang, source_lang:'es' }),
+    });
+    if (r.ok) {
+      const data = await r.json();
+      const out = data?.translations?.[0];
+      if (out && out !== text) {
+        aiCache[key] = out; saveCache();
+        return out;
+      }
     }
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${pair}&de=info@cabovirgenes.com`;
-    const r = await fetch(url, { mode: 'cors' });
-    if (!r.ok) return text;
-    const data = await r.json();
-    const out = data?.responseData?.translatedText;
-    if (!out || /MYMEMORY WARNING/i.test(out) || /INVALID/i.test(out)) return text;
-    aiCache[key] = out; saveCache();
-    return out;
-  } catch(e){ return text; }
+  } catch(e){ /* fallthrough a MyMemory */ }
+  // Fallback MyMemory
+  const out = await aiTranslateMyMemory(text, lang);
+  if (out && out !== text) { aiCache[key] = out; saveCache(); }
+  return out;
+}
+
+// Batch translate — más eficiente: 1 sola llamada al RunPod por N textos
+async function aiTranslateBatch(texts, lang){
+  if (lang === 'es' || !texts.length) return texts;
+  // Usa cache para los ya conocidos
+  const out = new Array(texts.length);
+  const todo = []; const todoIdx = [];
+  texts.forEach((t, i) => {
+    const key = lang + '||' + t;
+    if (aiCache[key]) out[i] = aiCache[key];
+    else { todo.push(t); todoIdx.push(i); }
+  });
+  if (!todo.length) return out;
+  try {
+    const r = await fetch(AI_ENDPOINT, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ texts: todo, target_lang: lang, source_lang:'es' }),
+    });
+    if (r.ok) {
+      const data = await r.json();
+      const trs = data?.translations || [];
+      trs.forEach((tr, j) => {
+        const idx = todoIdx[j];
+        if (tr && tr !== todo[j]) {
+          aiCache[lang + '||' + todo[j]] = tr;
+          out[idx] = tr;
+        } else {
+          out[idx] = todo[j];
+        }
+      });
+      saveCache();
+      return out;
+    }
+  } catch(e){ /* fallthrough */ }
+  // Fallback uno por uno con MyMemory
+  for (let j = 0; j < todo.length; j++) {
+    const tr = await aiTranslateMyMemory(todo[j], lang);
+    out[todoIdx[j]] = tr;
+    if (tr && tr !== todo[j]) aiCache[lang + '||' + todo[j]] = tr;
+  }
+  saveCache();
+  return out;
 }
 
 // ----- Set language -----
@@ -822,20 +881,22 @@ async function setLanguage(lang){
 
   window.dispatchEvent(new CustomEvent('langchange', { detail:{ lang } }));
 
-  // AI fallback con MyMemory API para los textos no mapeados en dictionary
+  // AI batch — 1 sola llamada al RunPod con todos los textos
   if (toAI.length) {
     setLoadingState(true);
-    const batch = 5;
-    for (let i = 0; i < toAI.length; i += batch) {
+    // Procesa en super-batches de 30 textos por request (evita payload gigante)
+    const SUPER_BATCH = 30;
+    for (let i = 0; i < toAI.length; i += SUPER_BATCH) {
       if (document.documentElement.lang !== lang) break;
-      const slice = toAI.slice(i, i + batch);
-      await Promise.all(slice.map(async ({ el, text }) => {
-        const tr = await aiTranslate(text, lang);
-        if (document.documentElement.lang !== lang) return;
-        if (!tr || tr === text || !el.isConnected) return;
-        el.textContent = tr;
-      }));
-      if (i + batch < toAI.length) await new Promise(r => setTimeout(r, 120));
+      const slice = toAI.slice(i, i + SUPER_BATCH);
+      const texts = slice.map(s => s.text);
+      const trs = await aiTranslateBatch(texts, lang);
+      if (document.documentElement.lang !== lang) break;
+      slice.forEach((s, j) => {
+        const tr = trs[j];
+        if (!tr || tr === s.text || !s.el.isConnected) return;
+        s.el.textContent = tr;
+      });
     }
     setLoadingState(false);
   }
