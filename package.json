@@ -1,18 +1,27 @@
 {
   "name": "cabo-virgenes-web",
   "version": "1.0.0",
-  "description": "",
-  "main": "screenshot.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "description": "Cabo Vírgenes — Pesca, procesamiento y exportación de productos del mar",
+  "private": true,
   "type": "commonjs",
-  "dependencies": {
-    "@xenova/transformers": "^2.17.2",
-    "i18next": "^26.1.0",
-    "puppeteer": "^25.0.1"
+  "scripts": {
+    "start": "python3 serve.py 8080",
+    "screenshot": "node screenshot.js",
+    "screenshot:resp": "node screenshot-responsive.js"
+  },
+  "keywords": [
+    "cabo-virgenes",
+    "seafood",
+    "shrimp",
+    "argentina",
+    "spain"
+  ],
+  "author": "Cabo Vírgenes S.A.",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "puppeteer": "^24.3.2"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

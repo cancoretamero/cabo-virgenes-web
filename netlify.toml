@@ -1,0 +1,32 @@
+[build]
+  publish = "."
+  command = "echo 'No build step - static site'"
+  ignore = "/bin/false"
+
+# Skip dependency installation: site is 100% static HTML/CSS/JS
+[build.environment]
+  NETLIFY_USE_YARN = "false"
+  NPM_FLAGS = "--production=true --ignore-scripts"
+  NODE_VERSION = "20"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/logos/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"

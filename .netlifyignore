@@ -1,0 +1,47 @@
+node_modules/
+.git/
+package-lock.json
+Diseño Web/
+_frames/
+_pdfimg/
+_pdfpages/
+_ships/
+_shrimp/
+_vframes/
+*.mp4
+!wave.mp4
+ChatGPT Image *.png
+Literal Web Design.png
+Espartano–Inicio.png
+op1Asset*.png
+logo-light.png
+current.png
+resp-*.png
+sec*.png
+check-load.png
+diag.png
+fab-*.png
+chat-*.png
+empresa*.png
+flota.png
+fmt-cards.png
+footer*.png
+header-*.png
+hero-*.png
+lang-open.png
+map-*.png
+mobile-*.png
+nav-*.png
+productos*.png
+rasa.png
+translated-*.png
+verify-prod.png
+widgets.png
+fr.png
+test-prod.js
+modal-close.png
+certs.png
+wave-only.png
+*.swp
+*.swo
+.DS_Store
