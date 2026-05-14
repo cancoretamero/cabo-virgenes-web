@@ -1,18 +1,15 @@
 #!/bin/bash
-# Cabo Vírgenes — Setup en el Pod RunPod
-# Instala dependencias + descarga modelo + arranca server + cloudflared tunnel
+# Cabo Vírgenes — Setup en el Pod RunPod (Argos Translate, sin transformers)
 
 set -e
 
-echo "=== 1) Instalando deps Python (versiones pinneadas compatibles) ==="
-pip install --quiet --upgrade pip
-# transformers 4.38.2 es la última estable que funciona con torch <2.4
-# (las nuevas (4.40+) requieren torch 2.4+ que tiene custom_op API distinto)
+echo "=== 1) Instalando dependencias mínimas ==="
+pip install --quiet --root-user-action=ignore --upgrade pip
+
+# Argos Translate trae su propio CTranslate2; es independiente de transformers/torch.
+# Esto evita cualquier conflicto de versiones con transformers nuevos.
 pip install --quiet --root-user-action=ignore \
-  "transformers==4.38.2" \
-  "tokenizers==0.15.2" \
-  "sentencepiece==0.2.0" \
-  "accelerate==0.27.2" \
+  "argostranslate==1.9.6" \
   "fastapi==0.110.0" \
   "uvicorn[standard]==0.27.1" \
   "pydantic==2.6.1"
@@ -30,49 +27,55 @@ if [ ! -f /usr/local/bin/cloudflared ]; then
 fi
 cloudflared --version
 
-echo "=== 3) Pre-descargando modelo NLLB-200 distilled (~1.3GB) ==="
-python3 -c "
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
-m = 'facebook/nllb-200-distilled-600M'
-print('Downloading tokenizer...')
-AutoTokenizer.from_pretrained(m)
-print('Downloading model...')
-AutoModelForSeq2SeqLM.from_pretrained(m)
-print('Model cached.')
-"
+echo "=== 3) Liberando puerto 8000 (si había un server previo) ==="
+pkill -f "python3 .*server.py" 2>/dev/null || true
+pkill -f "cloudflared tunnel" 2>/dev/null || true
+sleep 1
 
-echo "=== 4) Arrancando API en background ==="
+echo "=== 4) Arrancando API en background (descarga modelos al boot) ==="
 mkdir -p /workspace/logs
 nohup python3 /workspace/server.py > /workspace/logs/api.log 2>&1 &
 API_PID=$!
 echo "API PID: $API_PID"
-sleep 5
 
-# Health check
-if curl -sf http://localhost:8000/ > /dev/null; then
-  echo "✓ API responde en localhost:8000"
-else
-  echo "✗ API no responde — revisar /workspace/logs/api.log"
-  tail -20 /workspace/logs/api.log
-  exit 1
-fi
+# Esperar a que arranque (descarga modelos, puede tardar 1-2 min)
+echo "Esperando a que la API esté lista..."
+for i in $(seq 1 60); do
+  if curl -sf http://localhost:8000/ > /dev/null 2>&1; then
+    echo "✓ API responde en localhost:8000"
+    curl -s http://localhost:8000/ | head -3
+    break
+  fi
+  sleep 2
+  if [ $i -eq 60 ]; then
+    echo "✗ API tardó >120s. Mostrando últimas 30 líneas del log:"
+    tail -30 /workspace/logs/api.log
+    exit 1
+  fi
+done
 
-echo "=== 5) Arrancando Cloudflare Tunnel (URL pública gratuita) ==="
+echo ""
+echo "=== 5) Arrancando Cloudflare Tunnel ==="
 nohup cloudflared tunnel --url http://localhost:8000 --no-autoupdate > /workspace/logs/tunnel.log 2>&1 &
-sleep 6
+sleep 8
 
-# Extrae la URL pública del log
 PUBLIC_URL=$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' /workspace/logs/tunnel.log | head -1)
 if [ -n "$PUBLIC_URL" ]; then
   echo ""
   echo "==========================================="
   echo "✓ TODO LISTO"
   echo ""
-  echo "  Endpoint público: $PUBLIC_URL"
-  echo "  Health: $PUBLIC_URL/"
+  echo "  URL pública: $PUBLIC_URL"
+  echo "  Health:    $PUBLIC_URL/"
   echo "  Translate: POST $PUBLIC_URL/translate"
   echo "==========================================="
   echo "$PUBLIC_URL" > /workspace/PUBLIC_URL.txt
+
+  echo ""
+  echo "=== Test rápido ==="
+  curl -s -X POST "$PUBLIC_URL/translate" \
+    -H "Content-Type: application/json" \
+    -d '{"texts":["Hola mundo"],"target_lang":"en","source_lang":"es"}' | head -3
 else
-  echo "Tunnel aún no listo. Revisa /workspace/logs/tunnel.log en unos segundos."
+  echo "Tunnel no listo aún. Mira: tail -f /workspace/logs/tunnel.log"
 fi
