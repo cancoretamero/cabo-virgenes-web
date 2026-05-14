@@ -2327,19 +2327,14 @@ strong{font-weight:600;color:inherit}
 
 /* TRANSLATING INDICATOR */
 html.translating::after{
-  content:"Traduciendo con IA…";
-  position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
-  padding:10px 18px;border-radius:999px;
-  background:linear-gradient(180deg,rgba(11,26,44,.92),rgba(6,24,47,.95));
-  color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;
-  border:1px solid rgba(127,227,223,.3);
-  box-shadow:0 16px 36px -14px rgba(0,0,0,.45),0 0 0 6px rgba(28,181,176,.08);
-  z-index:200;
-  animation:translPulse 1.6s ease-in-out infinite;
-}
-@keyframes translPulse{
-  0%,100%{box-shadow:0 16px 36px -14px rgba(0,0,0,.45),0 0 0 6px rgba(28,181,176,.08)}
-  50%{box-shadow:0 16px 36px -14px rgba(0,0,0,.45),0 0 0 14px rgba(28,181,176,.02)}
+  content:"⚡ Traduciendo con IA…";
+  position:fixed;left:50%;top:24px;transform:translateX(-50%);
+  padding:10px 22px;border-radius:999px;
+  background:linear-gradient(180deg,#1cb5b0,#0fa6a0);
+  color:#fff;font-size:12.5px;font-weight:600;letter-spacing:.04em;
+  border:1px solid rgba(255,255,255,.25);
+  box-shadow:0 12px 28px -10px rgba(28,181,176,.5),0 4px 10px -2px rgba(0,0,0,.2);
+  z-index:9999;
 }
 
 /* ================ FAB WIDGETS (AI Chat — único flotante) ================ */

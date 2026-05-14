@@ -679,21 +679,50 @@ const dict = {
   es: {}, // ES = original, no map needed
 };
 
-// ----- Snapshot de textos originales (en ES) por elemento -----
-const originals = new WeakMap();
-function collectElements(){
-  const set = new Set();
-  SELECTORS.forEach(sel => {
-    try { document.querySelectorAll(sel).forEach(el => set.add(el)); } catch(_){}
-  });
-  return [...set];
+// ----- TreeWalker: capta TODOS los text nodes con texto traducible -----
+// Excluye scripts, styles, code, pre, números puros, símbolos y rutas/emails.
+const SKIP_PARENT = /^(SCRIPT|STYLE|CODE|PRE|NOSCRIPT|TEXTAREA|INPUT)$/;
+const SKIP_CLASS = /\b(skip-translate|leaflet-|cv-marker|cv-map-tooltip|fab-pulse|sv-cell|sv-rays|cf-lines|v-wave|phc-wave)\b/;
+const PURE_SYMBOLS = /^[0-9°·%+×/\-\s.,()'":;!?ºª&ºª·×÷±·–—•…]+$/;
+function isSkippable(text, parent){
+  if (!text || text.trim().length < 2) return true;
+  if (PURE_SYMBOLS.test(text.trim())) return true;
+  if (/^https?:\/\//.test(text.trim())) return true;
+  if (/^[\w.+-]+@[\w.-]+\.\w+$/.test(text.trim())) return true;
+  if (/^\+?[\d\s().-]+$/.test(text.trim())) return true; // teléfonos
+  if (parent && SKIP_PARENT.test(parent.tagName)) return true;
+  if (parent && parent.closest && parent.closest('script,style,.skip-translate,#worldMap,.leaflet-container,.fab-stack,.cert-marquee')) return true;
+  return false;
 }
-function snapshot(){
-  collectElements().forEach(el => {
-    if (originals.has(el)) return;
-    originals.set(el, el.innerHTML);
+
+// Decodifica entidades HTML (&amp; → &, etc.)
+const _decoder = document.createElement('textarea');
+function decodeEntities(s){ _decoder.innerHTML = s; return _decoder.value; }
+
+// Snapshot por TEXT NODE (no por elemento). Captura TODO el texto visible.
+const textNodes = []; // [{ node, original }]
+const originals = new WeakMap(); // backup por elemento (innerHTML) por compatibilidad
+function snapshotTextNodes(){
+  textNodes.length = 0;
+  const root = document.querySelector('main') || document.body;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(n){
+      const t = n.textContent;
+      const p = n.parentElement;
+      if (isSkippable(t, p)) return NodeFilter.FILTER_REJECT;
+      // Skip si ya está dentro de un elemento que dijimos saltar
+      if (p && p.className && typeof p.className === 'string' && SKIP_CLASS.test(p.className)) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
   });
+  let n;
+  while (n = walker.nextNode()) {
+    textNodes.push({ node: n, original: n.textContent });
+  }
 }
+// Para retrocompatibilidad con setLanguage que aún usa originals
+function collectElements(){ return []; }
+function snapshot(){ snapshotTextNodes(); }
 
 // ----- AI translation: MyMemory API (gratis, sin auth, sin descargas) -----
 // Cache en localStorage para evitar re-llamar la API en re-visitas.
@@ -737,47 +766,40 @@ function setLoadingState(active){
   document.documentElement.classList.toggle('translating', active);
 }
 async function setLanguage(lang){
-  snapshot();
+  // Capturamos TODO el texto sólo la primera vez
+  if (textNodes.length === 0) snapshotTextNodes();
   document.documentElement.lang = lang;
   try { localStorage.setItem('cv-lang', lang); } catch(_){}
 
-  const els = collectElements();
-
-  // 1) restaurar ES original
+  // 1) Restaurar español original
   if (lang === 'es') {
-    els.forEach(el => {
-      const orig = originals.get(el);
-      if (orig != null) el.innerHTML = orig;
-    });
+    textNodes.forEach(({ node, original }) => { node.textContent = original; });
     window.dispatchEvent(new CustomEvent('langchange', { detail:{ lang } }));
     return;
   }
 
-  // 2) Apply dictionary (instantáneo)
+  // 2) Apply dictionary primero (instantáneo)
   const map = dict[lang] || {};
   const toAI = [];
-  els.forEach(el => {
-    const orig = originals.get(el);
-    if (orig == null) return;
-    // Reemplaza <br/> por espacio para extraer texto plano para lookup
-    const norm = orig.replace(/<br\s*\/?>/gi,' ').replace(/<[^>]+>/g,'');
-    const txt = norm.trim().replace(/\s+/g,' ');
+  textNodes.forEach((entry) => {
+    const { node, original } = entry;
+    if (!node.parentElement) return; // node desaparecido del DOM
+    const txt = original.trim().replace(/\s+/g,' ');
     if (!txt) return;
-    // Detecta si el original tenía <br/> — para reinsertar al traducir
-    const hadBr = /<br\s*\/?>/i.test(orig);
-    if (map[txt]){
-      const translated = map[txt];
-      if (hadBr){
-        // Inserta <br> a mitad de la traducción (en el espacio más cercano al centro)
-        const words = translated.split(' ');
-        const mid = Math.max(1, Math.round(words.length / 2));
-        el.innerHTML = words.slice(0,mid).join(' ') + '<br/>' + words.slice(mid).join(' ');
-      } else {
-        el.textContent = translated;
-      }
+
+    // Preserva whitespace inicial/final del original
+    const leading = original.match(/^\s*/)[0];
+    const trailing = original.match(/\s*$/)[0];
+
+    // Lookup en dictionary (con y sin entidades)
+    const decoded = decodeEntities(txt);
+    const trans = map[txt] || map[decoded];
+    if (trans) {
+      node.textContent = leading + trans + trailing;
     } else {
-      el.textContent = txt;
-      toAI.push({ el, txt, hadBr });
+      // Mantén el texto original (visible aún en ES) y manda a AI
+      node.textContent = original;
+      toAI.push({ node, txt: decoded, leading, trailing });
     }
   });
 
@@ -786,28 +808,22 @@ async function setLanguage(lang){
   // AI fallback con MyMemory API para los textos no mapeados en dictionary
   if (toAI.length) {
     setLoadingState(true);
-    // Procesa en lotes de 4 con pequeño delay para no saturar la API
-    const batch = 4;
+    const batch = 5;
     for (let i = 0; i < toAI.length; i += batch) {
       if (document.documentElement.lang !== lang) break;
       const slice = toAI.slice(i, i + batch);
-      await Promise.all(slice.map(async ({ el, txt, hadBr }) => {
+      await Promise.all(slice.map(async ({ node, txt, leading, trailing }) => {
         const tr = await aiTranslate(txt, lang);
         if (document.documentElement.lang !== lang) return;
-        if (!tr || tr === txt) return;
-        if (hadBr) {
-          const w = tr.split(' ');
-          const mid = Math.max(1, Math.round(w.length/2));
-          el.innerHTML = w.slice(0, mid).join(' ') + '<br/>' + w.slice(mid).join(' ');
-        } else {
-          el.textContent = tr;
-        }
+        if (!tr || !node.parentElement) return;
+        node.textContent = leading + tr + trailing;
       }));
-      // Pequeño respiro entre lotes para no exceder rate limits
-      if (i + batch < toAI.length) await new Promise(r => setTimeout(r, 100));
+      // Pequeño respiro entre lotes para no saturar el API
+      if (i + batch < toAI.length) await new Promise(r => setTimeout(r, 120));
     }
     setLoadingState(false);
   }
+  window.dispatchEvent(new CustomEvent('langchange', { detail:{ lang } }));
 }
 
 // ----- API pública -----
@@ -816,9 +832,14 @@ window.cvI18n = {
   translateAI: (text, lang) => aiTranslate(text, lang),
 };
 
-// ----- Init: snapshot al cargar + persistencia -----
-window.addEventListener('DOMContentLoaded', () => {
-  snapshot();
-  const stored = (()=>{ try { return localStorage.getItem('cv-lang'); } catch(_){ return null; } })();
-  if (stored && stored !== 'es') setLanguage(stored);
-});
+// ----- Init: snapshot tras carga completa + persistencia -----
+function initI18n(){
+  // Espera 200ms para que componentes dinámicos (Lucide icons, etc) terminen
+  setTimeout(() => {
+    snapshotTextNodes();
+    const stored = (()=>{ try { return localStorage.getItem('cv-lang'); } catch(_){ return null; } })();
+    if (stored && stored !== 'es') setLanguage(stored);
+  }, 250);
+}
+if (document.readyState === 'complete') initI18n();
+else window.addEventListener('load', initI18n);
