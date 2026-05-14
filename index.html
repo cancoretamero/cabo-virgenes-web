@@ -12,9 +12,6 @@
 <link rel="preload" as="image" href="./espartano-hero.jpg" fetchpriority="high">
 <!-- Fuentes con subset reducido -->
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
-<!-- Leaflet CSS lazy: solo cargado si la sección Plantas existe (no es crítico above-the-fold) -->
-<link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"></noscript>
 <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
@@ -2224,8 +2221,7 @@
   </div>
 </aside>
 
-<script defer src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<!-- Leaflet + Lucide cargados perezosamente desde app.js cuando son necesarios -->
 <script defer src="./i18n.js"></script>
 <script defer src="./app.js"></script>
 </body>

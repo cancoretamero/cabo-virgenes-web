@@ -1,18 +1,57 @@
 // Mark html.js so CSS reveal rules activate only with JS
 document.documentElement.classList.add('js');
-console.log('JS:start');
 
-// ============ LUCIDE ICONS (1400+ iconos ISC license) ============
+// ============ LAZY LOADER (Leaflet + Lucide on-demand) ============
+// Carga scripts/css externos sólo cuando son necesarios — ahorra ~200KB inicial
+const _loaded = new Set();
+function loadScript(src){
+  if (_loaded.has(src)) return Promise.resolve();
+  _loaded.add(src);
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src; s.async = true;
+    s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+function loadCSS(href){
+  if (_loaded.has(href)) return Promise.resolve();
+  _loaded.add(href);
+  return new Promise((res) => {
+    const l = document.createElement('link');
+    l.rel = 'stylesheet'; l.href = href;
+    l.onload = res; l.onerror = res;
+    document.head.appendChild(l);
+  });
+}
+
+// ============ LUCIDE ICONS — lazy-load cuando aparece el primer icono ============
+let lucideLoaded = false;
 const initLucide = () => {
   if (typeof lucide !== 'undefined' && lucide.createIcons) {
-    try { lucide.createIcons({ attrs: { 'stroke-width': 1.7 } }); }
-    catch(e){ console.warn('Lucide init:', e); }
+    try { lucide.createIcons({ attrs: { 'stroke-width': 1.7 } }); } catch(e){}
   }
 };
-// Init cuando esté cargado + re-init al añadir nuevos iconos dinámicos
-if (document.readyState !== 'loading') initLucide();
-document.addEventListener('DOMContentLoaded', initLucide);
-window.addEventListener('load', initLucide);
+function ensureLucide(){
+  if (lucideLoaded) { initLucide(); return; }
+  lucideLoaded = true;
+  loadScript('https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js')
+    .then(initLucide).catch(()=>{});
+}
+// Si hay iconos data-lucide en viewport o cerca, dispara la carga
+if ('IntersectionObserver' in window) {
+  const lucideEls = document.querySelectorAll('[data-lucide]');
+  if (lucideEls.length) {
+    const lio = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) { ensureLucide(); lio.disconnect(); break; }
+      }
+    }, { rootMargin: '200px' });
+    lucideEls.forEach(el => lio.observe(el));
+  }
+} else {
+  ensureLucide();
+}
 
 // ============ FIT-TO-VIEWPORT (sólo escalado hacia arriba) ============
 // Diseño base 1440px. En viewports MAYORES escalamos con zoom para llenar
@@ -346,26 +385,31 @@ window.addEventListener('keydown', (e) => {
   else if (e.key === 'Escape') closePlayer();
 });
 
-// ============ WAVE PARALLAX ============
+// ============ WAVE: pause cuando NO está visible (ahorra CPU) ============
 const waveVideo = document.querySelector('.wave-band .wave-video');
 const waveBand = document.querySelector('.wave-band');
-if (waveBand && waveVideo) {
-  const onWaveScroll = () => {
-    const r = waveBand.getBoundingClientRect();
-    if (r.top < window.innerHeight && r.bottom > 0) {
-      const offset = (window.innerHeight - r.top) * 0.06;
-      waveVideo.style.transform = `translateY(${-offset}px) scale(1.05)`;
+if (waveBand && waveVideo && 'IntersectionObserver' in window) {
+  const waveIO = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (e.isIntersecting) { waveVideo.play().catch(()=>{}); }
+      else { waveVideo.pause(); }
     }
-  };
-  window.addEventListener('scroll', onWaveScroll, { passive: true });
-  onWaveScroll();
+  }, { threshold: 0.1 });
+  waveIO.observe(waveBand);
 }
 
-// ============ WORLD MAP (Section 05 — Plantas y mercados) ============
-const initWorldMap = () => {
+// ============ WORLD MAP (Section 05) — LAZY LOAD de Leaflet ============
+async function ensureLeaflet(){
+  if (typeof L !== 'undefined') return;
+  await loadCSS('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css');
+  await loadScript('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js');
+}
+const initWorldMap = async () => {
   const mapEl = document.getElementById('worldMap');
-  if (!mapEl || typeof L === 'undefined') return;
-  if (mapEl._leaflet_id) return; // ya inicializado
+  if (!mapEl) return;
+  if (mapEl._leaflet_id) return;
+  await ensureLeaflet();
+  if (typeof L === 'undefined') return;
 
   const map = L.map(mapEl, {
     center: [22, -10],
@@ -547,17 +591,15 @@ const initWorldMap = () => {
   mapIO.observe(mapEl);
   setTimeout(() => map.invalidateSize(), 500);
 };
-// Init cuando Leaflet esté disponible
-if (typeof L !== 'undefined') {
-  initWorldMap();
-} else {
-  // Intento cada 300ms hasta 5s
-  let tries = 0;
-  const t = setInterval(() => {
-    tries++;
-    if (typeof L !== 'undefined') { clearInterval(t); initWorldMap(); }
-    else if (tries > 16) clearInterval(t);
-  }, 300);
+// Init mapa SOLO cuando la sección Plantas se acerca al viewport (lazy)
+const mapSection = document.getElementById('worldMap');
+if (mapSection && 'IntersectionObserver' in window) {
+  const mapLazyIO = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (e.isIntersecting) { initWorldMap(); mapLazyIO.disconnect(); break; }
+    }
+  }, { rootMargin: '400px' });
+  mapLazyIO.observe(mapSection);
 }
 
 // ============ PLANT MODAL — video play en thumbnails ============

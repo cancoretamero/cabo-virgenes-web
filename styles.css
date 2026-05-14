@@ -2469,25 +2469,56 @@ html.translating::after{
 .btn-wa-ico{display:inline-flex}
 
 /* Botones unificados (Enviar consulta + WhatsApp) — misma estructura */
-.btn-action{
-  display:inline-flex;align-items:center;justify-content:center;gap:10px;
-  padding:12px 22px;border-radius:999px;
-  font-family:inherit;font-size:13px;font-weight:600;
-  border:none;cursor:pointer;text-decoration:none;
-  transition:transform .2s,box-shadow .25s,filter .2s;
-  white-space:nowrap;
+.btn-action,
+button.btn-action,
+a.btn-action{
+  display:inline-flex !important;align-items:center !important;justify-content:center !important;gap:10px !important;
+  padding:13px 24px !important;border-radius:999px !important;
+  font-family:inherit !important;font-size:13px !important;font-weight:600 !important;
+  border:none !important;cursor:pointer !important;text-decoration:none !important;
+  transition:transform .2s,box-shadow .25s,filter .2s !important;
+  white-space:nowrap !important;
+  color:#fff !important;
+  line-height:1 !important;
 }
-.btn-action-ico{display:inline-flex;flex-shrink:0}
+.btn-action-ico{display:inline-flex !important;flex-shrink:0;align-items:center}
+.btn-action-ico svg{display:block}
 .btn-action-primary{
-  background:linear-gradient(180deg,#1cb5b0,#0fa6a0);color:#fff;
-  box-shadow:0 8px 18px -6px rgba(28,181,176,.5);
+  background:linear-gradient(180deg,#1cb5b0,#0fa6a0) !important;
+  box-shadow:0 8px 18px -6px rgba(28,181,176,.5) !important;
 }
-.btn-action-primary:hover{transform:translateY(-2px);box-shadow:0 12px 24px -6px rgba(28,181,176,.6);filter:brightness(1.05)}
+.btn-action-primary:hover{transform:translateY(-2px) !important;box-shadow:0 12px 24px -6px rgba(28,181,176,.6) !important;filter:brightness(1.05)}
 .btn-action-wa{
-  background:linear-gradient(180deg,#25d366,#1dba56);color:#fff;
-  box-shadow:0 8px 18px -6px rgba(37,211,102,.5);
+  background:linear-gradient(180deg,#25d366,#1dba56) !important;
+  box-shadow:0 8px 18px -6px rgba(37,211,102,.5) !important;
 }
-.btn-action-wa:hover{transform:translateY(-2px);box-shadow:0 12px 24px -6px rgba(37,211,102,.6);filter:brightness(1.05)}
+.btn-action-wa:hover{transform:translateY(-2px) !important;box-shadow:0 12px 24px -6px rgba(37,211,102,.6) !important;filter:brightness(1.05)}
+
+/* ============ PERFORMANCE: kill animaciones costosas ============ */
+/* Las animaciones infinitas + backdrop-filter masivo lastran mucho.
+   Reducimos al mínimo manteniendo aspecto visual. */
+.blob{animation:none !important;will-change:auto}
+.cv-marker-mkt{animation:none !important}
+.cv-marker-hq{animation:none !important}
+.sv-cell{animation:none !important}
+.sv-sun{animation:none !important}
+.sv-rays span{animation:none !important;opacity:.5}
+.fab-wa{animation:none !important}
+.fab-pulse{animation:none !important;opacity:.4}
+.cert-track{animation-duration:60s !important}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+}
+
+/* Reduce backdrop-filter: solo en elementos críticos (navpill, lang-menu, drawer) */
+.glass{backdrop-filter:none !important;-webkit-backdrop-filter:none !important;background:rgba(255,255,255,.85) !important}
+.glass-strong{backdrop-filter:none !important;-webkit-backdrop-filter:none !important;background:rgba(255,255,255,.18) !important}
+.glass-deep{backdrop-filter:none !important;-webkit-backdrop-filter:none !important}
+/* Mantener glass real solo donde aporta UX */
+.lang-menu,.nav-dropdown,.navpill,.lang-pill{
+  backdrop-filter:blur(18px) saturate(180%) !important;
+  -webkit-backdrop-filter:blur(18px) saturate(180%) !important;
+}
 
 .ac-body{
   flex:1;overflow-y:auto;padding:18px;
