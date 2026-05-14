@@ -695,18 +695,44 @@ function snapshot(){
   });
 }
 
-// ----- AI translation desactivada (bloquea navegador) -----
-// Para reactivar con un endpoint remoto (RunPod, MyMemory, DeepL):
-//   sobreescribe window.cvI18n.translateAI con una fetch() a tu API.
-const aiCache = new Map();
+// ----- AI translation: MyMemory API (gratis, sin auth, sin descargas) -----
+// Cache en localStorage para evitar re-llamar la API en re-visitas.
+const AI_CACHE_KEY = 'cv-ai-cache-v1';
+let aiCache;
+try { aiCache = JSON.parse(localStorage.getItem(AI_CACHE_KEY) || '{}'); }
+catch(_){ aiCache = {}; }
+function saveCache(){
+  try { localStorage.setItem(AI_CACHE_KEY, JSON.stringify(aiCache)); } catch(_){}
+}
+const langPair = { en:'es|en', fr:'es|fr', pt:'es|pt-pt', zh:'es|zh-CN' };
 async function aiTranslate(text, lang){
-  // Stub seguro: nunca descarga modelos en el cliente.
-  // Devuelve el texto original — el dictionary cubre lo importante.
-  return text;
+  if (lang === 'es') return text;
+  const key = lang + '||' + text;
+  if (aiCache[key]) return aiCache[key];
+  const pair = langPair[lang];
+  if (!pair) return text;
+  try {
+    // MyMemory limita ~500 chars por request. Texto más largo se divide.
+    if (text.length > 480) {
+      const halves = text.match(/[^.!?]+[.!?]+|.+/g) || [text];
+      const parts = [];
+      for (const h of halves) parts.push(await aiTranslate(h.trim(), lang));
+      const joined = parts.join(' ');
+      aiCache[key] = joined; saveCache();
+      return joined;
+    }
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${pair}&de=info@cabovirgenes.com`;
+    const r = await fetch(url, { mode: 'cors' });
+    if (!r.ok) return text;
+    const data = await r.json();
+    const out = data?.responseData?.translatedText;
+    if (!out || /MYMEMORY WARNING/i.test(out) || /INVALID/i.test(out)) return text;
+    aiCache[key] = out; saveCache();
+    return out;
+  } catch(e){ return text; }
 }
 
 // ----- Set language -----
-let pendingAI = 0;
 function setLoadingState(active){
   document.documentElement.classList.toggle('translating', active);
 }
@@ -757,9 +783,31 @@ async function setLanguage(lang){
 
   window.dispatchEvent(new CustomEvent('langchange', { detail:{ lang } }));
 
-  // AI translation DESACTIVADA: bloquea el navegador al descargar el modelo.
-  // El dictionary cubre ES/EN al 100%. Para FR/PT/ZH muestra dictionary + ES.
-  // Para AI real → endpoint externo (RunPod) — ver translateAI abajo.
+  // AI fallback con MyMemory API para los textos no mapeados en dictionary
+  if (toAI.length) {
+    setLoadingState(true);
+    // Procesa en lotes de 4 con pequeño delay para no saturar la API
+    const batch = 4;
+    for (let i = 0; i < toAI.length; i += batch) {
+      if (document.documentElement.lang !== lang) break;
+      const slice = toAI.slice(i, i + batch);
+      await Promise.all(slice.map(async ({ el, txt, hadBr }) => {
+        const tr = await aiTranslate(txt, lang);
+        if (document.documentElement.lang !== lang) return;
+        if (!tr || tr === txt) return;
+        if (hadBr) {
+          const w = tr.split(' ');
+          const mid = Math.max(1, Math.round(w.length/2));
+          el.innerHTML = w.slice(0, mid).join(' ') + '<br/>' + w.slice(mid).join(' ');
+        } else {
+          el.textContent = tr;
+        }
+      }));
+      // Pequeño respiro entre lotes para no exceder rate limits
+      if (i + batch < toAI.length) await new Promise(r => setTimeout(r, 100));
+    }
+    setLoadingState(false);
+  }
 }
 
 // ----- API pública -----

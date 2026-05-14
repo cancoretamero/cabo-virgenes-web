@@ -591,15 +591,27 @@ const initWorldMap = async () => {
   mapIO.observe(mapEl);
   setTimeout(() => map.invalidateSize(), 500);
 };
-// Init mapa SOLO cuando la sección Plantas se acerca al viewport (lazy)
+// Pre-carga Leaflet en idle + init cuando sección visible
 const mapSection = document.getElementById('worldMap');
-if (mapSection && 'IntersectionObserver' in window) {
-  const mapLazyIO = new IntersectionObserver((entries) => {
-    for (const e of entries) {
-      if (e.isIntersecting) { initWorldMap(); mapLazyIO.disconnect(); break; }
-    }
-  }, { rootMargin: '400px' });
-  mapLazyIO.observe(mapSection);
+if (mapSection) {
+  // 1) Cargar Leaflet en background al terminar carga (sin bloquear)
+  const preloadLeaflet = () => ensureLeaflet().catch(()=>{});
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(preloadLeaflet, { timeout: 2000 });
+  } else {
+    setTimeout(preloadLeaflet, 1500);
+  }
+  // 2) Init cuando sección entra/se acerca al viewport
+  if ('IntersectionObserver' in window) {
+    const mapLazyIO = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) { initWorldMap(); mapLazyIO.disconnect(); break; }
+      }
+    }, { rootMargin: '600px' });
+    mapLazyIO.observe(mapSection);
+  } else {
+    initWorldMap();
+  }
 }
 
 // ============ PLANT MODAL — video play en thumbnails ============
