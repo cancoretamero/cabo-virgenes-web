@@ -86,3 +86,5 @@ Thumbs.db
 Espartano–Inicio.png
 op1Asset*.png
 logo-light.png
+*.bak
+dist/
