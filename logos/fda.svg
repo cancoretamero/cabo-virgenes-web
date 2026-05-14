@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80" fill="currentColor">
+  <g stroke="currentColor" stroke-width="2" fill="none">
+    <path d="M20 20 L100 20 L110 40 L100 60 L20 60 L10 40 Z"/>
+  </g>
+  <text x="60" y="48" text-anchor="middle" font-family="'Inter','Helvetica',Arial,sans-serif" font-weight="900" font-size="22" letter-spacing="2">FDA</text>
+  <text x="125" y="34" font-family="'Inter','Helvetica',Arial,sans-serif" font-weight="800" font-size="10" letter-spacing=".5">U.S. FOOD &amp;</text>
+  <text x="125" y="48" font-family="'Inter','Helvetica',Arial,sans-serif" font-weight="800" font-size="10" letter-spacing=".5">DRUG</text>
+  <text x="125" y="62" font-family="'Inter','Helvetica',Arial,sans-serif" font-weight="800" font-size="10" letter-spacing=".5">ADMINISTRATION</text>
+</svg>

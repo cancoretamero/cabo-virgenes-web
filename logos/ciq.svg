@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80" fill="currentColor">
+  <g transform="translate(40,40)">
+    <polygon points="0,-26 24,-8 24,12 0,28 -24,12 -24,-8" fill="none" stroke="currentColor" stroke-width="2"/>
+    <text x="0" y="6" text-anchor="middle" font-family="'Inter','Helvetica',Arial,sans-serif" font-weight="900" font-size="16">海关</text>
+  </g>
+  <text x="80" y="36" font-family="'Inter','Helvetica',Arial,sans-serif" font-weight="900" font-size="18" letter-spacing="1">CIQ CHINA</text>
+  <text x="80" y="54" font-family="'Inter','Helvetica',Arial,sans-serif" font-weight="600" font-size="9" letter-spacing=".4">China Customs Approved</text>
+</svg>

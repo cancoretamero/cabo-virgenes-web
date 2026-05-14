@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80" fill="currentColor">
+  <rect x="6" y="10" width="60" height="60" rx="10" fill="currentColor"/>
+  <text x="36" y="52" text-anchor="middle" font-family="'Inter','Helvetica',Arial,sans-serif" font-weight="900" font-size="28" fill="#0a1428">IFS</text>
+  <text x="76" y="36" font-family="'Inter','Helvetica',Arial,sans-serif" font-weight="800" font-size="14" letter-spacing="1">INTERNATIONAL</text>
+  <text x="76" y="52" font-family="'Inter','Helvetica',Arial,sans-serif" font-weight="800" font-size="14" letter-spacing="1">FEATURED</text>
+  <text x="76" y="68" font-family="'Inter','Helvetica',Arial,sans-serif" font-weight="800" font-size="14" letter-spacing="1">STANDARDS</text>
+</svg>

@@ -1,0 +1,88 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build/test outputs
+current.png
+resp-*.png
+sec*.png
+check-load.png
+diag.png
+fab-1920.png
+chat-wa.png
+chat-head.png
+chat.png
+empresa.png
+empresa-600.png
+flota.png
+fmt-cards.png
+footer.png
+footer-v2.png
+header-600.png
+hero-only.png
+hero-crop.png
+lang-open.png
+map-render.png
+map-v2.png
+mobile-burger.png
+mobile-cert.png
+mobile-closed.png
+mobile-drawer.png
+nav-dropdown.png
+nav-mobile.png
+productos.png
+productos-full.png
+productos2.png
+productos-logos.png
+rasa.png
+sec2-fix.png
+sec2-cards.png
+sec6-7.png
+sec6-icons.png
+sec7.png
+sec8-fmt.png
+translated-empresa.png
+translated-en.png
+verify-prod.png
+widgets.png
+fr.png
+test-prod.js
+modal-close.png
+certs.png
+fmt-cards.png
+
+# Heavy video/PDF source files (no se sirven directamente o se sirven desde CDN)
+CABO VIRGENES pesquera Español-sub ingles.mp4
+cabo-video.mp4
+b_f_f_a_mp_.mp4
+f_a_c_ca_a_a_e_f_a_c_ca_a_a_e_mp_.mp4
+ChatGPT Image 13 may 2026, 13_06_25.png
+Literal Web Design.png
+productos-tall.png
+wave-only.png
+
+# Source design materials (kept locally, not in repo)
+Diseño Web/
+_frames/
+_pdfimg/
+_pdfpages/
+_ships/
+_shrimp/
+_vframes/
+
+# OS
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Originals duplicados (mantener sólo los renombrados)
+Espartano–Inicio.png
+op1Asset*.png
+logo-light.png

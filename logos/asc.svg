@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80" fill="currentColor">
+  <g transform="translate(40,40)">
+    <circle r="26" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M -16 0 Q -8 -10, 4 -6 Q 14 -2, 18 4 Q 14 8, 4 8 Q -8 8, -16 0 Z" fill="currentColor"/>
+    <circle cx="10" cy="-1" r="1.5" fill="#0a1428"/>
+    <path d="M -16 0 L -22 -6 M -16 0 L -22 6" stroke="currentColor" stroke-width="2" fill="none"/>
+  </g>
+  <text x="80" y="36" font-family="'Inter','Helvetica',Arial,sans-serif" font-weight="900" font-size="20" letter-spacing="1">ASC</text>
+  <text x="80" y="54" font-family="'Inter','Helvetica',Arial,sans-serif" font-weight="700" font-size="9" letter-spacing=".4">Aquaculture</text>
+  <text x="80" y="66" font-family="'Inter','Helvetica',Arial,sans-serif" font-weight="500" font-size="8" letter-spacing=".4">Stewardship Council</text>
+</svg>

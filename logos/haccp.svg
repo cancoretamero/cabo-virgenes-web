@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80" fill="currentColor">
+  <g stroke="currentColor" stroke-width="2.5" fill="none">
+    <rect x="4" y="4" width="192" height="72" rx="10"/>
+    <path d="M22 56 L22 24 M22 40 L42 40 M42 24 L42 56"/>
+  </g>
+  <text x="58" y="48" font-family="'Inter','Helvetica',Arial,sans-serif" font-weight="900" font-size="26" letter-spacing="2">HACCP</text>
+  <text x="58" y="64" font-family="'Inter','Helvetica',Arial,sans-serif" font-weight="600" font-size="8" letter-spacing="1.5">FOOD SAFETY · CERTIFIED</text>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80" fill="currentColor">
+  <g transform="translate(40,40)" stroke="currentColor" fill="currentColor">
+    <circle r="14" stroke-width="1.5" fill="none"/>
+    <circle r="6"/>
+    <g stroke-width="2" stroke-linecap="round">
+      <line x1="0" y1="-26" x2="0" y2="-18"/>
+      <line x1="0" y1="18" x2="0" y2="26"/>
+      <line x1="-26" y1="0" x2="-18" y2="0"/>
+      <line x1="18" y1="0" x2="26" y2="0"/>
+      <line x1="-18" y1="-18" x2="-13" y2="-13"/>
+      <line x1="13" y1="13" x2="18" y2="18"/>
+      <line x1="-18" y1="18" x2="-13" y2="13"/>
+      <line x1="13" y1="-13" x2="18" y2="-18"/>
+    </g>
+  </g>
+  <text x="80" y="38" font-family="'Inter','Helvetica',Arial,sans-serif" font-weight="900" font-size="20" letter-spacing="1.5">SENASA</text>
+  <text x="80" y="56" font-family="'Inter','Helvetica',Arial,sans-serif" font-weight="600" font-size="9" letter-spacing=".4">Sanidad Argentina</text>
+</svg>

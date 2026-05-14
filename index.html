@@ -1,0 +1,2229 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<title>Cabo Vírgenes — Pesca, procesamiento y exportación de productos del mar</title>
+<meta name="description" content="Cabo Vírgenes es una empresa pesquera especializada en captura, procesamiento, comercialización y exportación de productos del mar, con operaciones en Argentina y España." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+
+<div class="page-bg"></div>
+<div class="bg-blobs" aria-hidden="true">
+  <span class="blob blob-1"></span>
+  <span class="blob blob-2"></span>
+  <span class="blob blob-3"></span>
+</div>
+
+<!-- SVG defs: clip-paths abstractos modernos -->
+<svg width="0" height="0" aria-hidden="true" style="position:absolute">
+  <defs>
+    <clipPath id="shipMask" clipPathUnits="objectBoundingBox">
+      <path d="M 0.22 0
+               L 1 0
+               L 1 1
+               L 0 1
+               L 0 0.74
+               C 0.04 0.62, 0.12 0.58, 0.10 0.46
+               C 0.08 0.36, 0.02 0.30, 0.06 0.22
+               C 0.10 0.14, 0.17 0.12, 0.18 0.04
+               C 0.19 0.00, 0.21 0.00, 0.22 0.00 Z" />
+    </clipPath>
+    <clipPath id="shipMaskBanner" clipPathUnits="objectBoundingBox">
+      <path d="M 0 0.52
+               C 0.16 0.42, 0.28 0.20, 0.50 0.10
+               C 0.66 0.02, 0.78 0, 0.82 0
+               L 1 0
+               L 1 1
+               L 0 1 Z" />
+    </clipPath>
+  </defs>
+</svg>
+
+<main class="stage" id="top">
+
+  <!-- SIDE RAIL 01 -->
+  <aside class="side-rail">
+    <div class="rail-num">01</div>
+    <div class="rail-dots" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div class="rail-label">DESLIZA PARA EXPLORAR</div>
+    <button type="button" class="rail-arrow glass" aria-label="Bajar a Empresa" data-next-section="empresa">
+      <svg viewBox="0 0 24 24" width="14" height="14"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </aside>
+
+  <!-- HEADER (dentro de stage) -->
+  <header class="header" id="header">
+    <a class="brand" href="#top" aria-label="Cabo Vírgenes">
+      <img src="./logo.png" alt="Cabo Vírgenes" />
+    </a>
+    <nav class="navpill glass" aria-label="Principal">
+      <a href="#empresa" data-i18n="nav.empresa">Empresa</a>
+      <a href="#productos" data-i18n="nav.productos">Productos</a>
+      <a href="#sostenibilidad" data-i18n="nav.sostenibilidad">Sostenibilidad</a>
+      <a href="#calidad" data-i18n="nav.calidad">Calidad</a>
+      <a href="#plantas" data-i18n="nav.plantas">Plantas</a>
+      <a href="#flota" data-i18n="nav.flota">Flota</a>
+      <a href="#contacto" data-i18n="nav.contacto">Contacto</a>
+      <div class="nav-menu-wrap">
+        <button class="nav-menu" id="navMenuBtn" aria-haspopup="menu" aria-expanded="false" aria-label="Abrir menú">
+          <span class="nav-menu-bar"></span><span class="nav-menu-bar"></span><span class="nav-menu-bar"></span>
+        </button>
+        <div class="nav-dropdown" id="navDropdown" role="menu" aria-hidden="true">
+          <a href="#empresa" role="menuitem"><span class="nav-num">01</span><span class="nav-name" data-i18n="nav.empresa">Empresa</span></a>
+          <a href="#productos" role="menuitem"><span class="nav-num">02</span><span class="nav-name" data-i18n="nav.productos">Productos</span></a>
+          <a href="#flota" role="menuitem"><span class="nav-num">03</span><span class="nav-name" data-i18n="nav.flota">Flota</span></a>
+          <a href="#plantas" role="menuitem"><span class="nav-num">04</span><span class="nav-name" data-i18n="nav.plantas">Plantas</span></a>
+          <a href="#calidad" role="menuitem"><span class="nav-num">05</span><span class="nav-name" data-i18n="nav.calidad">Calidad</span></a>
+          <a href="#sostenibilidad" role="menuitem"><span class="nav-num">06</span><span class="nav-name" data-i18n="nav.sostenibilidad">Sostenibilidad</span></a>
+          <a href="#contacto" role="menuitem"><span class="nav-num">07</span><span class="nav-name" data-i18n="nav.contacto">Contacto</span></a>
+          <div class="nav-dropdown-foot">
+            <span>info@cabovirgenes.com</span>
+            <span>Puerto Rawson · Palencia</span>
+          </div>
+        </div>
+      </div>
+    </nav>
+    <div class="lang-wrap">
+      <button class="lang-pill" id="langPillBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Cambiar idioma">
+        <svg viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18M12 3c2.5 3 2.5 15 0 18M12 3c-2.5 3-2.5 15 0 18" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+        <span id="langCurrent">ES</span>
+        <svg class="lang-caret" viewBox="0 0 24 24" width="10" height="10"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="lang-menu" id="langMenu" role="listbox" aria-hidden="true">
+        <button type="button" class="lang-item active" data-lang="es" role="option">
+          <span class="lang-flag">🇪🇸</span><span class="lang-name">Español</span><span class="lang-code">ES</span>
+        </button>
+        <button type="button" class="lang-item" data-lang="en" role="option">
+          <span class="lang-flag">🇬🇧</span><span class="lang-name">English</span><span class="lang-code">EN</span>
+        </button>
+        <button type="button" class="lang-item" data-lang="fr" role="option">
+          <span class="lang-flag">🇫🇷</span><span class="lang-name">Français</span><span class="lang-code">FR</span>
+        </button>
+        <button type="button" class="lang-item" data-lang="pt" role="option">
+          <span class="lang-flag">🇵🇹</span><span class="lang-name">Português</span><span class="lang-code">PT</span>
+        </button>
+        <button type="button" class="lang-item" data-lang="zh" role="option">
+          <span class="lang-flag">🇨🇳</span><span class="lang-name">中文</span><span class="lang-code">ZH</span>
+        </button>
+        <div class="lang-ai-hint">
+          <svg viewBox="0 0 24 24" width="12" height="12"><path d="M12 2 L14 9 L21 12 L14 15 L12 22 L10 15 L3 12 L10 9 Z" fill="currentColor"/></svg>
+          <span>Traducción IA con <strong>Transformers.js</strong></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========== HERO ========== -->
+  <section class="hero">
+
+    <!-- SHIP CUTOUT con clip-path abstracto -->
+    <div class="ship-cutout" id="heroVideoTrigger">
+      <img class="ship-img" src="./espartano-hero.png" alt="Buque pesquero Espartano en puerto" />
+      <div class="ship-shade"></div>
+      <button class="play-btn glass-strong" id="openPlayer" aria-label="Reproducir video">
+        <span class="play-ring"></span>
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M8 5v14l11-7L8 5z" fill="currentColor"/></svg>
+        <span class="play-label">Reproducir video corporativo</span>
+      </button>
+    </div>
+
+    <!-- HERO TEXT -->
+    <div class="hero-text" data-reveal>
+      <p class="eyebrow"><span class="dot"></span>ORIGEN. CALIDAD. CONFIANZA.</p>
+      <h1 class="hero-title">
+        Del Atlántico<br/>
+        Sur al mundo<span class="period">.</span>
+      </h1>
+      <p class="hero-copy">
+        Pesca, procesamiento y exportación de productos del mar, con operaciones en
+        Argentina y España. Cadena verticalmente integrada y trazabilidad total.
+      </p>
+      <div class="hero-cta">
+        <a class="btn btn-solid" href="#contacto">
+          <span>Contactar al equipo</span>
+          <span class="btn-arrow"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </a>
+        <a class="btn btn-outline" href="#empresa">
+          <span>Conocer la empresa</span>
+          <span class="btn-arrow ghost"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </a>
+      </div>
+    </div>
+
+    <!-- KPI CARDS (translúcidas sobre el barco/ola) -->
+    <section class="cards-row">
+      <article class="kpi-card glass" data-reveal>
+        <span class="kpi-ico"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18M12 3c2.5 3 2.5 15 0 18M12 3c-2.5 3-2.5 15 0 18" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span>
+        <div class="kpi-num"><span data-count="40">0</span><span class="plus">+</span></div>
+        <div class="kpi-label">países</div>
+        <p>América, Europa, Asia y África. Exportamos en 5 continentes.</p>
+      </article>
+      <article class="kpi-card glass" data-reveal>
+        <span class="kpi-ico"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 21s-7-5-7-12a7 7 0 0114 0c0 7-7 12-7 12z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="9" r="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span>
+        <div class="kpi-title">Argentina<br/>y España</div>
+        <p>Base productiva en Patagonia, plataforma logística en Palencia.</p>
+      </article>
+      <article class="kpi-card glass" data-reveal>
+        <span class="kpi-ico"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 12h6l2-3 2 6 2-3h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <div class="kpi-title">Cadena<br/>integrada</div>
+        <p>Captura, procesamiento, almacenamiento y comercialización propios.</p>
+      </article>
+      <article class="kpi-card glass" data-reveal>
+        <span class="kpi-ico"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12c2-4 6-6 8-6s6 2 8 6c-2 4-6 6-8 6s-6-2-8-6z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span>
+        <div class="kpi-title">Productos<br/>premium</div>
+        <p>Langostino austral salvaje (Pleoticus muelleri) en múltiples formatos.</p>
+      </article>
+    </section>
+  </section>
+
+  <!-- WAVE (mp4 loop, sangrado a los bordes de stage) -->
+  <section class="wave-band bleed" aria-hidden="true">
+    <video class="wave-video" src="./wave.mp4" autoplay muted loop playsinline poster="./wave.png"></video>
+    <img class="wave-fallback" src="./wave.png" alt="" />
+  </section>
+
+  <!-- ========== EMPRESA (02) ========== -->
+  <section class="sec sec-light bleed" id="empresa">
+    <aside class="num-rail" data-reveal>
+      <span class="num">02</span>
+      <svg class="scribble" viewBox="0 0 60 40" width="56"><path d="M4 22 C 14 6, 22 30, 32 16 S 52 24, 58 12" fill="none" stroke="#1cb5b0" stroke-width="3" stroke-linecap="round"/></svg>
+      <div class="rail-dots" aria-hidden="true"><span></span><span class="on"></span><span></span><span></span><span></span><span></span></div>
+      <div class="rail-label">DESLIZA PARA EXPLORAR</div>
+      <button type="button" class="rail-arrow glass" data-next-section="productos" aria-label="Bajar a Productos"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </aside>
+
+    <div class="sec-grid">
+      <div class="sec-text" data-reveal>
+        <p class="eyebrow"><span class="dot"></span>QUIÉNES SOMOS</p>
+        <h2 class="sec-title">Estructura binacional,<br/>visión global<span class="period">.</span></h2>
+        <p>
+          Cabo Vírgenes fue fundada en <strong>2008</strong> y ha consolidado una estructura operativa
+          binacional con base productiva en la <strong>Patagonia argentina</strong> y plataforma logística
+          y de valor agregado en <strong>España</strong>.
+        </p>
+        <p>
+          En enero de <strong>2025</strong> la compañía se incorporó a <strong>AISA Group</strong>,
+          fortaleciendo su posicionamiento dentro de la industria pesquera internacional.
+        </p>
+        <p class="muted">
+          Base operativa en Puerto Rawson (Chubut, Argentina) y presencia en Palencia (España).
+          Especialidad: <em>Pleoticus muelleri</em>, el langostino austral salvaje del Atlántico Sur.
+        </p>
+
+        <div class="kpi-strip">
+          <div><strong data-count="2008">0</strong><span>fundación</span></div>
+          <div><strong data-count="40">0</strong><span>países destino</span></div>
+          <div><strong data-count="5">0</strong><span>buques propios</span></div>
+          <div><strong data-count="2">0</strong><span>continentes</span></div>
+        </div>
+
+        <button type="button" class="more-link" data-modal="modal-empresa-full">
+          Más sobre nosotros
+          <span class="more-circle"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </button>
+
+        <div class="pager-dots" id="vcardsPager" role="tablist" aria-label="Cambiar tarjeta">
+          <button type="button" class="on" data-card="0" aria-label="Tarjeta 1"></button>
+          <button type="button" data-card="1" aria-label="Tarjeta 2"></button>
+          <button type="button" data-card="2" aria-label="Tarjeta 3"></button>
+          <button type="button" data-card="3" aria-label="Tarjeta 4"></button>
+          <button type="button" data-card="4" aria-label="Tarjeta 5"></button>
+        </div>
+      </div>
+
+      <div class="vcards vcards-fan" id="vcardsFan" data-reveal>
+        <article class="v-card" data-fan="0" data-modal="modal-card-flota">
+          <div class="v-photo"><img src="./card-pesca.jpg" alt="Pesca responsable Espartano" /></div>
+          <span class="v-icon-circle">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 16 L20 16 L17 20 L7 20 Z M6 12 L18 12 L18 16 L6 16 Z M12 5 L12 12 M9 8 L15 8" fill="none" stroke="#7fe3df" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <p class="v-tag">FLOTA</p>
+          <div class="v-body">
+            <h3>Pesca<br/>responsable</h3>
+            <p>Buques propios bajo estrictas normas de conservación del Mar Argentino.</p>
+          </div>
+          <svg class="v-wave" viewBox="0 0 320 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 20 Q 40 6 80 20 T 160 20 T 240 20 T 320 20" fill="none" stroke="#7fe3df" stroke-width="1.4" stroke-linecap="round" opacity=".5"/></svg>
+          <button class="v-arrow-circle" data-modal="modal-card-flota" aria-label="Ver más">
+            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </article>
+
+        <article class="v-card" data-fan="1" data-modal="modal-card-producto">
+          <div class="v-photo"><img src="./card-langostino.jpg" alt="Langostino austral salvaje" /></div>
+          <span class="v-icon-circle">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M5 14 C 8 8, 14 8, 18 10 C 20 11, 20 13, 18 14 C 14 16, 9 16, 5 14 Z M16 9 L18 6 M14 8 L13 5" fill="none" stroke="#7fe3df" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </span>
+          <p class="v-tag">PRODUCTO</p>
+          <div class="v-body">
+            <h3>Langostino<br/>austral salvaje</h3>
+            <p>Pleoticus muelleri capturado en el Atlántico sudoccidental (FAO 41).</p>
+          </div>
+          <svg class="v-wave" viewBox="0 0 320 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 20 Q 40 6 80 20 T 160 20 T 240 20 T 320 20" fill="none" stroke="#7fe3df" stroke-width="1.4" stroke-linecap="round" opacity=".5"/></svg>
+          <button class="v-arrow-circle" data-modal="modal-card-producto" aria-label="Ver más">
+            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </article>
+
+        <article class="v-card" data-fan="2" data-modal="modal-card-presencia">
+          <div class="v-photo"><img src="./espartano-hero.png" alt="Presencia global" /></div>
+          <span class="v-icon-circle">
+            <svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="9" fill="none" stroke="#7fe3df" stroke-width="1.5"/><path d="M3 12h18M12 3c2.5 3 2.5 15 0 18M12 3c-2.5 3-2.5 15 0 18" fill="none" stroke="#7fe3df" stroke-width="1.5"/></svg>
+          </span>
+          <p class="v-tag">PRESENCIA GLOBAL</p>
+          <div class="v-body">
+            <h3>40+ países<br/>en 5 continentes</h3>
+            <p>Estructura binacional Argentina–España con presencia en mercados premium.</p>
+          </div>
+          <svg class="v-wave" viewBox="0 0 320 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 20 Q 40 6 80 20 T 160 20 T 240 20 T 320 20" fill="none" stroke="#7fe3df" stroke-width="1.4" stroke-linecap="round" opacity=".5"/></svg>
+          <button class="v-arrow-circle" data-modal="modal-card-presencia" aria-label="Ver más">
+            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </article>
+
+        <article class="v-card" data-fan="3" data-modal="modal-card-trazabilidad">
+          <div class="v-photo"><img src="./ship-hero.jpg" alt="Trazabilidad total" /></div>
+          <span class="v-icon-circle">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 7 L12 3 L20 7 L20 17 L12 21 L4 17 Z M4 7 L12 11 L20 7 M12 11 L12 21" fill="none" stroke="#7fe3df" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <p class="v-tag">TRAZABILIDAD</p>
+          <div class="v-body">
+            <h3>Cadena<br/>integrada</h3>
+            <p>De la captura al puerto: control end-to-end con trazabilidad total.</p>
+          </div>
+          <svg class="v-wave" viewBox="0 0 320 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 20 Q 40 6 80 20 T 160 20 T 240 20 T 320 20" fill="none" stroke="#7fe3df" stroke-width="1.4" stroke-linecap="round" opacity=".5"/></svg>
+          <button class="v-arrow-circle" data-modal="modal-card-trazabilidad" aria-label="Ver más">
+            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </article>
+
+        <article class="v-card" data-fan="4" data-modal="modal-card-sostenibilidad">
+          <div class="v-photo"><img src="./card-pesca.jpg" alt="Sostenibilidad" /></div>
+          <span class="v-icon-circle">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 22 C 6 18, 4 12, 6 8 C 8 4, 14 4, 16 8 C 18 12, 18 18, 12 22 Z M12 22 C 12 16, 14 12, 16 10" fill="none" stroke="#7fe3df" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </span>
+          <p class="v-tag">SOSTENIBILIDAD</p>
+          <div class="v-body">
+            <h3>Compromiso<br/>con el mar</h3>
+            <p>Vedas, cuotas y mejora continua. Pesquería gestionada y certificada.</p>
+          </div>
+          <svg class="v-wave" viewBox="0 0 320 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 20 Q 40 6 80 20 T 160 20 T 240 20 T 320 20" fill="none" stroke="#7fe3df" stroke-width="1.4" stroke-linecap="round" opacity=".5"/></svg>
+          <button class="v-arrow-circle" data-modal="modal-card-sostenibilidad" aria-label="Ver más">
+            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== PRODUCTOS (03) ========== -->
+  <section class="sec sec-deep bleed" id="productos">
+    <aside class="num-rail num-rail-light" data-reveal>
+      <span class="num">03</span>
+      <svg class="scribble" viewBox="0 0 60 40" width="56"><path d="M4 22 C 14 6, 22 30, 32 16 S 52 24, 58 12" fill="none" stroke="#7fe3df" stroke-width="3" stroke-linecap="round"/></svg>
+      <div class="rail-dots" aria-hidden="true"><span></span><span></span><span class="on"></span><span></span><span></span><span></span></div>
+      <div class="rail-label">DESLIZA PARA EXPLORAR</div>
+      <button type="button" class="rail-arrow glass-strong" data-next-section="flota" aria-label="Bajar a Flota"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </aside>
+    <div class="sec-grid prod-grid">
+      <div class="sec-text" data-reveal>
+        <p class="eyebrow eyebrow-light"><span class="dot"></span>PRODUCTOS</p>
+        <h2 class="sec-title light">Langostino austral<br/>salvaje<span class="period">.</span></h2>
+        <p class="lead light">
+          <em>Pleoticus muelleri</em> capturado en aguas frías del <strong>Atlántico Sudoccidental (FAO 41)</strong>,
+          en la Patagonia argentina. Producto 100% salvaje, sin acuicultura, sin antibióticos.
+        </p>
+        <p class="lead light">
+          Cinco formatos, seis calibres y cinco presentaciones para foodservice, retail
+          e industria de procesamiento en mercados premium.
+        </p>
+
+        <!-- KPI strip estilo sección 02 -->
+        <div class="kpi-strip kpi-strip-dark" data-reveal>
+          <div><strong>FAO 41</strong><span>Zona de captura</span></div>
+          <div><strong>5</strong><span>Formatos</span></div>
+          <div><strong>6</strong><span>Calibres</span></div>
+          <div><strong>100%</strong><span>Salvaje</span></div>
+        </div>
+
+        <button type="button" class="more-link more-link-light" data-modal="modal-producto-full">
+          Especificaciones completas
+          <span class="more-circle"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </button>
+      </div>
+
+      <!-- Big hero card del langostino -->
+      <article class="prod-hero-card glass-deep" data-reveal>
+        <div class="phc-img"><img src="./card-langostino.jpg" alt="Langostino austral" loading="lazy" /></div>
+        <div class="phc-body">
+          <span class="phc-tag">ESPECIE</span>
+          <h3>Pleoticus<br/><em>muelleri</em></h3>
+          <ul class="phc-meta">
+            <li><span>HÁBITAT</span><strong>Atlántico Sur frío</strong></li>
+            <li><span>PROFUNDIDAD</span><strong>40–200 m</strong></li>
+            <li><span>TEMPORADA</span><strong>Mar–Oct</strong></li>
+            <li><span>PORCIÓN</span><strong>L1: 10–20/kg</strong></li>
+          </ul>
+          <svg class="phc-wave" viewBox="0 0 400 30" preserveAspectRatio="none" aria-hidden="true"><path d="M0 15 Q 50 4 100 15 T 200 15 T 300 15 T 400 15" fill="none" stroke="#7fe3df" stroke-width="1.4" opacity=".5"/></svg>
+        </div>
+      </article>
+    </div>
+
+    <!-- 5 FORMAT CARDS — 5 imágenes totalmente distintas -->
+    <div class="formats-deck" data-reveal>
+      <article class="fmt-card glass-deep" data-modal="modal-fmt-hoso">
+        <div class="fmt-photo"><img src="./prod-hoso.jpg?v=2" alt="HOSO Langostinos enteros con cabeza" loading="lazy"/></div>
+        <span class="fmt-num">01</span>
+        <h3>HOSO</h3>
+        <p class="fmt-sub">Langostino entero</p>
+        <p class="fmt-desc">Con cabeza y caparazón. Forma natural.</p>
+        <button class="fmt-arrow" aria-label="Ver más"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </article>
+      <article class="fmt-card glass-deep" data-modal="modal-fmt-hlso">
+        <div class="fmt-photo"><img src="./prod-hlso.jpg?v=2" alt="HLSO Cola de langostino con caparazón" loading="lazy"/></div>
+        <span class="fmt-num">02</span>
+        <h3>HLSO</h3>
+        <p class="fmt-sub">Cola con caparazón</p>
+        <p class="fmt-desc">Sin cabeza. Ideal parrilla.</p>
+        <button class="fmt-arrow" aria-label="Ver más"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </article>
+      <article class="fmt-card glass-deep" data-modal="modal-fmt-ezp">
+        <div class="fmt-photo"><img src="./prod-ezp.jpg?v=2" alt="EZP Easy peel langostinos pelados" loading="lazy"/></div>
+        <span class="fmt-num">03</span>
+        <h3>EZP</h3>
+        <p class="fmt-sub">Easy peel</p>
+        <p class="fmt-desc">Caparazón pre-cortado.</p>
+        <button class="fmt-arrow" aria-label="Ver más"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </article>
+      <article class="fmt-card glass-deep" data-modal="modal-fmt-pd">
+        <div class="fmt-photo"><img src="./prod-pd.png?v=2" alt="P&D Origen del Espartano" loading="lazy"/></div>
+        <span class="fmt-num">04</span>
+        <h3>P&amp;D</h3>
+        <p class="fmt-sub">Pelado y desvenado</p>
+        <p class="fmt-desc">Calidad sashimi.</p>
+        <button class="fmt-arrow" aria-label="Ver más"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </article>
+      <article class="fmt-card glass-deep" data-modal="modal-fmt-pdto">
+        <div class="fmt-photo"><img src="./prod-pdto.jpg?v=2" alt="PDTO Origen y captura nocturna" loading="lazy"/></div>
+        <span class="fmt-num">05</span>
+        <h3>PDTO</h3>
+        <p class="fmt-sub">Tail-on</p>
+        <p class="fmt-desc">Pelado con cola intacta.</p>
+        <button class="fmt-arrow" aria-label="Ver más"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </article>
+    </div>
+
+    <!-- CERTIFICACIONES — banda con scroll infinito automático -->
+    <div class="cert-block" data-reveal>
+      <div class="cert-head">
+        <p class="eyebrow eyebrow-light"><span class="dot"></span>CERTIFICACIONES</p>
+        <h3 class="cert-title">Acreditados en los<br/>mercados más exigentes<span class="period">.</span></h3>
+      </div>
+      <div class="cert-marquee" aria-hidden="true">
+        <div class="cert-track">
+          <span class="cert-logo"><img src="./logos/haccp.svg" alt="HACCP"/></span>
+          <span class="cert-logo"><img src="./logos/brcgs.svg" alt="BRCGS"/></span>
+          <span class="cert-logo"><img src="./logos/ifs.svg" alt="IFS"/></span>
+          <span class="cert-logo"><img src="./logos/fda.svg" alt="FDA"/></span>
+          <span class="cert-logo"><img src="./logos/eu.svg" alt="EU Approved"/></span>
+          <span class="cert-logo"><img src="./logos/msc.svg" alt="MSC"/></span>
+          <span class="cert-logo"><img src="./logos/senasa.svg" alt="SENASA"/></span>
+          <span class="cert-logo"><img src="./logos/ciq.svg" alt="CIQ China"/></span>
+          <span class="cert-logo"><img src="./logos/asc.svg" alt="ASC"/></span>
+          <span class="cert-logo"><img src="./logos/globalgap.svg" alt="GLOBAL G.A.P."/></span>
+          <!-- duplicado para loop continuo -->
+          <span class="cert-logo"><img src="./logos/haccp.svg" alt=""/></span>
+          <span class="cert-logo"><img src="./logos/brcgs.svg" alt=""/></span>
+          <span class="cert-logo"><img src="./logos/ifs.svg" alt=""/></span>
+          <span class="cert-logo"><img src="./logos/fda.svg" alt=""/></span>
+          <span class="cert-logo"><img src="./logos/eu.svg" alt=""/></span>
+          <span class="cert-logo"><img src="./logos/msc.svg" alt=""/></span>
+          <span class="cert-logo"><img src="./logos/senasa.svg" alt=""/></span>
+          <span class="cert-logo"><img src="./logos/ciq.svg" alt=""/></span>
+          <span class="cert-logo"><img src="./logos/asc.svg" alt=""/></span>
+          <span class="cert-logo"><img src="./logos/globalgap.svg" alt=""/></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== FLOTA (04) ========== -->
+  <section class="sec sec-light bleed" id="flota">
+    <aside class="num-rail" data-reveal>
+      <span class="num">04</span>
+      <svg class="scribble" viewBox="0 0 60 40" width="56"><path d="M4 22 C 14 6, 22 30, 32 16 S 52 24, 58 12" fill="none" stroke="#1cb5b0" stroke-width="3" stroke-linecap="round"/></svg>
+      <div class="rail-dots" aria-hidden="true"><span></span><span></span><span></span><span class="on"></span><span></span><span></span></div>
+      <div class="rail-label">DESLIZA PARA EXPLORAR</div>
+      <button type="button" class="rail-arrow glass" data-next-section="plantas" aria-label="Bajar a Plantas"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </aside>
+    <!-- HEADER + HERO CARD del buque principal -->
+    <div class="sec-grid flota-grid">
+      <div class="sec-text" data-reveal>
+        <p class="eyebrow"><span class="dot"></span>FLOTA PESQUERA</p>
+        <h2 class="sec-title">5 buques operando<br/>el Mar Argentino<span class="period">.</span></h2>
+        <p class="lead">
+          <strong>3 fresqueros</strong> para procesamiento ágil en planta y
+          <strong>2 buques factoría</strong> que congelan a bordo. Operación
+          continua desde <strong>Puerto Rawson</strong> con captura superior
+          a <strong>3.000 t/año</strong>.
+        </p>
+
+        <div class="kpi-strip" data-reveal>
+          <div><strong>5</strong><span>Buques propios</span></div>
+          <div><strong>3</strong><span>Fresqueros</span></div>
+          <div><strong>2</strong><span>Factoría</span></div>
+          <div><strong>3.000+</strong><span>Toneladas/año</span></div>
+        </div>
+
+        <button type="button" class="more-link" data-modal="modal-flota-full">
+          Ver flota completa
+          <span class="more-circle"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </button>
+      </div>
+
+      <!-- Hero card: buque insignia -->
+      <article class="flota-hero" data-reveal>
+        <div class="fh-img"><img src="./espartano-hero.png" alt="Espartano buque insignia" loading="lazy"/></div>
+        <div class="fh-body">
+          <span class="fh-tag">BUQUE INSIGNIA</span>
+          <h3>Espartano</h3>
+          <ul class="fh-meta">
+            <li><span>ESLORA</span><strong>21 m</strong></li>
+            <li><span>TIPO</span><strong>Fresquero</strong></li>
+            <li><span>CAPTURA</span><strong>3.000+ t/año</strong></li>
+            <li><span>PUERTO</span><strong>Puerto Rawson</strong></li>
+          </ul>
+        </div>
+      </article>
+    </div>
+
+    <!-- 5 SHIP CARDS — con fotos distintas y modales -->
+    <div class="fleet-deck" data-reveal>
+      <article class="ship-card-v2" data-modal="modal-ship-espartano">
+        <div class="sc-photo"><img src="./espartano-hero.png" alt="Espartano" loading="lazy"/></div>
+        <span class="sc-type sc-type-fresh">FRESQUERO</span>
+        <h3>Espartano</h3>
+        <ul class="sc-stats">
+          <li><span>ESLORA</span><strong>21 m</strong></li>
+          <li><span>CAPTURA</span><strong>3.000+ t/año</strong></li>
+        </ul>
+        <p class="sc-loc"><svg viewBox="0 0 24 24" width="12" height="12"><path d="M12 21s-7-5-7-12a7 7 0 0114 0c0 7-7 12-7 12z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="9" r="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg> Puerto Rawson</p>
+        <button class="sc-arrow" aria-label="Ver detalles"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </article>
+
+      <article class="ship-card-v2" data-modal="modal-ship-cristo">
+        <div class="sc-photo"><img src="./card-pesca.jpg" alt="Cristo Redentor" loading="lazy"/></div>
+        <span class="sc-type sc-type-fresh">FRESQUERO</span>
+        <h3>Cristo Redentor</h3>
+        <ul class="sc-stats">
+          <li><span>ESLORA</span><strong>31 m</strong></li>
+          <li><span>CICLO</span><strong>Corto</strong></li>
+        </ul>
+        <p class="sc-loc"><svg viewBox="0 0 24 24" width="12" height="12"><path d="M12 21s-7-5-7-12a7 7 0 0114 0c0 7-7 12-7 12z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="9" r="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg> Puerto Rawson</p>
+        <button class="sc-arrow" aria-label="Ver detalles"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </article>
+
+      <article class="ship-card-v2" data-modal="modal-ship-iglu">
+        <div class="sc-photo"><img src="./ship-hero.jpg" alt="Iglú I" loading="lazy"/></div>
+        <span class="sc-type sc-type-fresh">FRESQUERO</span>
+        <h3>Iglú I</h3>
+        <ul class="sc-stats">
+          <li><span>ESLORA</span><strong>32 m</strong></li>
+          <li><span>CADENA</span><strong>Frío total</strong></li>
+        </ul>
+        <p class="sc-loc"><svg viewBox="0 0 24 24" width="12" height="12"><path d="M12 21s-7-5-7-12a7 7 0 0114 0c0 7-7 12-7 12z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="9" r="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg> Puerto Rawson</p>
+        <button class="sc-arrow" aria-label="Ver detalles"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </article>
+
+      <article class="ship-card-v2 sc-dark" data-modal="modal-ship-esmeralda">
+        <div class="sc-photo"><img src="./buque-1.jpg" alt="Mar Esmeralda" loading="lazy"/></div>
+        <span class="sc-type sc-type-factory">FACTORÍA</span>
+        <h3>Mar Esmeralda</h3>
+        <ul class="sc-stats">
+          <li><span>ESLORA</span><strong>53 m</strong></li>
+          <li><span>CONGELACIÓN</span><strong>23 t/día</strong></li>
+        </ul>
+        <p class="sc-loc"><svg viewBox="0 0 24 24" width="12" height="12"><path d="M12 2v20M5 8h14M3 22c2-2 4-2 6 0s4 2 6 0 4-2 6 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg> A bordo · Atlántico Sur</p>
+        <button class="sc-arrow" aria-label="Ver detalles"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </article>
+
+      <article class="ship-card-v2 sc-dark" data-modal="modal-ship-kaleu">
+        <div class="sc-photo"><img src="./mar-storm.jpg" alt="Kaleu Kaleu" loading="lazy"/></div>
+        <span class="sc-type sc-type-factory">FACTORÍA</span>
+        <h3>Kaleu Kaleu</h3>
+        <ul class="sc-stats">
+          <li><span>ESLORA</span><strong>56 m</strong></li>
+          <li><span>CONGELACIÓN</span><strong>13 t/día</strong></li>
+        </ul>
+        <p class="sc-loc"><svg viewBox="0 0 24 24" width="12" height="12"><path d="M12 2v20M5 8h14M3 22c2-2 4-2 6 0s4 2 6 0 4-2 6 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg> A bordo · Atlántico Sur</p>
+        <button class="sc-arrow" aria-label="Ver detalles"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </article>
+    </div>
+  </section>
+
+  <!-- ========== PLANTAS (05) ========== -->
+  <section class="sec sec-mix bleed" id="plantas">
+    <aside class="num-rail" data-reveal>
+      <span class="num">05</span>
+      <svg class="scribble" viewBox="0 0 60 40" width="56"><path d="M4 22 C 14 6, 22 30, 32 16 S 52 24, 58 12" fill="none" stroke="#1cb5b0" stroke-width="3" stroke-linecap="round"/></svg>
+      <div class="rail-dots" aria-hidden="true"><span></span><span></span><span></span><span></span><span class="on"></span><span></span></div>
+      <div class="rail-label">DESLIZA PARA EXPLORAR</div>
+      <button type="button" class="rail-arrow glass" data-next-section="calidad" aria-label="Bajar a Calidad"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </aside>
+    <div class="sec-head" data-reveal>
+      <p class="eyebrow"><span class="dot"></span>PLANTAS Y MERCADOS</p>
+      <h2 class="sec-title">Dos continentes,<br/>presencia global<span class="period">.</span></h2>
+      <p class="lead">
+        <strong>2 plantas operativas</strong> en Argentina y España, exportando a
+        <strong>40+ países</strong> en <strong>5 continentes</strong>.
+      </p>
+    </div>
+
+    <!-- MAPA INTERACTIVO MEJORADO + STATS + CARDS PLANTAS -->
+    <div class="map-stack" data-reveal>
+      <div class="map-frame">
+        <div id="worldMap" aria-label="Mapa de plantas y mercados"></div>
+
+        <!-- Glow overlay decorativo (gradient radial sobre el mapa) -->
+        <div class="map-glow" aria-hidden="true"></div>
+
+        <!-- Side info panel: muestra el país hovereado -->
+        <div class="map-info-panel glass" id="mapInfoPanel">
+          <p class="mip-eyebrow">EXPLORÁ EL MAPA</p>
+          <h4 id="mipTitle">Presencia global</h4>
+          <p class="mip-sub" id="mipSub">Hover sobre un marcador para ver el destino</p>
+          <div class="mip-bar"><span id="mipBar"></span></div>
+          <p class="mip-stats">
+            <span><strong>2</strong>plantas</span>
+            <span><strong>41</strong>destinos</span>
+            <span><strong>5</strong>continentes</span>
+          </p>
+        </div>
+
+        <!-- Legend overlay -->
+        <div class="map-legend glass">
+          <div class="ml-item"><span class="ml-dot ml-dot-hq"></span><span>Plantas operativas</span></div>
+          <div class="ml-item"><span class="ml-dot ml-dot-mkt"></span><span>Mercados de exportación</span></div>
+          <div class="ml-item"><span class="ml-line"></span><span>Rutas de exportación</span></div>
+        </div>
+
+        <!-- Region filter pills -->
+        <div class="map-filters glass">
+          <button type="button" class="mf-btn on" data-region="all">Todos</button>
+          <button type="button" class="mf-btn" data-region="eu">Europa</button>
+          <button type="button" class="mf-btn" data-region="am">América</button>
+          <button type="button" class="mf-btn" data-region="as">Asia</button>
+          <button type="button" class="mf-btn" data-region="af">África</button>
+          <button type="button" class="mf-btn" data-region="oc">Oceanía</button>
+        </div>
+      </div>
+
+      <!-- Plantas detail cards bajo el mapa (clicables → modal con fotos/video) -->
+      <div class="plants-grid">
+        <article class="plant-card glass plant-card-clickable" data-modal="modal-plant-rawson">
+          <div class="plant-flag"><svg viewBox="0 0 60 40" width="42" height="28"><rect width="60" height="40" rx="3" fill="#75aadb"/><rect y="13.3" width="60" height="13.3" fill="#fff"/><circle cx="30" cy="20" r="3.5" fill="#f4b833"/></svg></div>
+          <h3>Argentina<br/>Puerto Rawson</h3>
+          <p class="plant-tag">Núcleo productivo</p>
+          <ul class="plant-list">
+            <li>Producción de hielo en escama y líquido</li>
+            <li>Infraestructura para procesamiento industrial</li>
+            <li>Almacenamiento refrigerado hasta <strong>1.600 t</strong></li>
+            <li>Congelación de <strong>100 t/día</strong></li>
+            <li>Logística orientada a exportación</li>
+          </ul>
+          <span class="plant-cta"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M8 5v14l11-7L8 5z" fill="currentColor"/></svg> Ver galería y vídeo</span>
+        </article>
+        <article class="plant-card glass plant-card-clickable" data-modal="modal-plant-palencia">
+          <div class="plant-flag"><svg viewBox="0 0 60 40" width="42" height="28"><rect width="60" height="40" rx="3" fill="#aa151b"/><rect y="10" width="60" height="20" fill="#f1bf00"/></svg></div>
+          <h3>España<br/>Palencia</h3>
+          <p class="plant-tag">Logística + valor agregado</p>
+          <ul class="plant-list">
+            <li>Planta de <strong>4.600 m²</strong></li>
+            <li>Procesamiento de <strong>22.000 kg/día</strong></li>
+            <li>Almacenamiento refrigerado hasta <strong>5.500 t</strong></li>
+            <li>Certificaciones <strong>BRCGS</strong> e <strong>IFS</strong></li>
+            <li>Re-procesado y distribución europea</li>
+          </ul>
+          <span class="plant-cta"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M8 5v14l11-7L8 5z" fill="currentColor"/></svg> Ver galería y vídeo</span>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== CALIDAD (06) ========== -->
+  <section class="sec sec-deep bleed" id="calidad">
+    <aside class="num-rail num-rail-light" data-reveal>
+      <span class="num">06</span>
+      <svg class="scribble" viewBox="0 0 60 40" width="56"><path d="M4 22 C 14 6, 22 30, 32 16 S 52 24, 58 12" fill="none" stroke="#7fe3df" stroke-width="3" stroke-linecap="round"/></svg>
+      <div class="rail-dots" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span class="on"></span></div>
+      <div class="rail-label">DESLIZA PARA EXPLORAR</div>
+      <button type="button" class="rail-arrow glass-strong" data-next-section="sostenibilidad" aria-label="Bajar a Sostenibilidad"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </aside>
+    <div class="sec-head" data-reveal>
+      <p class="eyebrow eyebrow-light"><span class="dot"></span>CALIDAD</p>
+      <h2 class="sec-title light">La calidad empieza<br/>en el mar<span class="period">.</span></h2>
+      <p class="lead light">
+        Sistema APPCC, control en cada etapa y cumplimiento normativo extendido a toda
+        la red de proveedores. <strong>Cinco certificaciones internacionales</strong>.
+      </p>
+    </div>
+
+    <!-- CADENA DE CALIDAD: 5 pasos animados -->
+    <div class="quality-chain" data-reveal>
+      <div class="qc-step">
+        <span class="qc-num">01</span>
+        <span class="qc-ico"><i data-lucide="fish" class="lucide-ico"></i></span>
+        <h4>Captura</h4>
+        <p>Aguas frías FAO 41. Cuotas y vedas reproductivas.</p>
+      </div>
+      <span class="qc-arrow"><i data-lucide="arrow-right" class="lucide-arrow"></i></span>
+      <div class="qc-step">
+        <span class="qc-num">02</span>
+        <span class="qc-ico"><i data-lucide="snowflake" class="lucide-ico"></i></span>
+        <h4>Congelación</h4>
+        <p>IQF a –40°C a bordo. Cadena de frío total.</p>
+      </div>
+      <span class="qc-arrow"><i data-lucide="arrow-right" class="lucide-arrow"></i></span>
+      <div class="qc-step">
+        <span class="qc-num">03</span>
+        <span class="qc-ico"><i data-lucide="package-check" class="lucide-ico"></i></span>
+        <h4>Procesamiento</h4>
+        <p>APPCC en planta. Trazabilidad por lote.</p>
+      </div>
+      <span class="qc-arrow"><i data-lucide="arrow-right" class="lucide-arrow"></i></span>
+      <div class="qc-step">
+        <span class="qc-num">04</span>
+        <span class="qc-ico"><i data-lucide="shield-check" class="lucide-ico"></i></span>
+        <h4>Certificación</h4>
+        <p>HACCP · BRCGS · IFS · MSC · ASC.</p>
+      </div>
+      <span class="qc-arrow"><i data-lucide="arrow-right" class="lucide-arrow"></i></span>
+      <div class="qc-step">
+        <span class="qc-num">05</span>
+        <span class="qc-ico"><i data-lucide="ship" class="lucide-ico"></i></span>
+        <h4>Exportación</h4>
+        <p>5 continentes · 40+ países certificados.</p>
+      </div>
+    </div>
+
+    <!-- CERTIFICATION CARDS — flip al hover con logos oficiales -->
+    <div class="quality-grid" data-reveal>
+      <article class="qual-card-v2" data-modal="modal-cert-haccp">
+        <div class="qcv-inner">
+          <div class="qcv-front">
+            <img src="./logos/haccp.svg" alt="HACCP"/>
+            <h3>HACCP</h3>
+            <p>Análisis de peligros y puntos críticos de control.</p>
+          </div>
+          <div class="qcv-back">
+            <strong>Hazard Analysis &amp; Critical Control Points</strong>
+            <p>Sistema preventivo de inocuidad alimentaria reconocido por FDA y UE. Implementado en ambas plantas.</p>
+            <span class="qcv-tag">Inocuidad · Mundial</span>
+          </div>
+        </div>
+      </article>
+      <article class="qual-card-v2" data-modal="modal-cert-brcgs">
+        <div class="qcv-inner">
+          <div class="qcv-front">
+            <img src="./logos/brcgs.svg" alt="BRCGS"/>
+            <h3>BRCGS</h3>
+            <p>Global Standard for Food Safety — versión 9.</p>
+          </div>
+          <div class="qcv-back">
+            <strong>British Retail Consortium Global Standards</strong>
+            <p>Exigido por retailers UK y EU para suministro directo. Auditoría anual obligatoria.</p>
+            <span class="qcv-tag">Retail · Europa</span>
+          </div>
+        </div>
+      </article>
+      <article class="qual-card-v2" data-modal="modal-cert-ifs">
+        <div class="qcv-inner">
+          <div class="qcv-front">
+            <img src="./logos/ifs.svg" alt="IFS"/>
+            <h3>IFS Food</h3>
+            <p>International Featured Standards · Higher Level.</p>
+          </div>
+          <div class="qcv-back">
+            <strong>IFS Food Standard</strong>
+            <p>Estándar internacional liderado por retail europeo y francés. Certificación en planta de Palencia.</p>
+            <span class="qcv-tag">Foodservice · Global</span>
+          </div>
+        </div>
+      </article>
+      <article class="qual-card-v2" data-modal="modal-cert-msc">
+        <div class="qcv-inner">
+          <div class="qcv-front">
+            <img src="./logos/msc.svg" alt="MSC"/>
+            <h3>MSC</h3>
+            <p>Marine Stewardship Council — pesca sostenible.</p>
+          </div>
+          <div class="qcv-back">
+            <strong>Certified Sustainable Seafood</strong>
+            <p>Pesquería bajo criterios científicos de sostenibilidad. En proceso de certificación 2026.</p>
+            <span class="qcv-tag">Sostenibilidad · Mundial</span>
+          </div>
+        </div>
+      </article>
+      <article class="qual-card-v2" data-modal="modal-cert-asc">
+        <div class="qcv-inner">
+          <div class="qcv-front">
+            <img src="./logos/asc.svg" alt="ASC"/>
+            <h3>ASC</h3>
+            <p>Aquaculture Stewardship Council.</p>
+          </div>
+          <div class="qcv-back">
+            <strong>Responsible Aquaculture</strong>
+            <p>Criterios de acuicultura responsable aplicados a operación e impactos. Auditoría externa.</p>
+            <span class="qcv-tag">Trazabilidad · Mundial</span>
+          </div>
+        </div>
+      </article>
+      <article class="qual-card-v2" data-modal="modal-cert-fda">
+        <div class="qcv-inner">
+          <div class="qcv-front">
+            <img src="./logos/fda.svg" alt="FDA"/>
+            <h3>FDA Approved</h3>
+            <p>Habilitado para exportación a Estados Unidos.</p>
+          </div>
+          <div class="qcv-back">
+            <strong>U.S. Food &amp; Drug Administration</strong>
+            <p>Cumplimiento FSMA, registro FCE y CFR. Importación directa sin intermediarios.</p>
+            <span class="qcv-tag">EEUU · Foodservice</span>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- IMPACT STATS — contadores animados -->
+    <div class="quality-impact" data-reveal>
+      <div class="qi-stat"><strong data-count="24">0</strong><span>meses vida útil</span></div>
+      <div class="qi-stat"><strong data-count="100">0</strong><em>%</em><span>trazable por lote</span></div>
+      <div class="qi-stat"><strong data-count="6">0</strong><span>certificaciones activas</span></div>
+      <div class="qi-stat"><strong data-count="0">0</strong><span>incidencias 2025</span></div>
+    </div>
+  </section>
+
+  <!-- ========== SOSTENIBILIDAD (07) ========== -->
+  <section class="sec sec-light bleed" id="sostenibilidad">
+    <aside class="num-rail" data-reveal>
+      <span class="num">07</span>
+      <svg class="scribble" viewBox="0 0 60 40" width="56"><path d="M4 22 C 14 6, 22 30, 32 16 S 52 24, 58 12" fill="none" stroke="#1cb5b0" stroke-width="3" stroke-linecap="round"/></svg>
+      <div class="rail-dots" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span class="on"></span></div>
+      <div class="rail-label">DESLIZA PARA EXPLORAR</div>
+      <button type="button" class="rail-arrow glass" data-next-section="contacto" aria-label="Bajar a Contacto"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </aside>
+    <div class="sec-grid sustain-hero-grid">
+      <div class="sec-text" data-reveal>
+        <p class="eyebrow"><span class="dot"></span>SOSTENIBILIDAD</p>
+        <h2 class="sec-title">Responsabilidad<br/>de origen<span class="period">.</span></h2>
+        <p class="lead">
+          Más de <strong>1.100 paneles fotovoltaicos</strong> en Palencia, certificación
+          <strong>MSC</strong> en proceso, código ético y participación en <strong>RASA</strong>
+          (Rawson Ambiental S.A.).
+        </p>
+
+        <!-- IMPACT BAR — 4 KPIs animados -->
+        <div class="kpi-strip" data-reveal>
+          <div><strong data-count="1100">0</strong><em>+</em><span>paneles solares</span></div>
+          <div><strong data-count="450">0</strong><em>t</em><span>CO₂/año evitado</span></div>
+          <div><strong data-count="38">0</strong><em>%</em><span>renovable autoconsumo</span></div>
+          <div><strong data-count="0">0</strong><em>%</em><span>vertido a océano</span></div>
+        </div>
+      </div>
+
+      <!-- VISUAL: Grid de paneles solares animado -->
+      <div class="solar-viz" data-reveal>
+        <div class="sv-frame">
+          <div class="sv-grid" id="solarGrid" aria-hidden="true"></div>
+          <div class="sv-sun"></div>
+          <div class="sv-rays" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+        <div class="sv-caption">
+          <p class="sv-eyebrow">PLANTA PALENCIA</p>
+          <h4>1.100+ paneles fotovoltaicos</h4>
+          <p>Sistema de autoconsumo activado en <strong>2024</strong> — alimenta
+            cámaras frigoríficas y líneas de procesamiento.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 PILARES DE SOSTENIBILIDAD — cards interactivas con hover detalles -->
+    <div class="sustain-pillars" data-reveal>
+      <article class="sp-card" data-modal="modal-sust-energia">
+        <div class="sp-bg sp-bg-1"></div>
+        <span class="sp-num">01</span>
+        <span class="sp-icon"><i data-lucide="sun" class="lucide-ico"></i></span>
+        <h3>Energía solar</h3>
+        <p class="sp-stat"><strong>1.100+</strong><span>paneles activos</span></p>
+        <p class="sp-desc">Sistema fotovoltaico de autoconsumo. Reduce <strong>450 t CO₂/año</strong>.</p>
+        <span class="sp-cta">Ver detalle →</span>
+      </article>
+
+      <article class="sp-card" data-modal="modal-sust-pesca">
+        <div class="sp-bg sp-bg-2"></div>
+        <span class="sp-num">02</span>
+        <span class="sp-icon"><i data-lucide="fish" class="lucide-ico"></i></span>
+        <h3>Pesca responsable</h3>
+        <p class="sp-stat"><strong>MSC</strong><span>en proceso</span></p>
+        <p class="sp-desc">Cuotas, vedas reproductivas y mejora continua para certificación <strong>MSC</strong>.</p>
+        <span class="sp-cta">Ver detalle →</span>
+      </article>
+
+      <article class="sp-card" data-modal="modal-sust-rasa">
+        <div class="sp-bg sp-bg-3"></div>
+        <span class="sp-num">03</span>
+        <span class="sp-icon"><i data-lucide="droplets" class="lucide-ico"></i></span>
+        <h3>Agua &amp; RASA</h3>
+        <p class="sp-stat"><strong>0%</strong><span>vertido al océano</span></p>
+        <p class="sp-desc">Tratamiento integral de efluentes. Reúso en primera <strong>granja biosalina</strong> del país.</p>
+        <span class="sp-cta">Ver detalle →</span>
+      </article>
+
+      <article class="sp-card" data-modal="modal-sust-circular">
+        <div class="sp-bg sp-bg-4"></div>
+        <span class="sp-num">04</span>
+        <span class="sp-icon"><i data-lucide="recycle" class="lucide-ico"></i></span>
+        <h3>Economía circular</h3>
+        <p class="sp-stat"><strong>4</strong><span>subproductos</span></p>
+        <p class="sp-desc"><strong>Salicornia, microalgas, zampa, piquillín</strong> — convertidos en nuevas líneas de valor.</p>
+        <span class="sp-cta">Ver detalle →</span>
+      </article>
+    </div>
+
+    <!-- RASA INTRO BLOCK -->
+    <div class="rasa-intro" data-reveal>
+      <div class="rasa-head">
+        <p class="eyebrow"><span class="dot"></span>CICLO CIRCULAR · RASA</p>
+        <h3 class="cf-title">De residuo a valor<span class="period">.</span></h3>
+        <p class="rasa-lead">
+          <strong>RASA — Rawson Ambiental S.A.</strong> es la primera planta del país que combina
+          <strong>tratamiento integral de efluentes</strong> de la industria pesquera con una
+          <strong>granja biosalina</strong> que reutiliza el agua tratada para cultivar especies
+          halófitas comercializables.
+        </p>
+        <p class="rasa-lead muted">
+          Cabo Vírgenes participa accionariamente. El modelo cierra el ciclo: lo que antes era
+          vertido al océano hoy se convierte en cultivos de alto valor agregado.
+        </p>
+        <ul class="rasa-stats">
+          <li><strong>0%</strong><span>Vertido al océano</span></li>
+          <li><strong>1ª</strong><span>Granja biosalina del país</span></li>
+          <li><strong>4</strong><span>Cultivos halófitos</span></li>
+          <li><strong>100%</strong><span>Agua reutilizada</span></li>
+        </ul>
+      </div>
+
+      <!-- Process flow visual -->
+      <div class="rasa-flow">
+        <div class="rf-step">
+          <span class="rf-num">01</span>
+          <span class="rf-ico"><i data-lucide="factory" class="lucide-ico"></i></span>
+          <strong>Efluente industrial</strong>
+          <em>Salida planta pesquera</em>
+        </div>
+        <span class="rf-arr"><i data-lucide="chevron-right" class="lucide-arrow"></i></span>
+        <div class="rf-step">
+          <span class="rf-num">02</span>
+          <span class="rf-ico"><i data-lucide="filter" class="lucide-ico"></i></span>
+          <strong>Tratamiento integral</strong>
+          <em>Filtrado biológico + químico</em>
+        </div>
+        <span class="rf-arr"><i data-lucide="chevron-right" class="lucide-arrow"></i></span>
+        <div class="rf-step">
+          <span class="rf-num">03</span>
+          <span class="rf-ico"><i data-lucide="sprout" class="lucide-ico"></i></span>
+          <strong>Granja biosalina</strong>
+          <em>Halófitos absorben nutrientes</em>
+        </div>
+        <span class="rf-arr"><i data-lucide="chevron-right" class="lucide-arrow"></i></span>
+        <div class="rf-step">
+          <span class="rf-num">04</span>
+          <span class="rf-ico"><i data-lucide="package" class="lucide-ico"></i></span>
+          <strong>4 productos</strong>
+          <em>Comercializados</em>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 PRODUCTOS DE LA GRANJA — cards ricas con ilustraciones -->
+    <div class="biocrops" data-reveal>
+      <article class="bc-card" data-modal="modal-biocrop-salicornia">
+        <div class="bc-img bc-img-sali">
+          <svg viewBox="0 0 100 100" class="bc-illus" aria-hidden="true">
+            <defs><linearGradient id="gSali" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2d8c5a"/><stop offset="1" stop-color="#0f5733"/></linearGradient></defs>
+            <path d="M50 90 L50 30 M50 30 Q 35 22 32 12 M50 35 Q 65 25 68 14 M50 45 Q 32 38 28 26 M50 52 Q 70 44 73 30 M50 62 Q 35 56 30 42" fill="none" stroke="url(#gSali)" stroke-width="6" stroke-linecap="round"/>
+            <circle cx="32" cy="12" r="3" fill="#3da872"/>
+            <circle cx="68" cy="14" r="3" fill="#3da872"/>
+            <circle cx="28" cy="26" r="3" fill="#3da872"/>
+            <circle cx="73" cy="30" r="3" fill="#3da872"/>
+            <circle cx="30" cy="42" r="3" fill="#3da872"/>
+          </svg>
+        </div>
+        <span class="bc-tag">01 · GOURMET</span>
+        <h4>Salicornia</h4>
+        <em class="bc-sci">Salicornia ambigua</em>
+        <p class="bc-desc">Halófito comestible. Sabor salino natural, textura crujiente. Premium chefs lo llaman <strong>"espárrago de mar"</strong>.</p>
+        <span class="bc-cta">Ver ficha →</span>
+      </article>
+
+      <article class="bc-card" data-modal="modal-biocrop-microalgas">
+        <div class="bc-img bc-img-algae">
+          <svg viewBox="0 0 100 100" class="bc-illus" aria-hidden="true">
+            <defs><radialGradient id="gAlg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#5ad08f"/><stop offset="1" stop-color="#0f8c4d"/></radialGradient></defs>
+            <circle cx="50" cy="50" r="32" fill="url(#gAlg)" opacity=".88"/>
+            <circle cx="38" cy="42" r="6" fill="#7fe3a8" opacity=".7"/>
+            <circle cx="60" cy="38" r="4" fill="#7fe3a8" opacity=".6"/>
+            <circle cx="62" cy="58" r="7" fill="#7fe3a8" opacity=".75"/>
+            <circle cx="42" cy="62" r="5" fill="#7fe3a8" opacity=".65"/>
+            <circle cx="50" cy="50" r="4" fill="#fff" opacity=".5"/>
+            <path d="M20 80 Q 35 70 50 80 T 80 80" fill="none" stroke="#1cb5b0" stroke-width="1.4" opacity=".6"/>
+            <path d="M20 86 Q 35 76 50 86 T 80 86" fill="none" stroke="#1cb5b0" stroke-width="1.4" opacity=".4"/>
+          </svg>
+        </div>
+        <span class="bc-tag">02 · ACUÍCOLA</span>
+        <h4>Microalgas</h4>
+        <em class="bc-sci">Spirulina · Chlorella</em>
+        <p class="bc-desc">Cultivo en tanques con efluente tratado. Alto contenido proteico (60%). Usado en <strong>alimento acuícola</strong> y suplementación humana.</p>
+        <span class="bc-cta">Ver ficha →</span>
+      </article>
+
+      <article class="bc-card" data-modal="modal-biocrop-zampa">
+        <div class="bc-img bc-img-zampa">
+          <svg viewBox="0 0 100 100" class="bc-illus" aria-hidden="true">
+            <defs><linearGradient id="gZampa" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#9bc04f"/><stop offset="1" stop-color="#4d7d29"/></linearGradient></defs>
+            <path d="M50 95 L50 60 M50 60 L42 36 M50 60 L58 36 M50 60 L48 20 M50 60 L52 20 M50 60 L36 28 M50 60 L64 28" fill="none" stroke="url(#gZampa)" stroke-width="3.5" stroke-linecap="round"/>
+            <ellipse cx="42" cy="36" rx="3" ry="6" fill="#a3c759" transform="rotate(-20 42 36)"/>
+            <ellipse cx="58" cy="36" rx="3" ry="6" fill="#a3c759" transform="rotate(20 58 36)"/>
+            <ellipse cx="48" cy="20" rx="2.5" ry="5" fill="#b3d569" transform="rotate(-8 48 20)"/>
+            <ellipse cx="52" cy="20" rx="2.5" ry="5" fill="#b3d569" transform="rotate(8 52 20)"/>
+            <ellipse cx="36" cy="28" rx="3" ry="6" fill="#a3c759" transform="rotate(-35 36 28)"/>
+            <ellipse cx="64" cy="28" rx="3" ry="6" fill="#a3c759" transform="rotate(35 64 28)"/>
+          </svg>
+        </div>
+        <span class="bc-tag">03 · FORRAJE</span>
+        <h4>Zampa</h4>
+        <em class="bc-sci">Atriplex lampa</em>
+        <p class="bc-desc">Arbusto halófito nativo de la Patagonia. Excelente forraje para ganadería caprina y ovina. Tolera <strong>alta salinidad</strong>.</p>
+        <span class="bc-cta">Ver ficha →</span>
+      </article>
+
+      <article class="bc-card" data-modal="modal-biocrop-piquillin">
+        <div class="bc-img bc-img-piqui">
+          <svg viewBox="0 0 100 100" class="bc-illus" aria-hidden="true">
+            <defs><linearGradient id="gPiqui" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#c4493c"/><stop offset="1" stop-color="#7a1f1a"/></linearGradient></defs>
+            <path d="M30 30 Q 40 50 50 50 Q 60 50 70 30" fill="none" stroke="#4d7d29" stroke-width="2" stroke-linecap="round"/>
+            <path d="M50 50 L50 80" fill="none" stroke="#5d4e3a" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="38" cy="55" r="7" fill="url(#gPiqui)"/>
+            <circle cx="52" cy="60" r="8" fill="url(#gPiqui)"/>
+            <circle cx="64" cy="56" r="7" fill="url(#gPiqui)"/>
+            <circle cx="44" cy="68" r="6" fill="url(#gPiqui)"/>
+            <circle cx="58" cy="72" r="7" fill="url(#gPiqui)"/>
+            <circle cx="36" cy="55" r="2" fill="#fff" opacity=".4"/>
+            <circle cx="50" cy="59" r="2" fill="#fff" opacity=".5"/>
+            <circle cx="62" cy="55" r="2" fill="#fff" opacity=".4"/>
+            <path d="M25 32 L35 30 M30 25 L40 30 M65 30 L75 32 M60 25 L70 30" fill="none" stroke="#4d7d29" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span class="bc-tag">04 · NATIVO</span>
+        <h4>Piquillín</h4>
+        <em class="bc-sci">Condalia microphylla</em>
+        <p class="bc-desc">Arbusto nativo patagónico con bayas rojas. Mermeladas, licores artesanales y harinas. <strong>Resistente a la sequía</strong>.</p>
+        <span class="bc-cta">Ver ficha →</span>
+      </article>
+    </div>
+  </section>
+
+  <!-- ========== CONTACTO (08) ========== -->
+  <section class="sec sec-mix bleed" id="contacto">
+    <aside class="num-rail" data-reveal>
+      <span class="num">08</span>
+      <svg class="scribble" viewBox="0 0 60 40" width="56"><path d="M4 22 C 14 6, 22 30, 32 16 S 52 24, 58 12" fill="none" stroke="#1cb5b0" stroke-width="3" stroke-linecap="round"/></svg>
+      <div class="rail-dots" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on"></span></div>
+      <div class="rail-label">VOLVER AL INICIO</div>
+      <button type="button" class="rail-arrow glass rail-arrow-up" data-next-section="top" aria-label="Volver arriba"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M18 15l-6-6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </aside>
+
+    <div class="sec-head" data-reveal>
+      <p class="eyebrow"><span class="dot"></span>CONTACTO</p>
+      <h2 class="sec-title">Hablemos<span class="period">.</span></h2>
+      <p class="lead">
+        Atención comercial e institucional desde nuestras oficinas en
+        <strong>Argentina y España</strong>. Respondemos en menos de <strong>24h</strong>.
+      </p>
+    </div>
+
+    <!-- GRID: 3 canales de contacto rápido + form completo -->
+    <div class="contact-stack" data-reveal>
+
+      <!-- 3 quick-contact cards arriba -->
+      <div class="contact-channels">
+        <a href="mailto:comercial@cabovirgenes.com" class="cc-card">
+          <span class="cc-icon"><i data-lucide="briefcase" class="lucide-ico"></i></span>
+          <span class="cc-tag">VENTAS</span>
+          <h3>Comercial</h3>
+          <p>Solicitar cotización, formatos disponibles, distribución.</p>
+          <strong class="cc-link">comercial@cabovirgenes.com</strong>
+          <span class="cc-meta">Respuesta &lt; 24h</span>
+        </a>
+        <a href="mailto:prensa@cabovirgenes.com" class="cc-card">
+          <span class="cc-icon"><i data-lucide="megaphone" class="lucide-ico"></i></span>
+          <span class="cc-tag">PRENSA &amp; PR</span>
+          <h3>Prensa</h3>
+          <p>Material multimedia, entrevistas y comunicación corporativa.</p>
+          <strong class="cc-link">prensa@cabovirgenes.com</strong>
+          <span class="cc-meta">Kit de prensa disponible</span>
+        </a>
+        <a href="mailto:rrhh@cabovirgenes.com" class="cc-card">
+          <span class="cc-icon"><i data-lucide="users" class="lucide-ico"></i></span>
+          <span class="cc-tag">CARRERAS</span>
+          <h3>Trabajá con nosotros</h3>
+          <p>Postulaciones espontáneas y procesos abiertos en flota y plantas.</p>
+          <strong class="cc-link">rrhh@cabovirgenes.com</strong>
+          <span class="cc-meta">2 plantas · 5 buques</span>
+        </a>
+      </div>
+
+      <!-- Form + side info -->
+      <div class="contact-wrap glass-deep">
+        <div class="contact-left">
+          <p class="eyebrow eyebrow-light"><span class="dot"></span>CONSULTA GENERAL</p>
+          <h3 class="contact-title">Envianos un mensaje<span class="period">.</span></h3>
+          <p class="lead light">Te respondemos en menos de 24 horas hábiles.</p>
+
+          <div class="contact-pills">
+            <a class="mail-pill" href="mailto:info@cabovirgenes.com">
+              <span class="mail-ico"><i data-lucide="mail" class="lucide-ico"></i></span>
+              info@cabovirgenes.com
+              <span class="copy-btn" id="copyMail">Copiar</span>
+            </a>
+            <a class="mail-pill" href="tel:+542804495000">
+              <span class="mail-ico"><i data-lucide="phone" class="lucide-ico"></i></span>
+              +54 280 4495000
+            </a>
+          </div>
+
+          <div class="addresses">
+            <div class="addr-block">
+              <div class="addr-flag"><svg viewBox="0 0 60 40" width="34" height="22"><rect width="60" height="40" rx="3" fill="#75aadb"/><rect y="13.3" width="60" height="13.3" fill="#fff"/><circle cx="30" cy="20" r="3.5" fill="#f4b833"/></svg></div>
+              <strong>Argentina</strong>
+              <span>Puerto Rawson · Chubut</span>
+              <em>Sede operativa</em>
+            </div>
+            <div class="addr-block">
+              <div class="addr-flag"><svg viewBox="0 0 60 40" width="34" height="22"><rect width="60" height="40" rx="3" fill="#aa151b"/><rect y="10" width="60" height="20" fill="#f1bf00"/></svg></div>
+              <strong>España</strong>
+              <span>Palencia</span>
+              <em>Plataforma EU</em>
+            </div>
+          </div>
+
+          <!-- Redes sociales -->
+          <div class="contact-social">
+            <a href="#" class="cs-btn" aria-label="LinkedIn">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3v9zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19a.66.66 0 000 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg>
+            </a>
+            <a href="#" class="cs-btn" aria-label="Instagram">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+            </a>
+            <a href="#" class="cs-btn" aria-label="YouTube">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M23 7.2a3 3 0 00-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 001 7.2 31 31 0 00.5 12 31 31 0 001 16.8 3 3 0 003.1 18.9C5 19.4 12 19.4 12 19.4s7 0 8.9-.5a3 3 0 002.1-2.1A31 31 0 0023.5 12 31 31 0 0023 7.2zM9.8 15.5V8.5l5.9 3.5z"/></svg>
+            </a>
+          </div>
+        </div>
+
+        <form class="contact-form" id="contactForm">
+          <div class="row">
+            <label>Nombre<input type="text" name="name" required placeholder="Tu nombre" /></label>
+            <label>Empresa<input type="text" name="company" placeholder="Compañía" /></label>
+          </div>
+          <label>Email<input type="email" name="email" required placeholder="email@empresa.com" /></label>
+          <div class="row">
+            <label>País<input type="text" name="country" placeholder="Tu mercado" /></label>
+            <label>Tipo de consulta
+              <select name="topic">
+                <option>Cotización</option>
+                <option>Distribución</option>
+                <option>Prensa</option>
+                <option>Otra</option>
+              </select>
+            </label>
+          </div>
+          <label>Mensaje<textarea name="msg" rows="4" placeholder="Contanos qué necesitás..."></textarea></label>
+          <label class="consent">
+            <input type="checkbox" name="consent" required />
+            <span>Acepto la política de privacidad</span>
+          </label>
+          <div class="form-actions">
+            <button class="btn btn-solid" type="submit">
+              <span>Enviar consulta</span>
+              <span class="btn-arrow"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </button>
+            <span class="form-divider">o</span>
+            <a class="btn btn-wa" href="https://wa.me/542804495000?text=Hola%20Cabo%20V%C3%ADrgenes%2C%20me%20interesa%20obtener%20m%C3%A1s%20informaci%C3%B3n%20sobre%20sus%20productos." target="_blank" rel="noopener">
+              <span class="btn-wa-ico"><svg viewBox="0 0 32 32" width="16" height="16" fill="currentColor"><path d="M16 3C9 3 3.4 8.6 3.4 15.6c0 2.3.6 4.5 1.7 6.4L3 29l7.2-2c1.8 1 3.8 1.5 5.9 1.5 7 0 12.6-5.6 12.6-12.6S23 3 16 3zm0 23c-1.9 0-3.7-.5-5.3-1.4l-.4-.2-4.3 1.2 1.2-4.1-.2-.4c-1-1.7-1.6-3.6-1.6-5.5C5.4 10 10.2 5.2 16 5.2c2.8 0 5.4 1.1 7.4 3.1 2 2 3.1 4.6 3.1 7.4 0 5.8-4.8 10.6-10.5 10.6zm5.8-7.9c-.3-.2-1.9-.9-2.2-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.3-.5-2.5-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6.1-.1.3-.4.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5 0-.2-.7-1.7-.9-2.3-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1.1 1-1.1 2.5s1.1 2.9 1.3 3.1c.2.2 2.2 3.3 5.3 4.6.7.3 1.3.5 1.8.7.8.2 1.4.2 2 .1.6-.1 1.9-.8 2.1-1.5.3-.7.3-1.4.2-1.5 0-.1-.3-.2-.6-.4z"/></svg></span>
+              <span>Hablar por WhatsApp</span>
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Trust signals: 4 promesas -->
+    <div class="info-bar glass" data-reveal>
+      <div class="info-item">
+        <span class="info-ico"><i data-lucide="globe" class="lucide-ico"></i></span>
+        <div><h4>Presencia global</h4><p>40+ países · 5 continentes</p></div>
+      </div>
+      <div class="info-item">
+        <span class="info-ico"><i data-lucide="route" class="lucide-ico"></i></span>
+        <div><h4>Trazabilidad total</h4><p>De origen a mesa</p></div>
+      </div>
+      <div class="info-item">
+        <span class="info-ico"><i data-lucide="zap" class="lucide-ico"></i></span>
+        <div><h4>Innovación constante</h4><p>I+D y tecnología</p></div>
+      </div>
+      <div class="info-item">
+        <span class="info-ico"><i data-lucide="leaf" class="lucide-ico"></i></span>
+        <div><h4>Compromiso sostenible</h4><p>Certificación MSC</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+
+    <!-- Top: Newsletter + brand -->
+    <div class="footer-top">
+      <div class="ft-brand">
+        <img class="footer-logo" src="./logo.png" alt="Cabo Vírgenes" />
+        <p class="ft-tagline">
+          Pesca, procesamiento y exportación de productos del mar.
+          <span class="ft-tagline-meta">Argentina · España · 40+ países</span>
+        </p>
+        <div class="ft-social">
+          <a href="#" aria-label="LinkedIn">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3v9zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19a.66.66 0 000 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg>
+          </a>
+          <a href="#" aria-label="Instagram">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+          </a>
+          <a href="#" aria-label="YouTube">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M23 7.2a3 3 0 00-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 001 7.2 31 31 0 00.5 12 31 31 0 001 16.8 3 3 0 003.1 18.9C5 19.4 12 19.4 12 19.4s7 0 8.9-.5a3 3 0 002.1-2.1A31 31 0 0023.5 12 31 31 0 0023 7.2zM9.8 15.5V8.5l5.9 3.5z"/></svg>
+          </a>
+          <a href="mailto:info@cabovirgenes.com" aria-label="Email">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="ft-newsletter">
+        <h5>Recibí novedades</h5>
+        <p>Actualizaciones de mercado, nuevos formatos y comunicaciones corporativas.</p>
+        <form class="ft-form" onsubmit="event.preventDefault();this.querySelector('input').value='';this.querySelector('.ft-msg').textContent='✓ Suscripto'">
+          <input type="email" placeholder="email@empresa.com" required />
+          <button type="submit"><i data-lucide="arrow-right" class="lucide-arrow"></i></button>
+          <span class="ft-msg"></span>
+        </form>
+      </div>
+    </div>
+
+    <!-- Mid: 4 columns of links -->
+    <div class="footer-grid">
+      <div>
+        <h5>Empresa</h5>
+        <a href="#empresa">Quiénes somos</a>
+        <a href="#flota">Flota pesquera</a>
+        <a href="#plantas">Plantas y mercados</a>
+        <a href="#contacto">Trabajá con nosotros</a>
+      </div>
+      <div>
+        <h5>Producto</h5>
+        <a href="#productos">Langostino austral</a>
+        <a href="#productos">Formatos · HOSO/HLSO/EZP</a>
+        <a href="#productos">Calibres</a>
+        <a href="#productos">Ficha técnica</a>
+      </div>
+      <div>
+        <h5>Calidad &amp; Sostenibilidad</h5>
+        <a href="#calidad">APPCC · HACCP</a>
+        <a href="#calidad">IFS · BRCGS · MSC</a>
+        <a href="#sostenibilidad">RASA · Granja biosalina</a>
+        <a href="#sostenibilidad">Energía solar</a>
+      </div>
+      <div>
+        <h5>Contacto directo</h5>
+        <a href="mailto:comercial@cabovirgenes.com">comercial@cabovirgenes.com</a>
+        <a href="mailto:prensa@cabovirgenes.com">prensa@cabovirgenes.com</a>
+        <a href="mailto:rrhh@cabovirgenes.com">rrhh@cabovirgenes.com</a>
+        <a href="tel:+542804495000">+54 280 4495000</a>
+      </div>
+    </div>
+
+    <!-- Cert badges row -->
+    <div class="footer-certs">
+      <span class="ft-cert-label">Certificados por</span>
+      <div class="ft-cert-row">
+        <img src="./logos/haccp.svg" alt="HACCP"/>
+        <img src="./logos/brcgs.svg" alt="BRCGS"/>
+        <img src="./logos/ifs.svg" alt="IFS"/>
+        <img src="./logos/fda.svg" alt="FDA"/>
+        <img src="./logos/eu.svg" alt="EU"/>
+        <img src="./logos/msc.svg" alt="MSC"/>
+        <img src="./logos/asc.svg" alt="ASC"/>
+        <img src="./logos/senasa.svg" alt="SENASA"/>
+        <img src="./logos/ciq.svg" alt="CIQ"/>
+        <img src="./logos/globalgap.svg" alt="GLOBAL G.A.P."/>
+      </div>
+    </div>
+
+    <!-- Bottom legal -->
+    <div class="footer-base">
+      <div class="ft-base-left">
+        <span>© 2026 Cabo Vírgenes</span>
+        <span class="ft-dot">·</span>
+        <span>Parte de <strong>AISA Group</strong></span>
+        <span class="ft-dot">·</span>
+        <span><em>Pleoticus muelleri</em> · FAO 41</span>
+      </div>
+      <div class="ft-base-right">
+        <button type="button" data-modal="modal-legal-privacidad">Privacidad</button>
+        <button type="button" data-modal="modal-legal-terminos">Términos</button>
+        <button type="button" data-modal="modal-legal-cookies">Cookies</button>
+        <button type="button" data-modal="modal-legal-aviso">Aviso legal</button>
+      </div>
+    </div>
+  </footer>
+
+</main>
+
+<!-- ========== DRAWER MENU ========== -->
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <button class="drawer-close" id="drawerCloseBtn" aria-label="Cerrar">×</button>
+  <nav>
+    <a href="#empresa">01. Empresa</a>
+    <a href="#productos">02. Productos</a>
+    <a href="#flota">03. Flota</a>
+    <a href="#plantas">04. Plantas</a>
+    <a href="#calidad">05. Calidad</a>
+    <a href="#sostenibilidad">06. Sostenibilidad</a>
+    <a href="#contacto">07. Contacto</a>
+  </nav>
+  <div class="drawer-foot">
+    <span>info@cabovirgenes.com</span>
+    <span>Puerto Rawson · Palencia</span>
+  </div>
+</aside>
+<div class="drawer-back" id="drawerBack"></div>
+
+<!-- ========== VIDEO PLAYER MODAL ========== -->
+<div class="player-modal" id="playerModal" aria-hidden="true">
+  <div class="player-back"></div>
+  <div class="player-shell glass-deep">
+    <div class="player-stage" id="playerStage">
+      <video id="modalVideo" src="./cabo-video.mp4" preload="metadata" playsinline></video>
+      <div class="player-poster" id="playerPoster">
+        <img src="./video-poster.jpg" alt="" />
+        <button class="play-big glass-strong" id="playBigBtn" aria-label="Reproducir">
+          <svg viewBox="0 0 24 24" width="32" height="32"><path d="M8 5v14l11-7L8 5z" fill="currentColor"/></svg>
+        </button>
+      </div>
+      <div class="player-title">CABO VIRGENES · Pesquera</div>
+      <button class="player-close glass-strong" id="closePlayer" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="player-controls glass">
+      <button class="pc-btn" id="seekBack" aria-label="Retroceder 10s">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M11 6V3L6 7l5 4V8a6 6 0 11-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="pc-btn pc-play" id="playPauseBtn" aria-label="Play/Pause">
+        <svg id="iconPlay" viewBox="0 0 24 24" width="16" height="16"><path d="M8 5v14l11-7L8 5z" fill="currentColor"/></svg>
+        <svg id="iconPause" viewBox="0 0 24 24" width="16" height="16" style="display:none"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>
+      </button>
+      <button class="pc-btn" id="seekFwd" aria-label="Avanzar 10s">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M13 6V3l5 4-5 4V8a6 6 0 106 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="pc-time" id="pcTimeCur">0:00</div>
+      <div class="pc-progress" id="pcProgress">
+        <div class="pc-bar" id="pcBar"></div>
+        <div class="pc-buffer" id="pcBuffer"></div>
+        <div class="pc-thumb" id="pcThumb"></div>
+      </div>
+      <div class="pc-time" id="pcTimeDur">0:00</div>
+      <button class="pc-btn" id="muteBtn" aria-label="Silenciar">
+        <svg id="iconVolOn" viewBox="0 0 24 24" width="16" height="16"><path d="M4 10v4h3l5 4V6L7 10H4zM16 8a5 5 0 010 8M18.5 5.5a8.5 8.5 0 010 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg id="iconVolOff" viewBox="0 0 24 24" width="16" height="16" style="display:none"><path d="M4 10v4h3l5 4V6L7 10H4zM16 9l5 5M21 9l-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="pc-vol"><div class="pc-vol-track"><div class="pc-vol-fill" id="pcVolFill"></div></div></div>
+      <button class="pc-btn" id="speedBtn" aria-label="Velocidad" data-speed="1">1×</button>
+      <button class="pc-btn" id="pipBtn" aria-label="Picture-in-Picture">
+        <svg viewBox="0 0 24 24" width="16" height="16"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="12" y="11" width="7" height="6" rx="1" fill="currentColor" opacity=".55"/></svg>
+      </button>
+      <button class="pc-btn" id="minimizeBtn" aria-label="Minimizar">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M5 14h6v6M19 10h-6V4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+      <button class="pc-btn" id="fullscreenBtn" aria-label="Pantalla completa">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- INFO MODALS (card-deck Section 02) -->
+<div class="info-modal" id="modal-card-flota" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>FLOTA</p>
+    <h3>Pesca responsable</h3>
+    <p>5 buques propios operando en el Mar Argentino bajo cuotas de captura y vedas reproductivas que protegen la especie.</p>
+    <p><strong>Fresqueros:</strong> Espartano (21 m), Cristo Redentor (31 m), Iglú I (32 m) — operan desde Puerto Rawson con ciclo corto captura-desembarque.</p>
+    <p><strong>Congeladores factoría:</strong> Mar Esmeralda (53 m) y Kaleu Kaleu (56 m) procesan y congelan a bordo, garantizando frescura desde el origen.</p>
+  </article>
+</div>
+<div class="info-modal" id="modal-card-producto" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>PRODUCTO</p>
+    <h3>Langostino austral salvaje</h3>
+    <p><em>Pleoticus muelleri</em> capturado en aguas frías del Atlántico Sudoccidental (FAO 41). Producto salvaje, sin acuicultura, sin antibióticos.</p>
+    <p><strong>Formatos:</strong> HOSO, HLSO, EZP, P&amp;D y PDTO. <strong>Clasificación:</strong> L1, L2, L3, C1, C2, CR según piezas/kg.</p>
+  </article>
+</div>
+<div class="info-modal" id="modal-card-presencia" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>PRESENCIA GLOBAL</p>
+    <h3>40+ países, 5 continentes</h3>
+    <p>Estructura binacional <strong>Argentina–España</strong> con base productiva en Patagonia y plataforma logística europea en Palencia.</p>
+    <p>Exportamos a América, Europa, Asia y África, atendiendo mercados premium con foodservice, retail e industria de procesamiento.</p>
+  </article>
+</div>
+<div class="info-modal" id="modal-card-trazabilidad" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>TRAZABILIDAD</p>
+    <h3>Cadena integrada</h3>
+    <p>Control end-to-end desde la captura hasta el cliente final: barco propio → planta propia → logística propia → exportación directa.</p>
+    <p>Cada lote es identificado y trazable: zona FAO, embarcación, fecha y planta de procesamiento — cumpliendo EU, FDA, SENASA y certificaciones de mercado.</p>
+  </article>
+</div>
+<div class="info-modal" id="modal-card-sostenibilidad" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>SOSTENIBILIDAD</p>
+    <h3>Compromiso con el mar</h3>
+    <p>Pesquería gestionada bajo el Consejo Federal Pesquero argentino: cuotas anuales, vedas reproductivas y zonas de protección.</p>
+    <p>Inversión en eficiencia energética de la flota, reducción de plásticos y mejora continua para certificación MSC.</p>
+  </article>
+</div>
+
+<!-- MODALES por formato de producto (Section 03) -->
+<div class="info-modal" id="modal-fmt-hoso" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg fmt-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <div class="fmt-modal-img"><img src="./langostinos-plato.jpg" alt="HOSO Langostino entero" loading="lazy" /></div>
+    <div class="fmt-modal-body">
+      <p class="eyebrow eyebrow-light"><span class="dot"></span>FORMATO 01</p>
+      <h3>HOSO · Langostino entero</h3>
+      <p>Head-On Shell-On — el producto en su forma natural, conservando cabeza y caparazón.
+        Máxima frescura y presentación premium para retail e importadores que valoran integridad visual.</p>
+      <div class="fmt-modal-grid">
+        <div><span>Calibres</span><strong>L1 (10/20) · L2 (21/30) · L3 (31/40)</strong></div>
+        <div><span>Empaque</span><strong>6×2 kg / 10×1 kg / 2×7 kg bloque</strong></div>
+        <div><span>Vida útil</span><strong>24 meses a –18°C</strong></div>
+        <div><span>Uso recomendado</span><strong>Retail premium, mercados gourmet</strong></div>
+      </div>
+    </div>
+  </article>
+</div>
+
+<div class="info-modal" id="modal-fmt-hlso" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg fmt-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <div class="fmt-modal-img"><img src="./card-langostino.jpg" alt="HLSO Cola con caparazón" loading="lazy" /></div>
+    <div class="fmt-modal-body">
+      <p class="eyebrow eyebrow-light"><span class="dot"></span>FORMATO 02</p>
+      <h3>HLSO · Cola con caparazón</h3>
+      <p>Headless Shell-On — cola entera conservando caparazón, ideal para parrilla, plancha y preparaciones donde la
+        textura del caparazón aporta sabor. Pelado rápido al servir.</p>
+      <div class="fmt-modal-grid">
+        <div><span>Calibres</span><strong>C1 (31/55) · C2 (56/100)</strong></div>
+        <div><span>Empaque</span><strong>10×800 g / 20×400 g / 1×10 kg granel</strong></div>
+        <div><span>Vida útil</span><strong>24 meses a –18°C</strong></div>
+        <div><span>Uso recomendado</span><strong>Foodservice, restauración</strong></div>
+      </div>
+    </div>
+  </article>
+</div>
+
+<div class="info-modal" id="modal-fmt-ezp" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg fmt-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <div class="fmt-modal-img"><img src="./shrimp-salad.jpg" alt="EZP Easy peel" loading="lazy" /></div>
+    <div class="fmt-modal-body">
+      <p class="eyebrow eyebrow-light"><span class="dot"></span>FORMATO 03</p>
+      <h3>EZP · Easy Peel</h3>
+      <p>Caparazón pre-cortado mediante incisión dorsal precisa, permitiendo pelado en segundos. Ahorra hasta 60% de
+        tiempo de mise en place en cocinas profesionales y catering.</p>
+      <div class="fmt-modal-grid">
+        <div><span>Calibres</span><strong>C1 · C2 · CR</strong></div>
+        <div><span>Empaque</span><strong>10×800 g / 20×400 g</strong></div>
+        <div><span>Vida útil</span><strong>24 meses a –18°C</strong></div>
+        <div><span>Uso recomendado</span><strong>Hospitality, catering volumen</strong></div>
+      </div>
+    </div>
+  </article>
+</div>
+
+<div class="info-modal" id="modal-fmt-pd" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg fmt-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <div class="fmt-modal-img"><img src="./espartano-hero.png" alt="P&D Peeled & Deveined" loading="lazy" /></div>
+    <div class="fmt-modal-body">
+      <p class="eyebrow eyebrow-light"><span class="dot"></span>FORMATO 04</p>
+      <h3>P&amp;D · Peeled &amp; Deveined</h3>
+      <p>Completamente pelado y desvenado. Listo para cocinar sin manipulación previa. Calidad sashimi —
+        apto para consumo crudo, sushi, ceviches y ready-meals industriales.</p>
+      <div class="fmt-modal-grid">
+        <div><span>Calibres</span><strong>C1 · C2 · CR</strong></div>
+        <div><span>Empaque</span><strong>10×1 kg / 10×800 g / 20×400 g</strong></div>
+        <div><span>Vida útil</span><strong>24 meses a –18°C</strong></div>
+        <div><span>Uso recomendado</span><strong>Sushi, ceviche, ready-meal, retail</strong></div>
+      </div>
+    </div>
+  </article>
+</div>
+
+<div class="info-modal" id="modal-fmt-pdto" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg fmt-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <div class="fmt-modal-img"><img src="./card-pesca.jpg" alt="PDTO Tail-on" loading="lazy" /></div>
+    <div class="fmt-modal-body">
+      <p class="eyebrow eyebrow-light"><span class="dot"></span>FORMATO 05</p>
+      <h3>PDTO · Tail-On</h3>
+      <p>Pelado conservando la cola intacta — máxima estética premium para emplatado de alta gama.
+        El segmento de cola actúa como "agarre natural" perfecto para cócteles de langostino, tapas y plating fine dining.</p>
+      <div class="fmt-modal-grid">
+        <div><span>Calibres</span><strong>L2 · L3 · C1</strong></div>
+        <div><span>Empaque</span><strong>10×800 g / 20×400 g</strong></div>
+        <div><span>Vida útil</span><strong>24 meses a –18°C</strong></div>
+        <div><span>Uso recomendado</span><strong>Fine dining, banquete, retail premium</strong></div>
+      </div>
+    </div>
+  </article>
+</div>
+
+<!-- MODALES por buque (Section 04) -->
+<div class="info-modal" id="modal-ship-espartano" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg fmt-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <div class="fmt-modal-img"><img src="./espartano-hero.png" alt="Espartano" loading="lazy"/></div>
+    <div class="fmt-modal-body">
+      <p class="eyebrow eyebrow-light"><span class="dot"></span>FRESQUERO · BUQUE INSIGNIA</p>
+      <h3>Espartano</h3>
+      <p>Buque insignia de la flota Cabo Vírgenes con permiso de pesca en aguas nacionales y provinciales argentinas.
+        Capacidad de captura superior a <strong>3.000 toneladas anuales</strong>.</p>
+      <div class="fmt-modal-grid">
+        <div><span>Eslora</span><strong>21 metros</strong></div>
+        <div><span>Año construcción</span><strong>2008 · reformado 2019</strong></div>
+        <div><span>IMO</span><strong>9913925</strong></div>
+        <div><span>Puerto base</span><strong>Puerto Rawson (Chubut)</strong></div>
+        <div><span>Ciclo</span><strong>Captura-desembarque corto (24-48h)</strong></div>
+        <div><span>Tripulación</span><strong>10 personas</strong></div>
+      </div>
+    </div>
+  </article>
+</div>
+
+<div class="info-modal" id="modal-ship-cristo" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg fmt-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <div class="fmt-modal-img"><img src="./card-pesca.jpg" alt="Cristo Redentor" loading="lazy"/></div>
+    <div class="fmt-modal-body">
+      <p class="eyebrow eyebrow-light"><span class="dot"></span>FRESQUERO</p>
+      <h3>Cristo Redentor</h3>
+      <p>Fresquero de 31 metros operando en aguas nacionales. Procesamiento ágil en planta gracias al ciclo corto
+        de captura-desembarque que preserva la frescura del producto.</p>
+      <div class="fmt-modal-grid">
+        <div><span>Eslora</span><strong>31 metros</strong></div>
+        <div><span>Tipo</span><strong>Fresquero costero</strong></div>
+        <div><span>Puerto base</span><strong>Puerto Rawson</strong></div>
+        <div><span>Operación</span><strong>Aguas nacionales</strong></div>
+        <div><span>Cadena de frío</span><strong>0–4°C a bordo</strong></div>
+        <div><span>Tripulación</span><strong>12 personas</strong></div>
+      </div>
+    </div>
+  </article>
+</div>
+
+<div class="info-modal" id="modal-ship-iglu" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg fmt-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <div class="fmt-modal-img"><img src="./ship-hero.jpg" alt="Iglú I" loading="lazy"/></div>
+    <div class="fmt-modal-body">
+      <p class="eyebrow eyebrow-light"><span class="dot"></span>FRESQUERO</p>
+      <h3>Iglú I</h3>
+      <p>Fresquero de 32 metros con sistema de cadena de frío end-to-end. Mantiene temperatura controlada desde la
+        captura hasta el desembarque, garantizando frescura óptima del producto.</p>
+      <div class="fmt-modal-grid">
+        <div><span>Eslora</span><strong>32 metros</strong></div>
+        <div><span>Tipo</span><strong>Fresquero costero</strong></div>
+        <div><span>Puerto base</span><strong>Puerto Rawson</strong></div>
+        <div><span>Cadena de frío</span><strong>Completa –2°C/4°C</strong></div>
+        <div><span>Bodegas</span><strong>2 frigoríficas isotérmicas</strong></div>
+        <div><span>Tripulación</span><strong>13 personas</strong></div>
+      </div>
+    </div>
+  </article>
+</div>
+
+<div class="info-modal" id="modal-ship-esmeralda" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg fmt-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <div class="fmt-modal-img"><img src="./buque-1.jpg" alt="Mar Esmeralda" loading="lazy"/></div>
+    <div class="fmt-modal-body">
+      <p class="eyebrow eyebrow-light"><span class="dot"></span>TANGONERO FACTORÍA</p>
+      <h3>Mar Esmeralda</h3>
+      <p>Tangonero factoría de 53 metros — el más grande de la flota. Captura, procesa y congela a bordo,
+        permitiendo permanencia prolongada en altamar.</p>
+      <div class="fmt-modal-grid">
+        <div><span>Eslora</span><strong>53 metros</strong></div>
+        <div><span>Tipo</span><strong>Factoría tangonero</strong></div>
+        <div><span>Congelación</span><strong>23 t/día IQF</strong></div>
+        <div><span>Bodega</span><strong>170 toneladas</strong></div>
+        <div><span>Inversión reforma</span><strong>USD 2 M+</strong></div>
+        <div><span>Tripulación</span><strong>32 personas</strong></div>
+      </div>
+    </div>
+  </article>
+</div>
+
+<div class="info-modal" id="modal-ship-kaleu" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg fmt-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <div class="fmt-modal-img"><img src="./mar-storm.jpg" alt="Kaleu Kaleu" loading="lazy"/></div>
+    <div class="fmt-modal-body">
+      <p class="eyebrow eyebrow-light"><span class="dot"></span>TANGONERO FACTORÍA</p>
+      <h3>Kaleu Kaleu</h3>
+      <p>Tangonero factoría de 56 metros con sistema de procesamiento integrado a bordo. Captura, procesa, calibra
+        y congela en altamar — el producto sale congelado IQF listo para exportar.</p>
+      <div class="fmt-modal-grid">
+        <div><span>Eslora</span><strong>56 metros</strong></div>
+        <div><span>Tipo</span><strong>Factoría tangonero</strong></div>
+        <div><span>Congelación</span><strong>13 t/día IQF</strong></div>
+        <div><span>Bodega</span><strong>98 toneladas</strong></div>
+        <div><span>Zona</span><strong>Atlántico Sur</strong></div>
+        <div><span>Tripulación</span><strong>28 personas</strong></div>
+      </div>
+    </div>
+  </article>
+</div>
+
+<!-- MODAL Flota completa -->
+<div class="info-modal" id="modal-flota-full" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>FLOTA COMPLETA</p>
+    <h3>5 buques, una sola promesa.</h3>
+    <p>La flota Cabo Vírgenes combina <strong>fresqueros costeros</strong> (Espartano, Cristo Redentor, Iglú I) con
+      <strong>tangoneros factoría</strong> (Mar Esmeralda, Kaleu Kaleu) — cubriendo todo el espectro operativo
+      desde la captura hasta el producto congelado IQF.</p>
+    <ul class="modal-stats">
+      <li><strong>5</strong><span>Buques</span></li>
+      <li><strong>193 m</strong><span>Eslora total</span></li>
+      <li><strong>36 t/día</strong><span>Congelación factoría</span></li>
+      <li><strong>3.000+</strong><span>Toneladas/año</span></li>
+    </ul>
+    <p><strong>Capacidades clave:</strong> permisos nacionales y provinciales, cadena de frío end-to-end, congelación
+      IQF a bordo de –40°C, trazabilidad por lote, certificación UE/FDA/SENASA/CIQ.</p>
+    <p class="muted">Operación 24/7 desde Puerto Rawson (Chubut, Argentina) y operación de altamar en Atlántico Sudoccidental (FAO 41).</p>
+  </article>
+</div>
+
+<!-- MODAL Especificaciones completas del producto -->
+<div class="info-modal" id="modal-producto-full" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>FICHA TÉCNICA COMPLETA</p>
+    <h3>Pleoticus muelleri<br/><em>langostino austral salvaje</em></h3>
+    <p>Producto estrella de Cabo Vírgenes — capturado en el Atlántico Sudoccidental (FAO 41), congelado a bordo a –40°C
+      para preservar textura y sabor desde el origen.</p>
+    <ul class="modal-stats">
+      <li><strong>FAO 41</strong><span>Zona de captura</span></li>
+      <li><strong>5</strong><span>Formatos</span></li>
+      <li><strong>6</strong><span>Calibres</span></li>
+      <li><strong>100%</strong><span>Salvaje</span></li>
+    </ul>
+    <p><strong>Composición:</strong> Proteína 18g · Grasa 1.5g · Sodio 119mg · Omega-3 EPA+DHA 0.4g por 100g de producto neto.</p>
+    <p><strong>Trazabilidad:</strong> cada caja máster lleva impresos zona FAO, buque captor, fecha de captura, planta y lote.
+      Sistema compatible con auditorías UE, FDA, MSC y CIQ China.</p>
+    <p class="muted">Para fichas técnicas detalladas por SKU, contactá al equipo comercial.</p>
+  </article>
+</div>
+
+<!-- MODALES Plantas (Section 05) -->
+<div class="info-modal" id="modal-plant-rawson" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-xl plant-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <div class="pm-gallery">
+      <div class="pm-main"><img src="./espartano-hero.png" alt="Puerto Rawson · Espartano en muelle" loading="lazy"/></div>
+      <div class="pm-thumbs">
+        <img src="./card-pesca.jpg" alt="Flota nocturna"/>
+        <img src="./ship-hero.jpg" alt="Atlántico Sur"/>
+        <img src="./buque-1.jpg" alt="Buque navegando"/>
+        <div class="pm-video-thumb" data-play-video="cabo-video.mp4">
+          <span class="pm-play"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 5v14l11-7L8 5z" fill="#fff"/></svg></span>
+          <span class="pm-video-label">Vídeo planta</span>
+        </div>
+      </div>
+    </div>
+    <div class="pm-body">
+      <p class="eyebrow eyebrow-light"><span class="dot"></span>NÚCLEO PRODUCTIVO</p>
+      <h3>Argentina · Puerto Rawson</h3>
+      <p>Planta productiva en el corazón de la Patagonia, Chubut. Punto neurálgico de captura, congelación y
+        almacenamiento de la operación Cabo Vírgenes.</p>
+      <ul class="modal-stats">
+        <li><strong>1.600 t</strong><span>Almacenamiento</span></li>
+        <li><strong>100 t/día</strong><span>Congelación</span></li>
+        <li><strong>24/7</strong><span>Operación</span></li>
+        <li><strong>5</strong><span>Buques operando</span></li>
+      </ul>
+      <p><strong>Capacidades clave:</strong> producción de hielo en escama y líquido para flota propia,
+        infraestructura completa para procesamiento industrial, cámaras de –25°C y túnel IQF, logística
+        orientada a exportación con carga directa a contenedores refrigerados.</p>
+      <p class="muted">Ubicación: Puerto Rawson, Chubut, Argentina · 43°20'S 65°06'O.</p>
+    </div>
+  </article>
+</div>
+
+<div class="info-modal" id="modal-plant-palencia" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-xl plant-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <div class="pm-gallery">
+      <div class="pm-main"><img src="./card-langostino.jpg" alt="Palencia · Producto terminado" loading="lazy"/></div>
+      <div class="pm-thumbs">
+        <img src="./langostinos-plato.jpg" alt="Langostinos"/>
+        <img src="./shrimp-salad.jpg" alt="Producto preparado"/>
+        <img src="./mar-storm.jpg" alt="Vista Atlántico"/>
+        <div class="pm-video-thumb" data-play-video="cabo-video.mp4">
+          <span class="pm-play"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 5v14l11-7L8 5z" fill="#fff"/></svg></span>
+          <span class="pm-video-label">Vídeo planta</span>
+        </div>
+      </div>
+    </div>
+    <div class="pm-body">
+      <p class="eyebrow eyebrow-light"><span class="dot"></span>LOGÍSTICA + VALOR AGREGADO</p>
+      <h3>España · Palencia</h3>
+      <p>Plataforma europea de Cabo Vírgenes — recepciona producto congelado desde Argentina y lo procesa, reempaca
+        y distribuye a clientes premium en 40+ países.</p>
+      <ul class="modal-stats">
+        <li><strong>4.600 m²</strong><span>Superficie</span></li>
+        <li><strong>22.000 kg/día</strong><span>Procesamiento</span></li>
+        <li><strong>5.500 t</strong><span>Almacenamiento</span></li>
+        <li><strong>BRCGS · IFS</strong><span>Certificaciones</span></li>
+      </ul>
+      <p><strong>Capacidades clave:</strong> reempaque en formatos personalizados por cliente, líneas de pelado y
+        deveinado P&amp;D, cocción IQF, marcado láser por lote, distribución refrigerada por carretera y marítima
+        a toda Europa, Asia y África.</p>
+      <p class="muted">Ubicación: Polígono industrial, Palencia, Castilla y León, España · 42°00'N 4°31'O.</p>
+    </div>
+  </article>
+</div>
+
+<!-- MODALES Calidad (Section 06) -->
+<div class="info-modal" id="modal-cert-haccp" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg cert-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <img class="cert-modal-logo" src="./logos/haccp.svg" alt="HACCP"/>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>INOCUIDAD ALIMENTARIA</p>
+    <h3>HACCP · Hazard Analysis &amp; Critical Control Points</h3>
+    <p>Sistema preventivo internacional para identificar y controlar peligros físicos, químicos y biológicos en cada etapa
+      del proceso productivo. Reconocido por FDA, UE, Codex Alimentarius.</p>
+    <ul class="modal-stats">
+      <li><strong>7</strong><span>Principios HACCP</span></li>
+      <li><strong>100%</strong><span>Lotes auditados</span></li>
+      <li><strong>2</strong><span>Plantas certificadas</span></li>
+    </ul>
+  </article>
+</div>
+<div class="info-modal" id="modal-cert-brcgs" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg cert-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <img class="cert-modal-logo" src="./logos/brcgs.svg" alt="BRCGS"/>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>RETAIL UK/EU</p>
+    <h3>BRCGS Global Standard for Food Safety</h3>
+    <p>Estándar v9 exigido por retailers británicos y europeos para suministro directo. Audita inocuidad, gestión de calidad,
+      controles operativos y cultura de seguridad alimentaria.</p>
+    <ul class="modal-stats">
+      <li><strong>AA</strong><span>Grado obtenido</span></li>
+      <li><strong>v9</strong><span>Versión vigente</span></li>
+      <li><strong>1×año</strong><span>Auditoría externa</span></li>
+    </ul>
+  </article>
+</div>
+<div class="info-modal" id="modal-cert-ifs" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg cert-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <img class="cert-modal-logo" src="./logos/ifs.svg" alt="IFS"/>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>FOODSERVICE EU</p>
+    <h3>IFS Food Standard · Higher Level</h3>
+    <p>Liderado por retail europeo y francés, certifica integridad del producto, seguridad alimentaria y conformidad de procesos.
+      Aplicado en planta de Palencia (España).</p>
+    <ul class="modal-stats">
+      <li><strong>95%+</strong><span>Score Higher Level</span></li>
+      <li><strong>v8</strong><span>Versión vigente</span></li>
+      <li><strong>Palencia</strong><span>Planta certificada</span></li>
+    </ul>
+  </article>
+</div>
+<div class="info-modal" id="modal-cert-msc" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg cert-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <img class="cert-modal-logo" src="./logos/msc.svg" alt="MSC"/>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>PESCA SOSTENIBLE</p>
+    <h3>Marine Stewardship Council</h3>
+    <p>Certificación pesquera más reconocida globalmente. Evaluación científica de stocks, impacto ambiental y gestión.
+      Pesquería argentina <em>Pleoticus muelleri</em> en proceso de evaluación full assessment.</p>
+    <ul class="modal-stats">
+      <li><strong>3</strong><span>Principios MSC</span></li>
+      <li><strong>2026</strong><span>Certificación esperada</span></li>
+      <li><strong>FAO 41</strong><span>Zona pesquera</span></li>
+    </ul>
+  </article>
+</div>
+<div class="info-modal" id="modal-cert-asc" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg cert-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <img class="cert-modal-logo" src="./logos/asc.svg" alt="ASC"/>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>ACUICULTURA RESPONSABLE</p>
+    <h3>Aquaculture Stewardship Council</h3>
+    <p>Aplicado a operación e impactos ambientales. Auditoría externa de prácticas de manejo, bienestar, comunidad y
+      eficiencia de recursos.</p>
+    <ul class="modal-stats">
+      <li><strong>7</strong><span>Principios ASC</span></li>
+      <li><strong>100%</strong><span>Trazabilidad CoC</span></li>
+      <li><strong>Anual</strong><span>Auditoría</span></li>
+    </ul>
+  </article>
+</div>
+<div class="info-modal" id="modal-cert-fda" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg cert-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <img class="cert-modal-logo" src="./logos/fda.svg" alt="FDA"/>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>EXPORTACIÓN EEUU</p>
+    <h3>FDA · U.S. Food &amp; Drug Administration</h3>
+    <p>Habilitación para exportación directa al mercado estadounidense. Cumplimiento FSMA, registro FCE, conformidad CFR Title 21.</p>
+    <ul class="modal-stats">
+      <li><strong>FSMA</strong><span>Compliance</span></li>
+      <li><strong>2×año</strong><span>Inspección</span></li>
+      <li><strong>EEUU</strong><span>Mercado directo</span></li>
+    </ul>
+  </article>
+</div>
+
+<!-- MODALES Sostenibilidad (Section 07) -->
+<div class="info-modal" id="modal-sust-energia" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>01 · ENERGÍA SOLAR</p>
+    <h3>1.100+ paneles fotovoltaicos en Palencia</h3>
+    <p>Sistema de autoconsumo activado en 2024 que alimenta cámaras frigoríficas, líneas de procesamiento y oficinas
+      de la planta europea.</p>
+    <ul class="modal-stats">
+      <li><strong>1.100+</strong><span>Paneles instalados</span></li>
+      <li><strong>450 t</strong><span>CO₂ evitadas/año</span></li>
+      <li><strong>38%</strong><span>Autoconsumo eléctrico</span></li>
+      <li><strong>2024</strong><span>Año activación</span></li>
+    </ul>
+    <p>La instalación equivale a <strong>~600 MWh/año</strong> de energía limpia generada, reduciendo significativamente
+      la huella de carbono asociada a procesos refrigerados.</p>
+  </article>
+</div>
+<div class="info-modal" id="modal-sust-pesca" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>02 · PESCA RESPONSABLE</p>
+    <h3>Captura bajo criterios MSC</h3>
+    <p>Operación pesquera sometida a los lineamientos del Consejo Federal Pesquero argentino: cuotas anuales, vedas
+      reproductivas y zonas de protección de juveniles.</p>
+    <ul class="modal-stats">
+      <li><strong>3</strong><span>Principios MSC</span></li>
+      <li><strong>FAO 41</strong><span>Zona certificable</span></li>
+      <li><strong>2026</strong><span>Certificación esperada</span></li>
+      <li><strong>100%</strong><span>Pesca salvaje</span></li>
+    </ul>
+    <p>Sin acuicultura, sin antibióticos, sin alimentación artificial. Producto íntegramente del medio natural.</p>
+  </article>
+</div>
+<div class="info-modal" id="modal-sust-rasa" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>03 · AGUA Y EFLUENTES · RASA</p>
+    <h3>Rawson Ambiental S.A.</h3>
+    <p><strong>RASA</strong> es una sociedad anónima público-privada constituida en Puerto Rawson para resolver,
+      por primera vez en la historia argentina, el tratamiento integral de los efluentes de la industria pesquera
+      mediante un modelo de <strong>bioremediación con plantas halófitas</strong>.</p>
+    <p><strong>Cómo funciona:</strong> los efluentes industriales (alta carga orgánica y salinidad) llegan a la planta,
+      donde son tratados biológica y químicamente. El agua resultante se canaliza a una <strong>granja biosalina</strong>
+      de varias hectáreas, donde 4 especies halófitas absorben los nutrientes residuales (nitrógeno, fósforo) y producen
+      cultivos comerciales.</p>
+    <ul class="modal-stats">
+      <li><strong>0%</strong><span>Vertido al océano</span></li>
+      <li><strong>1ª</strong><span>Granja biosalina del país</span></li>
+      <li><strong>4</strong><span>Cultivos halófitos</span></li>
+      <li><strong>100%</strong><span>Agua reutilizada</span></li>
+    </ul>
+    <p><strong>Impacto ambiental:</strong> reduce dramáticamente la huella sobre el Mar Argentino, mejora la calidad del
+      agua costera, restaura suelos salinos degradados y genera ingresos económicos adicionales para la región.</p>
+    <p class="muted">Cabo Vírgenes participa accionariamente desde la constitución de RASA, junto a otras empresas
+      del sector pesquero patagónico y autoridades provinciales de Chubut.</p>
+  </article>
+</div>
+
+<!-- MODALES de los 4 cultivos halófitos -->
+<div class="info-modal" id="modal-biocrop-salicornia" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>01 · CULTIVO GOURMET</p>
+    <h3>Salicornia · <em>Salicornia ambigua</em></h3>
+    <p>Halófito comestible apodado "<strong>espárrago de mar</strong>". Crece en suelos hipersalinos donde casi nada más
+      sobrevive — exactamente las condiciones del agua tratada por RASA.</p>
+    <ul class="modal-stats">
+      <li><strong>5%</strong><span>Sal natural (peso seco)</span></li>
+      <li><strong>40%</strong><span>Proteína vegetal</span></li>
+      <li><strong>EU · Asia</strong><span>Mercados premium</span></li>
+      <li><strong>Sin riego</strong><span>De agua dulce</span></li>
+    </ul>
+    <p><strong>Aplicaciones:</strong> chefs fine dining (Michelin), garnish en restaurantes, ensaladas premium, sushi,
+      sustitución natural de sal en haute cuisine. Comercializada fresca, encurtida y deshidratada.</p>
+    <p><strong>Beneficio ecológico:</strong> absorbe sales del suelo y secuestra carbono. Una hectárea retira ~5 t/año
+      de CO₂ atmosférico.</p>
+  </article>
+</div>
+
+<div class="info-modal" id="modal-biocrop-microalgas" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>02 · ALIMENTO ACUÍCOLA</p>
+    <h3>Microalgas · <em>Spirulina · Chlorella</em></h3>
+    <p>Cultivo en fotobiorreactores y raceways con agua tratada de RASA. Las microalgas absorben nitrógeno y fósforo
+      residuales mientras producen biomasa rica en proteína.</p>
+    <ul class="modal-stats">
+      <li><strong>60%</strong><span>Proteína (peso seco)</span></li>
+      <li><strong>~30 t/ha</strong><span>Productividad anual</span></li>
+      <li><strong>Acuicultura</strong><span>Mercado principal</span></li>
+      <li><strong>20×</strong><span>CO₂ vs. árbol/ha</span></li>
+    </ul>
+    <p><strong>Aplicaciones:</strong> alimento balanceado para acuicultura (camarón, salmón, mojarra), suplementación
+      humana (cápsulas, polvo), bioplásticos, pigmentos naturales (ficocianina, betacaroteno).</p>
+    <p><strong>Beneficio ecológico:</strong> fija ~1.8 kg de CO₂ por cada kg de biomasa producida. Cierra el ciclo
+      de nutrientes del efluente.</p>
+  </article>
+</div>
+
+<div class="info-modal" id="modal-biocrop-zampa" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>03 · FORRAJE HALÓFITO</p>
+    <h3>Zampa · <em>Atriplex lampa</em></h3>
+    <p>Arbusto halófito nativo de la estepa patagónica. Tolera salinidades extremas, sequía severa y heladas — ideal
+      para reverdecer suelos degradados costeros usando agua tratada por RASA.</p>
+    <ul class="modal-stats">
+      <li><strong>20%</strong><span>Proteína bruta</span></li>
+      <li><strong>−20°C</strong><span>Tolerancia a heladas</span></li>
+      <li><strong>Ovino/caprino</strong><span>Ganadería patagónica</span></li>
+      <li><strong>3 años</strong><span>Hasta primer corte</span></li>
+    </ul>
+    <p><strong>Aplicaciones:</strong> forraje fresco y henificado para caprinos y ovinos de la región, fijación de
+      suelos para frenar erosión costera, fitorremediación de aguas salobres.</p>
+    <p><strong>Beneficio ecológico:</strong> recupera suelos abandonados por sobre-pastoreo, captura carbono en
+      sistema radicular profundo, hábitat para fauna nativa patagónica.</p>
+  </article>
+</div>
+
+<div class="info-modal" id="modal-biocrop-piquillin" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>04 · ESPECIE NATIVA</p>
+    <h3>Piquillín · <em>Condalia microphylla</em></h3>
+    <p>Arbusto endémico del monte patagónico que produce bayas rojas dulces (drupas) muy apreciadas en gastronomía
+      regional. Su cultivo en RASA recupera una tradición ancestral del pueblo Mapuche-Tehuelche.</p>
+    <ul class="modal-stats">
+      <li><strong>3×</strong><span>Vitamina C vs. naranja</span></li>
+      <li><strong>Feb–Mar</strong><span>Temporada cosecha</span></li>
+      <li><strong>50–100 g/m²</strong><span>Rendimiento</span></li>
+      <li><strong>Sin riego</strong><span>Adicional</span></li>
+    </ul>
+    <p><strong>Aplicaciones:</strong> mermeladas artesanales, licores y arropes patagónicos, harinas funcionales,
+      gastronomía gourmet regional, productos turísticos identitarios.</p>
+    <p><strong>Beneficio ecológico:</strong> conservación de germoplasma nativo, polinización de fauna autóctona,
+      uso productivo del territorio sin agroquímicos ni riego adicional.</p>
+  </article>
+</div>
+<div class="info-modal" id="modal-sust-circular" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>04 · ECONOMÍA CIRCULAR</p>
+    <h3>De subproducto a nueva línea</h3>
+    <p>4 productos derivados de la operación de RASA, comercializados como líneas independientes con alto valor agregado:</p>
+    <ul class="modal-stats">
+      <li><strong>🌿</strong><span>Salicornia gourmet</span></li>
+      <li><strong>🦐</strong><span>Microalgas acuícolas</span></li>
+      <li><strong>🌾</strong><span>Zampa forrajera</span></li>
+      <li><strong>🍇</strong><span>Piquillín nativo</span></li>
+    </ul>
+    <p>Estos cultivos absorben CO₂, mejoran suelos costeros degradados y generan ingresos adicionales sin extracción
+      del medio marino.</p>
+  </article>
+</div>
+
+<!-- MODALES LEGALES (Footer) -->
+<div class="info-modal" id="modal-legal-privacidad" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg legal-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>LEGAL</p>
+    <h3>Política de privacidad</h3>
+    <p class="muted">Última actualización: 14 mayo 2026</p>
+    <h4>1. Responsable del tratamiento</h4>
+    <p>Cabo Vírgenes S.A. — Puerto Rawson, Chubut, Argentina. Email de contacto:
+      <strong>privacidad@cabovirgenes.com</strong>.</p>
+    <h4>2. Datos que recopilamos</h4>
+    <p>Recopilamos los datos que voluntariamente nos proporcionás a través de nuestros formularios de contacto
+      (nombre, empresa, email, país, mensaje) y datos técnicos de navegación (IP, navegador, idioma, páginas visitadas)
+      mediante cookies estrictamente necesarias.</p>
+    <h4>3. Finalidad</h4>
+    <p>Los datos son tratados exclusivamente para: responder consultas comerciales o institucionales, enviar comunicaciones
+      solicitadas (newsletter, novedades de mercado), cumplir obligaciones legales y mejorar el rendimiento del sitio.</p>
+    <h4>4. Base jurídica</h4>
+    <p>Tu consentimiento explícito (formularios opt-in) y el interés legítimo de la empresa para gestionar relaciones
+      comerciales (RGPD/UE 2016/679 y Ley 25.326 de Argentina).</p>
+    <h4>5. Conservación</h4>
+    <p>Conservamos los datos mientras dure la relación comercial o durante 5 años desde el último contacto, salvo
+      obligación legal de mayor plazo.</p>
+    <h4>6. Tus derechos</h4>
+    <p>Podés ejercer en cualquier momento tus derechos de acceso, rectificación, supresión, oposición, limitación y
+      portabilidad escribiendo a <strong>privacidad@cabovirgenes.com</strong>. También tenés derecho a presentar
+      reclamación ante la autoridad de control competente (AAIP Argentina / AEPD España).</p>
+    <h4>7. Transferencias internacionales</h4>
+    <p>No realizamos transferencias internacionales de datos personales fuera de Argentina y la UE excepto las necesarias
+      para responder a clientes establecidos en otros países, siempre con garantías adecuadas.</p>
+  </article>
+</div>
+
+<div class="info-modal" id="modal-legal-terminos" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg legal-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>LEGAL</p>
+    <h3>Términos y condiciones de uso</h3>
+    <p class="muted">Última actualización: 14 mayo 2026</p>
+    <h4>1. Aceptación</h4>
+    <p>El acceso a este sitio web (cabovirgenes.com) implica la aceptación plena de estos términos. Si no estás de
+      acuerdo con alguna cláusula, debés abstenerte de utilizar el sitio.</p>
+    <h4>2. Uso del sitio</h4>
+    <p>El sitio es de carácter institucional e informativo. Está prohibido: alterar el contenido, intentar comprometer
+      la seguridad del sistema, utilizar bots o scrapers no autorizados, usar la marca Cabo Vírgenes sin autorización
+      expresa.</p>
+    <h4>3. Propiedad intelectual</h4>
+    <p>Todo el contenido (textos, imágenes, marcas, logos, diseño, fotografías) es propiedad de Cabo Vírgenes S.A. o
+      de sus respectivos titulares. La reproducción total o parcial requiere autorización escrita.</p>
+    <h4>4. Productos y servicios</h4>
+    <p>La información sobre productos (formatos, calibres, certificaciones) tiene fines informativos. Las condiciones
+      comerciales reales se rigen por contratos firmados con cada cliente. Los precios y disponibilidad se confirman
+      por escrito.</p>
+    <h4>5. Limitación de responsabilidad</h4>
+    <p>Cabo Vírgenes no se responsabiliza por interrupciones técnicas del sitio, contenido de sitios externos enlazados
+      ni por uso indebido de la información publicada.</p>
+    <h4>6. Modificaciones</h4>
+    <p>Nos reservamos el derecho de modificar estos términos en cualquier momento. Los cambios entran en vigor desde
+      su publicación en el sitio.</p>
+    <h4>7. Legislación aplicable</h4>
+    <p>Estos términos se rigen por las leyes de la República Argentina. Las controversias se someten a los tribunales
+      ordinarios de Rawson, Chubut.</p>
+  </article>
+</div>
+
+<div class="info-modal" id="modal-legal-cookies" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg legal-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>LEGAL</p>
+    <h3>Política de cookies</h3>
+    <p class="muted">Última actualización: 14 mayo 2026</p>
+    <h4>¿Qué son las cookies?</h4>
+    <p>Las cookies son pequeños archivos que el sitio almacena en tu navegador para recordar preferencias y mejorar
+      tu experiencia.</p>
+    <h4>Cookies que utilizamos</h4>
+    <ul class="legal-list">
+      <li><strong>Estrictamente necesarias</strong> — preferencia de idioma (localStorage `cv-lang`), sesión y seguridad.
+        No requieren consentimiento.</li>
+      <li><strong>Funcionales</strong> — recuerdan tu última sección visitada y configuración del reproductor de video.</li>
+      <li><strong>Analíticas</strong> (opt-in) — métricas anónimas de tráfico vía Plausible/self-hosted. No comparten
+        datos con terceros.</li>
+    </ul>
+    <h4>Sin cookies de marketing</h4>
+    <p>No utilizamos cookies de tracking publicitario, Facebook Pixel, Google Ads ni similares.</p>
+    <h4>Gestión</h4>
+    <p>Podés bloquear o eliminar cookies desde la configuración de tu navegador. La desactivación de cookies estrictamente
+      necesarias puede afectar el correcto funcionamiento del sitio.</p>
+    <h4>Cookies de terceros</h4>
+    <p>Algunos recursos externos (mapa OpenStreetMap/CartoDB, fuentes Google) pueden establecer cookies propias. Consultá
+      sus políticas en sus sitios oficiales.</p>
+  </article>
+</div>
+
+<div class="info-modal" id="modal-legal-aviso" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg legal-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>LEGAL</p>
+    <h3>Aviso legal</h3>
+    <p class="muted">Última actualización: 14 mayo 2026</p>
+    <h4>Identificación de la empresa</h4>
+    <p><strong>Razón social:</strong> Cabo Vírgenes S.A.<br/>
+       <strong>CUIT:</strong> 30-XX-XXXXXXX-X (Argentina) · <strong>CIF España:</strong> A-XXXXXXXX<br/>
+       <strong>Domicilio fiscal:</strong> Puerto Rawson, Chubut, Argentina<br/>
+       <strong>Plataforma EU:</strong> Polígono industrial, Palencia, España<br/>
+       <strong>Inscripción registral:</strong> IGJ Chubut · Registro Mercantil de Palencia<br/>
+       <strong>Email institucional:</strong> info@cabovirgenes.com<br/>
+       <strong>Teléfono:</strong> +54 280 4495000</p>
+    <h4>Actividad</h4>
+    <p>Captura, procesamiento, comercialización y exportación de productos del mar — especialidad langostino austral
+      salvaje (<em>Pleoticus muelleri</em>). Habilitaciones SENASA, UE, FDA, CIQ.</p>
+    <h4>Pertenencia a grupo</h4>
+    <p>Cabo Vírgenes forma parte de <strong>AISA Group</strong> desde enero de 2025.</p>
+    <h4>Hosting y dominio</h4>
+    <p>Sitio alojado en servidores con cumplimiento RGPD. Dominio cabovirgenes.com registrado a nombre de Cabo Vírgenes S.A.</p>
+    <h4>Responsabilidad</h4>
+    <p>El contenido publicado es de carácter informativo. Cabo Vírgenes no garantiza la inexistencia de errores ni la
+      actualidad permanente de la información. Para consultas comerciales formales, contactar directamente al equipo
+      vía los emails indicados.</p>
+    <h4>Reclamaciones</h4>
+    <p>Para presentar reclamaciones formales: <strong>legal@cabovirgenes.com</strong> o mediante carta certificada al
+      domicilio fiscal indicado.</p>
+  </article>
+</div>
+
+<!-- MODAL Más sobre nosotros -->
+<div class="info-modal" id="modal-empresa-full" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>SOBRE CABO VÍRGENES</p>
+    <h3>Estructura binacional,<br/>visión global.</h3>
+    <p><strong>Fundada en 2008</strong>, Cabo Vírgenes es una empresa pesquera especializada en captura, procesamiento, comercialización y exportación de productos del mar.</p>
+    <p>En <strong>enero de 2025</strong> se incorporó a <strong>AISA Group</strong>, consolidando su posicionamiento en la industria pesquera internacional.</p>
+    <p>Operación binacional con base productiva en la <strong>Patagonia argentina</strong> (Puerto Rawson) y plataforma logística y de valor agregado en <strong>España</strong> (Palencia).</p>
+    <ul class="modal-stats">
+      <li><strong>2008</strong><span>Fundación</span></li>
+      <li><strong>40+</strong><span>Países destino</span></li>
+      <li><strong>5</strong><span>Buques propios</span></li>
+      <li><strong>2</strong><span>Continentes</span></li>
+    </ul>
+    <p class="muted">Especialidad: <em>Pleoticus muelleri</em>, el langostino austral salvaje del Atlántico Sur — uno de los productos del mar más cotizados a nivel global.</p>
+  </article>
+</div>
+
+<div class="toast glass" id="toast"></div>
+
+<!-- ========== AI CHAT FAB (único botón flotante) ========== -->
+<div class="fab-stack" id="fabStack">
+  <button type="button" class="fab fab-ai" id="aiChatBtn" aria-label="Chat IA Cabo Vírgenes">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/></svg>
+    <span class="fab-pulse"></span>
+    <span class="fab-tip">Chat IA</span>
+  </button>
+</div>
+
+<!-- AI CHAT PANEL -->
+<aside class="ai-chat" id="aiChat" aria-hidden="true">
+  <header class="ac-head">
+    <div class="ac-avatar">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+    </div>
+    <div class="ac-title">
+      <strong>Asistente Cabo Vírgenes</strong>
+      <span><span class="ac-online"></span>IA · Responde al instante</span>
+    </div>
+    <a class="ac-wa" href="https://wa.me/542804495000?text=Hola%20Cabo%20V%C3%ADrgenes%2C%20me%20interesa%20obtener%20m%C3%A1s%20informaci%C3%B3n%20sobre%20sus%20productos." target="_blank" rel="noopener" aria-label="Hablar por WhatsApp">
+      <svg viewBox="0 0 32 32" width="18" height="18" fill="currentColor"><path d="M16 3C9 3 3.4 8.6 3.4 15.6c0 2.3.6 4.5 1.7 6.4L3 29l7.2-2c1.8 1 3.8 1.5 5.9 1.5 7 0 12.6-5.6 12.6-12.6S23 3 16 3zm0 23c-1.9 0-3.7-.5-5.3-1.4l-.4-.2-4.3 1.2 1.2-4.1-.2-.4c-1-1.7-1.6-3.6-1.6-5.5C5.4 10 10.2 5.2 16 5.2c2.8 0 5.4 1.1 7.4 3.1 2 2 3.1 4.6 3.1 7.4 0 5.8-4.8 10.6-10.5 10.6zm5.8-7.9c-.3-.2-1.9-.9-2.2-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.3-.5-2.5-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6.1-.1.3-.4.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5 0-.2-.7-1.7-.9-2.3-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1.1 1-1.1 2.5s1.1 2.9 1.3 3.1c.2.2 2.2 3.3 5.3 4.6.7.3 1.3.5 1.8.7.8.2 1.4.2 2 .1.6-.1 1.9-.8 2.1-1.5.3-.7.3-1.4.2-1.5 0-.1-.3-.2-.6-.4z"/></svg>
+    </a>
+    <button class="ac-close" id="aiChatClose" aria-label="Cerrar chat">×</button>
+  </header>
+  <div class="ac-body" id="aiChatBody">
+    <div class="ac-msg ac-msg-bot">
+      <p>¡Hola! 👋 Soy el asistente IA de Cabo Vírgenes. Puedo ayudarte con información sobre:</p>
+      <div class="ac-suggestions">
+        <button class="ac-sug" data-q="¿Qué productos venden?">¿Qué productos venden?</button>
+        <button class="ac-sug" data-q="¿Dónde están ubicados?">¿Dónde están ubicados?</button>
+        <button class="ac-sug" data-q="¿Qué certificaciones tienen?">Certificaciones</button>
+        <button class="ac-sug" data-q="¿Cómo solicito cotización?">Cotización</button>
+        <button class="ac-sug" data-q="¿Qué es RASA?">¿Qué es RASA?</button>
+        <button class="ac-sug" data-q="¿Cuántos barcos tienen?">Flota</button>
+      </div>
+    </div>
+  </div>
+  <form class="ac-form" id="aiChatForm">
+    <input type="text" id="aiChatInput" placeholder="Escribí tu pregunta..." autocomplete="off"/>
+    <button type="submit" aria-label="Enviar">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12l20-9-9 20-2-9z"/></svg>
+    </button>
+  </form>
+  <div class="ac-foot">
+    <span>Powered by IA · Open source</span>
+    <a href="https://wa.me/542804495000" target="_blank" rel="noopener">¿Prefieres WhatsApp?</a>
+  </div>
+</aside>
+
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="./i18n.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>
