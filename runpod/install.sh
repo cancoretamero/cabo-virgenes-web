@@ -4,15 +4,18 @@
 
 set -e
 
-echo "=== 1) Instalando deps Python ==="
+echo "=== 1) Instalando deps Python (versiones pinneadas compatibles) ==="
 pip install --quiet --upgrade pip
-pip install --quiet \
-  "torch>=2.0" \
-  "transformers>=4.40" \
-  "sentencepiece>=0.2" \
-  "fastapi>=0.110" \
-  "uvicorn[standard]>=0.27" \
-  "pydantic>=2.5"
+# transformers 4.38.2 es la última estable que funciona con torch <2.4
+# (las nuevas (4.40+) requieren torch 2.4+ que tiene custom_op API distinto)
+pip install --quiet --root-user-action=ignore \
+  "transformers==4.38.2" \
+  "tokenizers==0.15.2" \
+  "sentencepiece==0.2.0" \
+  "accelerate==0.27.2" \
+  "fastapi==0.110.0" \
+  "uvicorn[standard]==0.27.1" \
+  "pydantic==2.6.1"
 
 echo "=== 2) Instalando cloudflared (tunnel público gratis) ==="
 if [ ! -f /usr/local/bin/cloudflared ]; then
