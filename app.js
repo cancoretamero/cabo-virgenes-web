@@ -627,13 +627,15 @@ document.querySelectorAll('[data-play-video]').forEach(btn => {
   });
 });
 
-// ============ AI CHATBOT (knowledge base local + matching por keywords) ============
+// ============ AI CHATBOT (LLM real Qwen2 + KB fallback) ============
+const AI_CHAT_ENDPOINT = 'https://rendering-totally-production-looksmart.trycloudflare.com/chat';
 const aiChatBtn = document.getElementById('aiChatBtn');
 const aiChat = document.getElementById('aiChat');
 const aiChatClose = document.getElementById('aiChatClose');
 const aiChatForm = document.getElementById('aiChatForm');
 const aiChatInput = document.getElementById('aiChatInput');
 const aiChatBody = document.getElementById('aiChatBody');
+const chatHistory = []; // [{role, content}]
 
 // Knowledge base: keywords → respuesta estructurada
 const KB = [
@@ -704,13 +706,45 @@ function addTyping(){
 }
 function rmTyping(){ const t=document.getElementById('acTyping'); if(t)t.remove(); }
 
-function askBot(q){
+async function askBot(q){
   addMsg(q, 'user');
+  chatHistory.push({ role:'user', content:q });
   addTyping();
-  setTimeout(() => {
-    rmTyping();
-    addMsg(findAnswer(q), 'bot');
-  }, 650 + Math.random()*400);
+
+  // Intentar LLM real primero
+  try {
+    const r = await fetch(AI_CHAT_ENDPOINT, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        message: q,
+        history: chatHistory.slice(-10), // últimos 10 turnos
+      }),
+    });
+    if (r.ok) {
+      const data = await r.json();
+      const reply = (data?.reply || '').trim();
+      if (reply) {
+        rmTyping();
+        // Convertir saltos de línea a <br>
+        const html = escapeHtml(reply).replace(/\n/g, '<br>');
+        addMsg(html, 'bot');
+        chatHistory.push({ role:'assistant', content: reply });
+        return;
+      }
+    }
+  } catch(e){ /* fallthrough a KB local */ }
+
+  // Fallback a knowledge base local
+  rmTyping();
+  const ans = findAnswer(q);
+  addMsg(ans, 'bot');
+  chatHistory.push({ role:'assistant', content: ans.replace(/<[^>]+>/g,'') });
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
 if (aiChatBtn && aiChat) {
