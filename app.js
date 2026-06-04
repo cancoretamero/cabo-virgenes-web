@@ -641,13 +641,9 @@ if (mapSection) {
   };
   const isTouch = window.matchMedia && window.matchMedia('(hover: none)').matches;
   if (isTouch) {
-    // Móvil/iOS: no auto-cargar el mapa (Leaflet + decenas de tiles = mucha
-    // memoria → crash). Se carga al tocar.
-    const hint = document.createElement('button');
-    hint.type = 'button'; hint.className = 'map-taphint';
-    hint.innerHTML = '<span>🗺️ Toca para cargar el mapa interactivo</span>';
-    mapSection.appendChild(hint);
-    hint.addEventListener('click', () => { hint.remove(); bootMap(); }, { once: true });
+    // Móvil/iOS: NO se carga Leaflet (decenas de tiles + 43 marcadores con
+    // animación de pulso agotan la GPU/memoria y crashean Safari). En su lugar
+    // se muestra una imagen estática del mapa (ver .map-static en el CSS).
   } else if ('requestIdleCallback' in window) {
     requestIdleCallback(bootMap, { timeout: 2000 });
   } else {

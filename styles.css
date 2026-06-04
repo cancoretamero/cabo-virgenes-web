@@ -3151,6 +3151,11 @@ html.fit-scale body{
   .wave-video{ display:none !important; }
   .wave-fallback{ display:block !important; }
   .sv-grid{ transform:none !important; }  /* sin perspectiva 3D (contexto pesado) */
+  /* Mapa: en móvil NO se carga Leaflet (decenas de tiles + 43 marcadores con
+     pulso → crash). Se muestra una imagen estática del mapa. */
+  #worldMap, .map-glow, .map-info-panel, .map-legend, .map-filters{ display:none !important; }
+  .map-frame{ height:auto !important; }
+  .map-static{ display:block !important; position:relative; width:100%; height:auto }
   /* Sin blur hay que reforzar la opacidad de los cristales para que no se
      transparenten sobre el contenido de detrás */
   .glass{ background:linear-gradient(180deg,rgba(255,255,255,.97),rgba(255,255,255,.93)) }
@@ -3165,3 +3170,6 @@ html.fit-scale body{
 #worldMap{position:relative}
 .map-taphint{position:absolute;inset:0;z-index:6;display:flex;align-items:center;justify-content:center;background:rgba(6,18,40,.45);border:0;cursor:pointer;width:100%;height:100%}
 .map-taphint span{background:rgba(28,181,176,.92);color:#fff;font:600 14px/1.3 'Inter',sans-serif;padding:13px 22px;border-radius:100px;box-shadow:0 12px 30px -10px rgba(0,0,0,.5)}
+
+/* Imagen estática del mapa (sólo visible en móvil; ver media query táctil) */
+.map-static{display:none;width:100%;height:100%;object-fit:cover;border-radius:inherit}
