@@ -627,6 +627,41 @@ document.querySelectorAll('[data-play-video]').forEach(btn => {
   });
 });
 
+// ============ GALERÍAS en modales (barcos + plantas): miniatura → imagen principal ============
+document.querySelectorAll('.pm-gallery .pm-thumbs img').forEach(thumb => {
+  thumb.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const gallery = thumb.closest('.pm-gallery');
+    const mainImg = gallery && gallery.querySelector('.pm-main img');
+    if (!mainImg) return;
+    if (mainImg.getAttribute('src') === thumb.getAttribute('src')) return;
+    mainImg.src = thumb.src;
+    mainImg.alt = thumb.alt;
+    mainImg.classList.remove('pm-fade');
+    void mainImg.offsetWidth; // reinicia la animación de fundido
+    mainImg.classList.add('pm-fade');
+    gallery.querySelectorAll('.pm-thumbs img').forEach(t => t.classList.remove('on'));
+    thumb.classList.add('on');
+  });
+});
+
+// ============ EQUIPO — filtro por área ============
+(function () {
+  const bar = document.querySelector('[data-team-filter]');
+  if (!bar) return;
+  const members = Array.prototype.slice.call(document.querySelectorAll('[data-team-grid] .member'));
+  bar.addEventListener('click', (e) => {
+    const btn = e.target.closest('.tf');
+    if (!btn) return;
+    const f = btn.getAttribute('data-f');
+    bar.querySelectorAll('.tf').forEach(b => b.classList.toggle('is-active', b === btn));
+    members.forEach(m => {
+      const show = f === 'all' || m.getAttribute('data-area') === f;
+      m.classList.toggle('is-hidden', !show);
+    });
+  });
+})();
+
 // ============ AI CHATBOT (LLM real Qwen2 + KB fallback) ============
 const AI_CHAT_ENDPOINT = 'https://rendering-totally-production-looksmart.trycloudflare.com/chat';
 const aiChatBtn = document.getElementById('aiChatBtn');
