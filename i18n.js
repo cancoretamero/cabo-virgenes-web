@@ -41,7 +41,7 @@ const dict = {
     // Nav + general
     'Empresa':'Company','Productos':'Products','Sostenibilidad':'Sustainability',
     'Calidad':'Quality','Plantas':'Plants','Flota':'Fleet','Contacto':'Contact',
-    'Equipo':'Team','NUESTRO EQUIPO':'OUR TEAM','Todos':'All','Dirección':'Management','Operaciones':'Operations','Comercial':'Sales','Ver perfil':'View profile','Enfoque':'Focus','Base':'Base','Alcance':'Reach','Certifica':'Certifies',
+    'Equipo':'Team','NUESTRO EQUIPO':'OUR TEAM','Todos':'All','Dirección':'Management','Operaciones':'Operations','Comercial':'Sales','Ver perfil':'View profile','Enfoque':'Focus','Base':'Base','Alcance':'Reach','Certifica':'Certifies','Noticias':'News','ACTUALIDAD':'NEWS','Leer más':'Read more',
     'DESLIZA PARA EXPLORAR':'SCROLL TO EXPLORE','VOLVER AL INICIO':'BACK TO TOP',
     'Reproducir video corporativo':'Play corporate video',
     'Más sobre nosotros':'More about us','Más sobre Cabo Vírgenes':'More about Cabo Vírgenes',
@@ -222,7 +222,7 @@ const dict = {
     // Nav + general
     'Empresa':'Entreprise','Productos':'Produits','Sostenibilidad':'Durabilité',
     'Calidad':'Qualité','Plantas':'Usines','Flota':'Flotte','Contacto':'Contact',
-    'Equipo':'Équipe','NUESTRO EQUIPO':'NOTRE ÉQUIPE','Todos':'Tous','Dirección':'Direction','Operaciones':'Opérations','Comercial':'Commercial','Ver perfil':'Voir le profil','Enfoque':'Objectif','Base':'Base','Alcance':'Portée','Certifica':'Certifie',
+    'Equipo':'Équipe','NUESTRO EQUIPO':'NOTRE ÉQUIPE','Todos':'Tous','Dirección':'Direction','Operaciones':'Opérations','Comercial':'Commercial','Ver perfil':'Voir le profil','Enfoque':'Objectif','Base':'Base','Alcance':'Portée','Certifica':'Certifie','Noticias':'Actualités','ACTUALIDAD':'ACTUALITÉ','Leer más':'Lire plus',
     'DESLIZA PARA EXPLORAR':'FAITES DÉFILER','VOLVER AL INICIO':'RETOUR EN HAUT',
     'Reproducir video corporativo':'Lire la vidéo corporative',
     'Más sobre nosotros':'En savoir plus','Más sobre Cabo Vírgenes':'En savoir plus sur Cabo Vírgenes',
@@ -381,7 +381,7 @@ const dict = {
     // Nav + general
     'Empresa':'Empresa','Productos':'Produtos','Sostenibilidad':'Sustentabilidade',
     'Calidad':'Qualidade','Plantas':'Plantas','Flota':'Frota','Contacto':'Contato',
-    'Equipo':'Equipe','NUESTRO EQUIPO':'NOSSA EQUIPE','Todos':'Todos','Dirección':'Direção','Operaciones':'Operações','Comercial':'Comercial','Ver perfil':'Ver perfil','Enfoque':'Foco','Base':'Base','Alcance':'Alcance','Certifica':'Certifica',
+    'Equipo':'Equipe','NUESTRO EQUIPO':'NOSSA EQUIPE','Todos':'Todos','Dirección':'Direção','Operaciones':'Operações','Comercial':'Comercial','Ver perfil':'Ver perfil','Enfoque':'Foco','Base':'Base','Alcance':'Alcance','Certifica':'Certifica','Noticias':'Notícias','ACTUALIDAD':'ATUALIDADE','Leer más':'Ler mais',
     'DESLIZA PARA EXPLORAR':'DESLIZE PARA EXPLORAR','VOLVER AL INICIO':'VOLTAR AO TOPO',
     'Reproducir video corporativo':'Reproduzir vídeo corporativo',
     'Más sobre nosotros':'Mais sobre nós','Más sobre Cabo Vírgenes':'Mais sobre Cabo Vírgenes',
@@ -534,7 +534,7 @@ const dict = {
     // Nav + general
     'Empresa':'公司','Productos':'产品','Sostenibilidad':'可持续性',
     'Calidad':'质量','Plantas':'工厂','Flota':'船队','Contacto':'联系',
-    'Equipo':'团队','NUESTRO EQUIPO':'我们的团队','Todos':'全部','Dirección':'管理层','Operaciones':'运营','Comercial':'商务','Ver perfil':'查看简介','Enfoque':'专注','Base':'基地','Alcance':'覆盖','Certifica':'认证',
+    'Equipo':'团队','NUESTRO EQUIPO':'我们的团队','Todos':'全部','Dirección':'管理层','Operaciones':'运营','Comercial':'商务','Ver perfil':'查看简介','Enfoque':'专注','Base':'基地','Alcance':'覆盖','Certifica':'认证','Noticias':'新闻','ACTUALIDAD':'最新动态','Leer más':'阅读更多',
     'DESLIZA PARA EXPLORAR':'向下浏览','VOLVER AL INICIO':'回到顶部',
     'Reproducir video corporativo':'播放企业视频',
     'Más sobre nosotros':'了解更多','Más sobre Cabo Vírgenes':'更多关于 Cabo Vírgenes',

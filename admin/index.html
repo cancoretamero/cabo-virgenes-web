@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cabo Vírgenes — Panel de administración</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body class="is-loading">
+
+<!-- ============ LOGIN ============ -->
+<section class="login" id="login" hidden>
+  <span class="login__blob b1"></span><span class="login__blob b2"></span>
+  <div class="login__inner">
+    <img class="login__logo" src="../logo.png" alt="Cabo Vírgenes">
+    <div class="login__over">Panel de administración · Acceso privado</div>
+    <h1 class="login__title">Cabo <span class="serif-i">Vírgenes</span></h1>
+    <p class="login__lede">Inicia sesión para gestionar las noticias y el contenido del sitio.</p>
+    <form class="login__form" id="loginForm" autocomplete="on">
+      <label class="field">
+        <span class="field__label">Usuario</span>
+        <input type="text" id="userInput" class="field__input" placeholder="admin" autocomplete="username" autocapitalize="off" spellcheck="false" required>
+      </label>
+      <label class="field">
+        <span class="field__label">Contraseña</span>
+        <div class="field__pw">
+          <input type="password" id="passInput" class="field__input" placeholder="••••••••••••" autocomplete="current-password" required>
+          <button type="button" class="field__eye" id="togglePass" aria-label="Mostrar contraseña"><span data-ico="eye" data-ico-size="16"></span></button>
+        </div>
+      </label>
+      <button type="submit" class="btn btn--solid login__submit" id="loginSubmit"><span class="btn__label">Entrar</span><span class="ar" data-ico="arrow-right"></span></button>
+      <p class="login__msg" id="loginMsg" role="status"></p>
+    </form>
+    <p class="login__hint">Acceso de demostración (validación en el navegador) · usuario <code>admin</code> · contraseña <code>cabovirgenes</code>. Para un acceso seguro real se necesitaría backend.</p>
+  </div>
+  <div class="login__foot">© 2026 Cabo Vírgenes · Parte de AISA Group</div>
+</section>
+
+<!-- ============ APP ============ -->
+<div class="app" id="app" hidden>
+  <div class="side-back" id="sideBack"></div>
+
+  <!-- Sidebar -->
+  <aside class="side" id="side">
+    <div class="side__top">
+      <img class="side__logo" src="../logo.png" alt="Cabo Vírgenes">
+      <span class="side__kicker">Panel de administración</span>
+    </div>
+    <nav class="side__nav" id="sideNav">
+      <span class="side__section">Resumen</span>
+      <a href="#/inicio" data-view="inicio" class="side__link"><span class="side__ic" data-ico="layout-dashboard"></span><span class="side__label">Inicio</span></a>
+      <span class="side__section">Contenido</span>
+      <a href="#/noticias" data-view="noticias" class="side__link"><span class="side__ic" data-ico="newspaper"></span><span class="side__label">Noticias</span><span class="side__badge" id="newsBadge" hidden>0</span></a>
+      <a href="#/equipo" data-view="equipo" class="side__link"><span class="side__ic" data-ico="users"></span><span class="side__label">Equipo</span></a>
+      <span class="side__section">Comunidad</span>
+      <a href="#/consultas" data-view="consultas" class="side__link"><span class="side__ic" data-ico="mail"></span><span class="side__label">Consultas</span><span class="side__badge" id="msgBadge" hidden>0</span></a>
+      <span class="side__section">Sistema</span>
+      <a href="#/ajustes" data-view="ajustes" class="side__link"><span class="side__ic" data-ico="settings"></span><span class="side__label">Ajustes</span></a>
+    </nav>
+    <div class="side__foot">
+      <a href="../" target="_blank" rel="noopener" class="side__view">Ver sitio público <span data-ico="external-link" data-ico-size="14"></span></a>
+      <button type="button" class="btn btn--ghost side__logout" id="logoutBtn">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <header class="topbar">
+      <button type="button" class="topbar__menu" id="menuToggle" aria-label="Menú"><span data-ico="menu" data-ico-size="20"></span></button>
+      <div class="topbar__crumbs">
+        <span class="over">Admin</span><span class="topbar__sep">/</span>
+        <span class="topbar__title" id="viewTitle">Inicio</span>
+      </div>
+      <div class="topbar__right">
+        <span class="topbar__who" id="whoami">admin</span>
+      </div>
+    </header>
+
+    <div class="viewport">
+
+      <!-- ===== INICIO ===== -->
+      <section class="view" id="view-inicio" hidden>
+        <div class="view__head"><div>
+          <h2 class="view__h">Buenas, equipo Cabo Vírgenes</h2>
+          <p class="view__sub">Resumen del sitio y accesos rápidos. Gestiona las noticias y el contenido desde el menú lateral.</p>
+        </div></div>
+        <div class="kpis" id="kpis"></div>
+        <div class="dash-grid">
+          <div class="card">
+            <div class="panel-title">Accesos rápidos</div>
+            <p class="panel-sub">Lo más habitual del día a día.</p>
+            <div class="quick" id="quickLinks"></div>
+          </div>
+          <div class="card">
+            <div class="panel-title">Estado del sitio</div>
+            <p class="panel-sub">Lo que ven los visitantes ahora mismo.</p>
+            <div id="siteStatus"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== NOTICIAS ===== -->
+      <section class="view" id="view-noticias" hidden>
+        <div class="view__head">
+          <div>
+            <h2 class="view__h">Noticias <span class="view__count" id="newsCount">0</span></h2>
+            <p class="view__sub">Crea y gestiona las noticias del sitio. La sección de Noticias está <strong>oculta</strong> hasta que la actives con el interruptor.</p>
+          </div>
+          <div class="view__actions">
+            <button type="button" class="btn btn--ghost" id="newsSeed"><span class="ar" data-ico="sparkles"></span> Añadir ejemplos</button>
+            <button type="button" class="btn btn--solid" id="newsNew"><span class="ar" data-ico="plus"></span> Nueva noticia</button>
+          </div>
+        </div>
+
+        <!-- Interruptor mostrar/ocultar sección -->
+        <div class="news-toggle-bar" id="newsToggleBar">
+          <div class="ntb__left">
+            <span class="ntb__ic" data-ico="newspaper" data-ico-size="22"></span>
+            <div>
+              <div class="ntb__t">Sección de Noticias en la web <span class="ntb__state off" id="newsState">Oculta</span></div>
+              <div class="ntb__s">Cuando la actives, aparecerá en el menú y entre «Equipo» y «Contacto» del sitio público.</div>
+            </div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="newsEnabled">
+            <span class="switch__track"></span>
+            <span class="switch__text" id="newsEnabledTxt">Incluir sección</span>
+          </label>
+        </div>
+
+        <div class="news-grid" id="newsGrid"></div>
+      </section>
+
+      <!-- ===== EQUIPO ===== -->
+      <section class="view" id="view-equipo" hidden>
+        <div class="view__head"><div>
+          <h2 class="view__h">Equipo directivo</h2>
+          <p class="view__sub">Edita el cargo, nombre y descripción de cada directivo. Los cambios se previsualizan en este navegador.</p>
+        </div></div>
+        <div class="team-admin" id="teamAdmin"></div>
+      </section>
+
+      <!-- ===== CONSULTAS ===== -->
+      <section class="view" id="view-consultas" hidden>
+        <div class="view__head">
+          <div>
+            <h2 class="view__h">Consultas <span class="view__count" id="msgCount">0</span></h2>
+            <p class="view__sub">Mensajes recibidos desde el formulario de contacto del sitio.</p>
+          </div>
+          <div class="view__actions">
+            <button type="button" class="btn btn--ghost" id="msgDemo"><span class="ar" data-ico="sparkles"></span> Simular consulta</button>
+          </div>
+        </div>
+        <div class="inbox" id="inbox"></div>
+      </section>
+
+      <!-- ===== AJUSTES ===== -->
+      <section class="view" id="view-ajustes" hidden>
+        <div class="view__head"><div>
+          <h2 class="view__h">Ajustes</h2>
+          <p class="view__sub">Configuración general y publicación del contenido.</p>
+        </div></div>
+        <div class="dash-grid">
+          <div class="card">
+            <div class="panel-title">Sección de Noticias</div>
+            <p class="panel-sub">Controla si la sección aparece en el sitio público.</p>
+            <label class="switch" style="margin-top:4px">
+              <input type="checkbox" id="newsEnabled2">
+              <span class="switch__track"></span>
+              <span class="switch__text">Mostrar sección de Noticias en la web</span>
+            </label>
+          </div>
+          <div class="card">
+            <div class="panel-title">Publicar / exportar</div>
+            <p class="panel-sub">Los cambios se guardan en este navegador. Para publicarlos a todos los visitantes, exporta el contenido y súbelo al repositorio.</p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+              <button type="button" class="btn btn--solid" id="exportBtn"><span class="ar" data-ico="download"></span> Exportar contenido (JSON)</button>
+              <button type="button" class="btn btn--ghost" id="importBtn"><span class="ar" data-ico="upload"></span> Importar</button>
+              <button type="button" class="btn btn--danger btn--sm" id="resetBtn">Restablecer</button>
+            </div>
+            <input type="file" id="importFile" accept="application/json" hidden>
+          </div>
+        </div>
+        <div class="card" style="margin-top:18px">
+          <div class="panel-title">Datos de contacto</div>
+          <p class="panel-sub">Solo informativo en esta demo.</p>
+          <div class="grid2">
+            <label class="field"><span class="field__label">Email comercial</span><input class="field__input" id="setEmail" value="comercial@cabovirgenes.com"></label>
+            <label class="field"><span class="field__label">Teléfono</span><input class="field__input" id="setPhone" value="+54 280 4495000"></label>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- ============ MODAL EDITOR NOTICIA ============ -->
+<div class="modal" id="newsModal" aria-hidden="true">
+  <div class="modal__back" data-close-modal></div>
+  <div class="modal__card">
+    <div class="modal__head">
+      <h3 class="modal__h" id="newsModalTitle">Nueva noticia</h3>
+      <button class="modal__close" data-close-modal aria-label="Cerrar"><span data-ico="x" data-ico-size="18"></span></button>
+    </div>
+    <div class="modal__body">
+      <form id="newsForm">
+        <input type="hidden" id="nfId">
+        <div class="img-drop" id="nfImgDrop">
+          <img class="img-prev" id="nfImgPrev" hidden>
+          <span id="nfImgHint"><span data-ico="image" data-ico-size="18"></span><br>Clic para subir una imagen de portada (opcional)</span>
+        </div>
+        <input type="file" id="nfImgFile" accept="image/*" hidden>
+        <div class="grid2" style="margin-top:14px">
+          <label class="field"><span class="field__label">Categoría</span>
+            <select class="field__select" id="nfCat">
+              <option>Corporativo</option><option>Producto</option><option>Flota</option>
+              <option>Sostenibilidad</option><option>Calidad</option><option>Mercados</option><option>Prensa</option>
+            </select>
+          </label>
+          <label class="field"><span class="field__label">Fecha</span><input class="field__input" type="date" id="nfDate"></label>
+        </div>
+        <label class="field"><span class="field__label">Título</span><input class="field__input" id="nfTitle" placeholder="Título de la noticia" required></label>
+        <label class="field"><span class="field__label">Extracto</span><textarea class="field__area" id="nfExcerpt" placeholder="Resumen breve que se ve en la tarjeta…"></textarea></label>
+        <label class="field"><span class="field__label">Cuerpo (opcional)</span><textarea class="field__area" id="nfBody" placeholder="Texto completo de la noticia…" style="min-height:120px"></textarea></label>
+        <label class="field"><span class="field__label">Estado</span>
+          <select class="field__select" id="nfStatus">
+            <option value="published">Publicada (visible en la web)</option>
+            <option value="draft">Borrador (no visible)</option>
+          </select>
+        </label>
+      </form>
+    </div>
+    <div class="modal__foot">
+      <button type="button" class="btn btn--ghost" data-close-modal>Cancelar</button>
+      <button type="button" class="btn btn--solid" id="newsSave"><span class="ar" data-ico="save"></span> Guardar noticia</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL EDITOR EQUIPO ============ -->
+<div class="modal" id="teamModal" aria-hidden="true">
+  <div class="modal__back" data-close-modal></div>
+  <div class="modal__card">
+    <div class="modal__head">
+      <h3 class="modal__h">Editar directivo</h3>
+      <button class="modal__close" data-close-modal aria-label="Cerrar"><span data-ico="x" data-ico-size="18"></span></button>
+    </div>
+    <div class="modal__body">
+      <form id="teamForm">
+        <input type="hidden" id="tfKey">
+        <label class="field"><span class="field__label">Nombre</span><input class="field__input" id="tfName"></label>
+        <label class="field"><span class="field__label">Cargo</span><input class="field__input" id="tfRole"></label>
+        <label class="field"><span class="field__label">Descripción (tarjeta)</span><textarea class="field__area" id="tfBio"></textarea></label>
+      </form>
+    </div>
+    <div class="modal__foot">
+      <button type="button" class="btn btn--ghost" data-close-modal>Cancelar</button>
+      <button type="button" class="btn btn--solid" id="teamSave"><span class="ar" data-ico="save"></span> Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="icons.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

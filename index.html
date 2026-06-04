@@ -75,6 +75,7 @@
       <a href="#plantas" data-i18n="nav.plantas">Plantas</a>
       <a href="#flota" data-i18n="nav.flota">Flota</a>
       <a href="#equipo" data-i18n="nav.equipo">Equipo</a>
+      <a href="#noticias" data-news-nav data-i18n="nav.noticias" hidden>Noticias</a>
       <a href="#contacto" data-i18n="nav.contacto">Contacto</a>
       <div class="nav-menu-wrap">
         <button class="nav-menu" id="navMenuBtn" aria-haspopup="menu" aria-expanded="false" aria-label="Abrir menú">
@@ -88,7 +89,8 @@
           <a href="#calidad" role="menuitem"><span class="nav-num">05</span><span class="nav-name" data-i18n="nav.calidad">Calidad</span></a>
           <a href="#sostenibilidad" role="menuitem"><span class="nav-num">06</span><span class="nav-name" data-i18n="nav.sostenibilidad">Sostenibilidad</span></a>
           <a href="#equipo" role="menuitem"><span class="nav-num">07</span><span class="nav-name" data-i18n="nav.equipo">Equipo</span></a>
-          <a href="#contacto" role="menuitem"><span class="nav-num">08</span><span class="nav-name" data-i18n="nav.contacto">Contacto</span></a>
+          <a href="#noticias" role="menuitem" data-news-nav hidden><span class="nav-num">08</span><span class="nav-name" data-i18n="nav.noticias">Noticias</span></a>
+          <a href="#contacto" role="menuitem"><span class="nav-num">09</span><span class="nav-name" data-i18n="nav.contacto">Contacto</span></a>
           <div class="nav-dropdown-foot">
             <span>info@cabovirgenes.com</span>
             <span>Puerto Rawson · Palencia</span>
@@ -1148,6 +1150,16 @@
     </div>
   </section>
 
+  <!-- ========== NOTICIAS (oculta; se activa desde el panel /admin) ========== -->
+  <section class="sec sec-light bleed" id="noticias" hidden>
+    <div class="sec-head" data-reveal>
+      <p class="eyebrow"><span class="dot"></span>ACTUALIDAD</p>
+      <h2 class="sec-title">Noticias<span class="period">.</span></h2>
+      <p class="lead">Novedades, hitos y comunicaciones de Cabo Vírgenes.</p>
+    </div>
+    <div class="news-deck" id="newsDeck" data-reveal></div>
+  </section>
+
   <!-- ========== CONTACTO (09) ========== -->
   <section class="sec sec-mix bleed" id="contacto">
     <aside class="num-rail" data-reveal>
@@ -1406,6 +1418,7 @@
         <button type="button" data-modal="modal-legal-terminos">Términos</button>
         <button type="button" data-modal="modal-legal-cookies">Cookies</button>
         <button type="button" data-modal="modal-legal-aviso">Aviso legal</button>
+        <a href="./admin/" class="ft-admin-link">Administración</a>
       </div>
     </div>
   </footer>
@@ -1423,7 +1436,8 @@
     <a href="#calidad">05. Calidad</a>
     <a href="#sostenibilidad">06. Sostenibilidad</a>
     <a href="#equipo">07. Equipo</a>
-    <a href="#contacto">08. Contacto</a>
+    <a href="#noticias" data-news-nav hidden>08. Noticias</a>
+    <a href="#contacto">09. Contacto</a>
   </nav>
   <div class="drawer-foot">
     <span>info@cabovirgenes.com</span>
@@ -2467,6 +2481,20 @@
   </article>
 </div>
 
+<!-- MODAL detalle de noticia -->
+<div class="info-modal" id="modal-news" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg news-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <div class="nm-img" id="nmImg" hidden></div>
+    <div class="nm-body">
+      <p class="eyebrow eyebrow-light"><span class="dot"></span><span id="nmMeta"></span></p>
+      <h3 id="nmTitle"></h3>
+      <div id="nmText"></div>
+    </div>
+  </article>
+</div>
+
 <!-- LIGHTBOX galería (zoom de imágenes de buque) -->
 <div class="sg-lightbox" id="sgLightbox" aria-hidden="true">
   <button class="sgl-close" aria-label="Cerrar">×</button>
@@ -2530,5 +2558,6 @@
 <!-- Leaflet + Lucide cargados perezosamente desde app.js cuando son necesarios -->
 <script defer src="./i18n.js"></script>
 <script defer src="./app.js"></script>
+<script defer src="./site-news.js"></script>
 </body>
 </html>

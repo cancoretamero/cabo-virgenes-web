@@ -1610,6 +1610,30 @@ strong{font-weight:600;color:inherit}
 .sgl-counter{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);color:#cdd9e6;font-size:13px;font-weight:600;letter-spacing:.05em}
 @media (max-width:600px){ .sgl-nav{width:42px;height:42px}.sgl-prev{left:10px}.sgl-next{right:10px} }
 
+/* ================ NOTICIAS (web pública) ================ */
+.news-deck{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px}
+.news-card{background:#fff;border:1px solid rgba(11,26,44,.08);border-radius:18px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;transition:transform .3s ease,box-shadow .3s,border-color .3s}
+.news-card:hover{transform:translateY(-5px);box-shadow:0 26px 50px -28px rgba(11,26,44,.4);border-color:rgba(28,181,176,.4)}
+.nc-img{height:190px;background:#dde6ee center/cover no-repeat;position:relative}
+.nc-cat{position:absolute;left:12px;bottom:12px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:rgba(6,18,40,.62);backdrop-filter:blur(6px);padding:5px 11px;border-radius:100px}
+.nc-body{padding:18px 18px 20px;display:flex;flex-direction:column;gap:8px;flex:1}
+.nc-date{font-size:11.5px;font-weight:600;letter-spacing:.04em;color:#1cb5b0;text-transform:uppercase}
+.nc-title{font-family:var(--serif);font-weight:500;font-size:21px;color:var(--ink);line-height:1.15;letter-spacing:-.01em}
+.nc-ex{font-size:13.5px;color:#5a6b7c;line-height:1.55;flex:1}
+.nc-more{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#1cb5b0;margin-top:4px}
+.nc-more svg{transition:transform .25s}
+.news-card:hover .nc-more svg{transform:translateX(3px)}
+@media(max-width:600px){.news-deck{grid-template-columns:1fr}}
+/* Modal de noticia */
+.info-shell.news-modal{width:min(620px,92vw);max-width:none;padding:0;overflow:hidden}
+.news-modal .nm-img{height:260px;background:#06182f center/cover no-repeat}
+.news-modal .nm-body{padding:26px 30px 30px}
+.news-modal .nm-body h3{font-family:var(--serif);font-weight:500;font-size:29px;color:#fff;line-height:1.08;margin:8px 0 14px}
+.news-modal #nmText p{font-size:14px;line-height:1.65;color:#b9c8d8;margin-bottom:10px}
+/* Enlace admin discreto en footer */
+.ft-admin-link{opacity:.55;transition:opacity .2s,color .2s}
+.ft-admin-link:hover{opacity:1;color:#7fe3df}
+
 /* ================ PLANTAS (legacy cards) ================ */
 .plants-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 .plant-card{
