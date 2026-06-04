@@ -627,7 +627,7 @@ document.querySelectorAll('[data-play-video]').forEach(btn => {
   });
 });
 
-// ============ GALERÍAS en modales (barcos + plantas): miniatura → imagen principal ============
+// ============ GALERÍAS en modales de planta: miniatura → imagen principal ============
 document.querySelectorAll('.pm-gallery .pm-thumbs img').forEach(thumb => {
   thumb.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -644,6 +644,96 @@ document.querySelectorAll('.pm-gallery .pm-thumbs img').forEach(thumb => {
     thumb.classList.add('on');
   });
 });
+
+// ============ GALERÍAS de buque: carrusel + lightbox + iconos de ficha ============
+(function () {
+  const ns = 'http://www.w3.org/2000/svg';
+  const S = (d, w) => `<svg viewBox="0 0 24 24" width="${w||20}" height="${w||20}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const ICONS = {
+    ruler:'<path d="M15.5 3.5l5 5L8.5 20.5l-5-5z"/><path d="M9 7l2 2M12 10l1.5 1.5M6 10l2 2M15.5 6.5l1.5 1.5"/>',
+    ship:'<path d="M3.5 14l8.5-3.6 8.5 3.6-1.7 5.4a1 1 0 01-.95.66H6.15a1 1 0 01-.95-.66L3.5 14z"/><path d="M12 10.2V4.2M9.2 6.2h5.6"/>',
+    calendar:'<rect x="3.5" y="4.8" width="17" height="15.7" rx="2"/><path d="M3.5 9.3h17M8 2.8v4M16 2.8v4"/>',
+    id:'<rect x="3" y="5.2" width="18" height="13.6" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M13 9.5h5M13 13h5M5.4 15.4c.7-1.3 1.9-1.9 3.1-1.9s2.4.6 3.1 1.9"/>',
+    anchor:'<circle cx="12" cy="5" r="2.2"/><path d="M12 7.2V20M5.5 12.5a6.5 6.5 0 0013 0M5.5 12.5H3.4M18.5 12.5h2.1"/>',
+    cycle:'<path d="M3.6 12a8.4 8.4 0 0114.2-6.1M20.4 12A8.4 8.4 0 016.2 18.1"/><path d="M17.5 2.4V6h-3.6M6.5 21.6V18h3.6"/>',
+    globe:'<circle cx="12" cy="12" r="8.4"/><path d="M3.6 12h16.8M12 3.6c2.5 2.4 2.5 14.4 0 16.8M12 3.6c-2.5 2.4-2.5 14.4 0 16.8"/>',
+    snow:'<path d="M12 3v18M5 7.5l14 9M19 7.5l-14 9M12 3l-2.3 2.3M12 3l2.3 2.3M12 21l-2.3-2.3M12 21l2.3-2.3"/>',
+    box:'<path d="M21 8.5l-9-5-9 5 9 5 9-5z"/><path d="M3 8.5v7l9 5 9-5v-7M12 13.5v7"/>',
+    coins:'<ellipse cx="12" cy="6.4" rx="6.4" ry="2.7"/><path d="M5.6 6.4v5.4c0 1.5 2.9 2.7 6.4 2.7s6.4-1.2 6.4-2.7V6.4M5.6 11.8v5.4c0 1.5 2.9 2.7 6.4 2.7s6.4-1.2 6.4-2.7v-5.4"/>',
+    pin:'<path d="M12 21s-6.4-5-6.4-11A6.4 6.4 0 0112 3.6 6.4 6.4 0 0118.4 10c0 6-6.4 11-6.4 11z"/><circle cx="12" cy="9.6" r="2.3"/>',
+    people:'<circle cx="9" cy="8" r="3"/><path d="M3.6 19.5c0-3 2.4-5.4 5.4-5.4s5.4 2.4 5.4 5.4M16 5.2a3 3 0 010 5.7M20.4 19.5c0-2.3-1.2-4.2-3-5.1"/>',
+    shield:'<path d="M12 3l7.4 2.8v5.6c0 4.6-3.1 7.5-7.4 8.6-4.3-1.1-7.4-4-7.4-8.6V5.8z"/><path d="M9 12l2.1 2.1L15.1 10"/>'
+  };
+  // Decorar fichas con iconos
+  document.querySelectorAll('.spec-card[data-ic]').forEach(card => {
+    const ic = ICONS[card.getAttribute('data-ic')];
+    if (!ic) return;
+    const sp = document.createElement('span');
+    sp.className = 'spec-ic'; sp.innerHTML = S(ic, 20);
+    card.insertBefore(sp, card.firstChild);
+  });
+  document.querySelectorAll('.spec-highlight').forEach(h => {
+    const sp = document.createElement('span');
+    sp.className = 'sh-ic'; sp.innerHTML = S(ICONS.shield, 22);
+    h.insertBefore(sp, h.firstChild);
+  });
+
+  // Lightbox global
+  const lb = document.getElementById('sgLightbox');
+  const lbImg = lb && lb.querySelector('.sgl-img');
+  const lbCur = lb && lb.querySelector('.sgl-cur');
+  const lbTot = lb && lb.querySelector('.sgl-total');
+  let lbList = [], lbIdx = 0;
+  function lbRender(){ if(!lbImg) return; lbImg.src=lbList[lbIdx].src; lbImg.alt=lbList[lbIdx].alt; if(lbCur)lbCur.textContent=lbIdx+1; if(lbTot)lbTot.textContent=lbList.length; }
+  function lbOpen(list,i){ lbList=list; lbIdx=i; lbRender(); lb.classList.add('open'); lb.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden'; }
+  function lbClose(){ lb.classList.remove('open'); lb.setAttribute('aria-hidden','true'); document.body.style.overflow=''; }
+  function lbGo(d){ lbIdx=(lbIdx+d+lbList.length)%lbList.length; lbRender(); }
+  if (lb) {
+    lb.querySelector('.sgl-close').addEventListener('click', lbClose);
+    lb.querySelector('.sgl-prev').addEventListener('click', e=>{e.stopPropagation();lbGo(-1);});
+    lb.querySelector('.sgl-next').addEventListener('click', e=>{e.stopPropagation();lbGo(1);});
+    lb.addEventListener('click', e=>{ if(e.target===lb||e.target.classList.contains('sgl-figure')) lbClose(); });
+    document.addEventListener('keydown', e=>{ if(!lb.classList.contains('open'))return; if(e.key==='Escape')lbClose(); else if(e.key==='ArrowLeft')lbGo(-1); else if(e.key==='ArrowRight')lbGo(1); });
+  }
+
+  // Cada galería de buque
+  document.querySelectorAll('[data-gallery]').forEach(g => {
+    const stage = g.querySelector('.sg-stage');
+    const main = g.querySelector('.sg-main');
+    const thumbs = [...g.querySelectorAll('.sg-thumb')];
+    const imgs = thumbs.map(t => { const im=t.querySelector('img'); return {src:im.getAttribute('src'), alt:im.getAttribute('alt')}; });
+    let idx = 0;
+    // Controles inyectados
+    const counter = document.createElement('span');
+    counter.className = 'sg-counter';
+    counter.innerHTML = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 16l5-4 4 3 3-2 6 4"/><circle cx="8.5" cy="9" r="1.4"/></svg><span class="sg-cur">1</span>&#8201;/&#8201;<span class="sg-total">${imgs.length}</span>`;
+    stage.appendChild(counter);
+    const cur = counter.querySelector('.sg-cur');
+    const mkNav = (cls, path, label) => { const b=document.createElement('button'); b.type='button'; b.className='sg-nav '+cls; b.setAttribute('aria-label',label); b.innerHTML=`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${path}"/></svg>`; return b; };
+    const prev = mkNav('sg-prev','M15 6l-6 6 6 6','Imagen anterior');
+    const next = mkNav('sg-next','M9 6l6 6-6 6','Imagen siguiente');
+    const zoom = document.createElement('button'); zoom.type='button'; zoom.className='sg-zoom'; zoom.setAttribute('aria-label','Ampliar imagen');
+    zoom.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-3.6-3.6M11 8.2v5.6M8.2 11h5.6"/></svg>';
+    stage.appendChild(prev); stage.appendChild(next); stage.appendChild(zoom);
+    if (imgs.length <= 1) { prev.style.display='none'; next.style.display='none'; }
+    // Check en miniaturas
+    thumbs.forEach(t => { const c=document.createElement('span'); c.className='sg-check'; c.innerHTML='<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg>'; t.appendChild(c); });
+
+    function show(i){
+      idx = (i + imgs.length) % imgs.length;
+      main.classList.remove('sg-fade'); void main.offsetWidth; main.classList.add('sg-fade');
+      main.src = imgs[idx].src; main.alt = imgs[idx].alt;
+      thumbs.forEach((t,k)=>t.classList.toggle('is-active', k===idx));
+      cur.textContent = idx+1;
+    }
+    thumbs.forEach((t,k)=> t.addEventListener('click', e=>{ e.stopPropagation(); show(k); }));
+    prev.addEventListener('click', e=>{ e.stopPropagation(); show(idx-1); });
+    next.addEventListener('click', e=>{ e.stopPropagation(); show(idx+1); });
+    const openZoom = e=>{ e.stopPropagation(); lbOpen(imgs, idx); };
+    zoom.addEventListener('click', openZoom);
+    main.addEventListener('click', openZoom);
+  });
+})();
 
 // ============ EQUIPO — filtro por área ============
 (function () {

@@ -31,6 +31,7 @@ const SELECTORS = [
   '.navpill a',
   '.team-filter .tf','.member__role','.member__bio','.member__more',
   '.tm-role','.tm-meta span','.tm-meta strong',
+  '.ship-desc','.spec-tx span','.spec-tx strong','.spec-highlight p',
   '.lang-ai-hint span','.copy-btn','.mail-pill span:not(.copy-btn)',
 ];
 

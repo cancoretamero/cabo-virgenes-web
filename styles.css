@@ -1501,6 +1501,109 @@ strong{font-weight:600;color:inherit}
   .team-modal .tm-id .eyebrow{justify-content:center}
 }
 
+/* ================ MODAL DE BUQUE (galería rica) ================ */
+.info-shell.ship-modal{
+  width:min(1140px,96vw);max-width:none;padding:0;overflow:hidden;
+  display:grid;grid-template-columns:minmax(340px,0.94fr) 1fr;
+  color:#e8eef5;max-height:92vh;
+}
+.ship-gallery{display:flex;flex-direction:column;gap:14px;padding:22px;background:rgba(6,18,40,.45)}
+.sg-stage{position:relative;border-radius:18px;overflow:hidden;aspect-ratio:1/1.04;border:1px solid rgba(127,227,223,.16);background:#06182f}
+.sg-main{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in}
+@keyframes sgFade{from{opacity:.4}to{opacity:1}}
+.sg-main.sg-fade{animation:sgFade .35s ease}
+.sg-counter{
+  position:absolute;top:14px;left:14px;z-index:3;
+  display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;
+  background:rgba(6,16,30,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.14);font-size:12px;font-weight:700;letter-spacing:.04em;color:#e8eef5;
+}
+.sg-counter svg{color:#7fe3df}
+.sg-nav,.sg-zoom{
+  position:absolute;z-index:3;border-radius:50%;cursor:pointer;color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(6,16,30,.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.16);transition:background .2s,border-color .2s,transform .2s;
+}
+.sg-nav{top:50%;transform:translateY(-50%);width:42px;height:42px}
+.sg-nav:hover{background:rgba(28,181,176,.85);border-color:#1cb5b0;transform:translateY(-50%) scale(1.06)}
+.sg-prev{left:14px}.sg-next{right:14px}
+.sg-zoom{right:14px;bottom:14px;width:38px;height:38px}
+.sg-zoom:hover{background:rgba(28,181,176,.85);border-color:#1cb5b0;transform:scale(1.06)}
+.sg-thumbs{display:grid;gap:10px}
+.sg-thumb{
+  position:relative;padding:0;border:0;background:none;cursor:pointer;
+  border-radius:12px;overflow:hidden;aspect-ratio:4/3;
+  outline:2px solid transparent;opacity:.62;transition:opacity .25s,outline-color .25s,transform .25s,box-shadow .25s;
+}
+.sg-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.sg-thumb:hover{opacity:1;transform:translateY(-2px)}
+.sg-thumb.is-active{opacity:1;outline-color:#1cb5b0;box-shadow:0 0 0 4px rgba(28,181,176,.18)}
+.sg-check{
+  position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:#1cb5b0;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.35);
+  opacity:0;transform:scale(.4);transition:opacity .2s,transform .2s;
+}
+.sg-thumb.is-active .sg-check{opacity:1;transform:scale(1)}
+.ship-info{padding:34px 36px;display:flex;flex-direction:column;overflow-y:auto}
+.ship-info h3{font-family:var(--serif);font-weight:500;font-size:38px;line-height:1.02;color:#fff;letter-spacing:-.02em;margin:8px 0 0}
+.ship-desc{font-size:15px;line-height:1.62;color:#b9c8d8;margin:14px 0 0;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,.1)}
+.spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}
+.spec-card{
+  display:flex;align-items:center;gap:13px;padding:14px;border-radius:14px;
+  border:1px solid rgba(127,227,223,.14);
+  background:linear-gradient(150deg,rgba(127,227,223,.05),rgba(255,255,255,.015));
+}
+.spec-ic{
+  flex:0 0 auto;width:44px;height:44px;border-radius:50%;color:#7fe3df;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(28,181,176,.12);border:1px solid rgba(127,227,223,.25);
+}
+.spec-tx{display:flex;flex-direction:column;gap:3px;min-width:0}
+.spec-tx span{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#7fe3df;font-weight:700}
+.spec-tx strong{font-family:var(--serif);font-size:15px;color:#fff;font-weight:500;line-height:1.2}
+.spec-highlight{
+  display:flex;align-items:center;gap:14px;margin-top:16px;padding:16px 18px;border-radius:14px;
+  border:1px solid rgba(127,227,223,.22);
+  background:linear-gradient(135deg,rgba(28,181,176,.14),rgba(28,181,176,.04));
+}
+.sh-ic{
+  flex:0 0 auto;width:42px;height:42px;border-radius:50%;color:#7fe3df;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(28,181,176,.16);border:1px solid rgba(127,227,223,.3);
+}
+.spec-highlight p{font-size:13.5px;line-height:1.5;color:#dceaf2;margin:0}
+@media (max-width:920px){
+  .info-shell.ship-modal{grid-template-columns:1fr;max-height:94vh;overflow-y:auto}
+  .sg-stage{aspect-ratio:4/3}
+  .ship-info{padding:24px 24px 28px}
+  .ship-info h3{font-size:30px}
+}
+@media (max-width:520px){ .spec-grid{grid-template-columns:1fr} }
+
+/* Lightbox de galería */
+.sg-lightbox{
+  position:fixed;inset:0;z-index:1200;display:flex;align-items:center;justify-content:center;
+  background:rgba(3,9,20,.92);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.sg-lightbox.open{opacity:1;pointer-events:auto}
+.sgl-figure{margin:0;max-width:90vw;max-height:86vh;display:flex}
+.sgl-img{max-width:90vw;max-height:86vh;object-fit:contain;border-radius:10px;box-shadow:0 30px 80px -20px rgba(0,0,0,.8)}
+.sgl-close{
+  position:absolute;top:20px;right:24px;width:46px;height:46px;border-radius:50%;cursor:pointer;font-size:22px;color:#fff;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;transition:background .2s;
+}
+.sgl-close:hover{background:rgba(255,255,255,.18)}
+.sgl-nav{
+  position:absolute;top:50%;transform:translateY(-50%);width:52px;height:52px;border-radius:50%;cursor:pointer;color:#fff;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s;
+}
+.sgl-nav:hover{background:rgba(28,181,176,.8);border-color:#1cb5b0}
+.sgl-prev{left:24px}.sgl-next{right:24px}
+.sgl-counter{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);color:#cdd9e6;font-size:13px;font-weight:600;letter-spacing:.05em}
+@media (max-width:600px){ .sgl-nav{width:42px;height:42px}.sgl-prev{left:10px}.sgl-next{right:10px} }
+
 /* ================ PLANTAS (legacy cards) ================ */
 .plants-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 .plant-card{
