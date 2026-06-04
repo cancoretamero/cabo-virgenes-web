@@ -43,6 +43,8 @@
     inbox: '<path d="M3 12h5l1.5 3h5L21 12M3 12l3-7h12l3 7v6a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>',
     home: '<path d="M4 11l8-7 8 7v8a1 1 0 01-1 1h-5v-6H10v6H5a1 1 0 01-1-1z"/>',
     leaf: '<path d="M5 21c0-9 5-14 14-14 0 9-5 14-14 14z"/><path d="M9 17c2.5-3 5-5 8-6"/>',
+    scale: '<path d="M12 3v18M7 21h10M12 5l7 2-2.5 6a3.5 3.5 0 01-9 0L5 7l7-2z"/><path d="M2.5 13a3.5 3.5 0 007 0M14.5 13a3.5 3.5 0 007 0"/>',
+    monitor: '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
   };
   const SVG = (name, size) => {
     const p = I[name];

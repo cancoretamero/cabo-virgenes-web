@@ -51,8 +51,10 @@
       <span class="side__section">Resumen</span>
       <a href="#/inicio" data-view="inicio" class="side__link"><span class="side__ic" data-ico="layout-dashboard"></span><span class="side__label">Inicio</span></a>
       <span class="side__section">Contenido</span>
+      <a href="#/edicion" data-view="edicion" class="side__link"><span class="side__ic" data-ico="square-pen"></span><span class="side__label">Edición visual</span></a>
       <a href="#/noticias" data-view="noticias" class="side__link"><span class="side__ic" data-ico="newspaper"></span><span class="side__label">Noticias</span><span class="side__badge" id="newsBadge" hidden>0</span></a>
       <a href="#/equipo" data-view="equipo" class="side__link"><span class="side__ic" data-ico="users"></span><span class="side__label">Equipo</span></a>
+      <a href="#/legales" data-view="legales" class="side__link"><span class="side__ic" data-ico="scale"></span><span class="side__label">Legales</span></a>
       <span class="side__section">Comunidad</span>
       <a href="#/consultas" data-view="consultas" class="side__link"><span class="side__ic" data-ico="mail"></span><span class="side__label">Consultas</span><span class="side__badge" id="msgBadge" hidden>0</span></a>
       <span class="side__section">Sistema</span>
@@ -100,6 +102,30 @@
         </div>
       </section>
 
+      <!-- ===== EDICIÓN VISUAL ===== -->
+      <section class="view view--wide" id="view-edicion" hidden>
+        <div class="view__head">
+          <div>
+            <h2 class="view__h">Edición visual</h2>
+            <p class="view__sub">Clic en cualquier texto del sitio para editarlo · pasa el ratón por una imagen y usa <b>✎</b> para reemplazarla. La sección de <b>Noticias</b> se muestra aquí aunque esté oculta en la web. Pulsa <b>Guardar cambios</b> al terminar.</p>
+          </div>
+          <div class="view__actions">
+            <div class="seg-row" role="group" aria-label="Ancho">
+              <button type="button" class="seg is-active" data-device="desktop" title="Escritorio">Escritorio</button>
+              <button type="button" class="seg" data-device="tablet" title="Tablet 820px">Tablet</button>
+              <button type="button" class="seg" data-device="mobile" title="Móvil 390px">Móvil</button>
+            </div>
+            <button type="button" class="btn btn--ghost" id="editReload"><span class="ar" data-ico="refresh-cw"></span> Recargar</button>
+            <button type="button" class="btn btn--solid" id="editSave"><span class="ar" data-ico="save"></span> Guardar cambios</button>
+          </div>
+        </div>
+        <div class="edit-stage" id="editStage">
+          <div class="edit-frame" id="editFrame" data-device="desktop">
+            <iframe id="siteFrame" title="Edición visual del sitio" src="about:blank"></iframe>
+          </div>
+        </div>
+      </section>
+
       <!-- ===== NOTICIAS ===== -->
       <section class="view" id="view-noticias" hidden>
         <div class="view__head">
@@ -139,6 +165,29 @@
           <p class="view__sub">Edita el cargo, nombre y descripción de cada directivo. Los cambios se previsualizan en este navegador.</p>
         </div></div>
         <div class="team-admin" id="teamAdmin"></div>
+      </section>
+
+      <!-- ===== LEGALES ===== -->
+      <section class="view" id="view-legales" hidden>
+        <div class="view__head">
+          <div>
+            <h2 class="view__h">Documentos legales</h2>
+            <p class="view__sub">Edita el contenido (HTML) de los avisos legales del sitio. Se aplican a las ventanas de Privacidad, Términos, Cookies y Aviso legal.</p>
+          </div>
+          <div class="view__actions">
+            <button type="button" class="btn btn--ghost" id="legalReset"><span class="ar" data-ico="undo-2"></span> Restaurar original</button>
+            <button type="button" class="btn btn--solid" id="legalSave"><span class="ar" data-ico="save"></span> Guardar</button>
+          </div>
+        </div>
+        <div class="seg-row" id="legalTabs" role="tablist">
+          <button type="button" class="seg is-active" data-legal="privacidad" role="tab">Privacidad</button>
+          <button type="button" class="seg" data-legal="terminos" role="tab">Términos</button>
+          <button type="button" class="seg" data-legal="cookies" role="tab">Cookies</button>
+          <button type="button" class="seg" data-legal="aviso" role="tab">Aviso legal</button>
+        </div>
+        <div class="card" style="margin-top:14px;padding:14px">
+          <textarea class="field__area code-area" id="legalArea" placeholder="Cargando contenido…"></textarea>
+        </div>
       </section>
 
       <!-- ===== CONSULTAS ===== -->

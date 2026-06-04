@@ -11,7 +11,7 @@
   const CRED = { user: 'admin', pass: 'cabovirgenes' };
 
   // ---------- Store (compartido con la web pública, mismo origen) ----------
-  const K = { auth: 'cv_admin_auth', news: 'cv_news', settings: 'cv_settings', team: 'cv_team', msgs: 'cv_consultas' };
+  const K = { auth: 'cv_admin_auth', news: 'cv_news', settings: 'cv_settings', team: 'cv_team', msgs: 'cv_consultas', legal: 'cv_legal' };
   const read = (k, def) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? def : v; } catch { return def; } };
   const write = (k, v) => localStorage.setItem(k, JSON.stringify(v));
 
@@ -73,7 +73,7 @@
   $('#logoutBtn').addEventListener('click', () => { localStorage.removeItem(K.auth); location.hash = ''; showLogin(); });
 
   // ============ ROUTING ============
-  const TITLES = { inicio: 'Inicio', noticias: 'Noticias', equipo: 'Equipo', consultas: 'Consultas', ajustes: 'Ajustes' };
+  const TITLES = { inicio: 'Inicio', edicion: 'Edición visual', noticias: 'Noticias', equipo: 'Equipo', legales: 'Legales', consultas: 'Consultas', ajustes: 'Ajustes' };
   function currentView() { const m = (location.hash || '').match(/#\/(\w+)/); return m && TITLES[m[1]] ? m[1] : 'inicio'; }
   function route() {
     const v = currentView();
@@ -87,8 +87,10 @@
 
   function renderView(v) {
     if (v === 'inicio') renderInicio();
+    else if (v === 'edicion') renderEdicion();
     else if (v === 'noticias') renderNoticias();
     else if (v === 'equipo') renderEquipo();
+    else if (v === 'legales') renderLegales();
     else if (v === 'consultas') renderConsultas();
     else if (v === 'ajustes') renderAjustes();
     hydrate();
@@ -323,6 +325,63 @@
     if (!confirm('¿Restablecer todo el contenido del admin? (noticias, ajustes y equipo en este navegador)')) return;
     [K.news, K.settings, K.team, K.msgs].forEach(k => localStorage.removeItem(k));
     route(); toast('Contenido restablecido');
+  });
+
+  // ============ EDICIÓN VISUAL ============
+  let editLoaded = false;
+  function renderEdicion() {
+    const frame = $('#siteFrame');
+    if (!editLoaded) { frame.src = '../?editor=1'; editLoaded = true; }
+  }
+  document.addEventListener('click', e => {
+    const d = e.target.closest('#view-edicion [data-device]'); if (!d) return;
+    $$('#view-edicion [data-device]').forEach(b => b.classList.toggle('is-active', b === d));
+    $('#editFrame').dataset.device = d.dataset.device;
+  });
+  $('#editReload').addEventListener('click', () => { $('#siteFrame').src = '../?editor=1&_=' + Date.now(); });
+  $('#editSave').addEventListener('click', () => {
+    const f = $('#siteFrame'); try { f.contentWindow.postMessage({ type: 'cv-save' }, '*'); } catch (_) {}
+    toast('Cambios guardados', 'ok');
+  });
+  window.addEventListener('message', e => { if (e.data && e.data.type === 'cv-saved') toast('Cambios guardados', 'ok'); });
+
+  // ============ LEGALES ============
+  const LEGAL_IDS = { privacidad: 'modal-legal-privacidad', terminos: 'modal-legal-terminos', cookies: 'modal-legal-cookies', aviso: 'modal-legal-aviso' };
+  let legalDefaults = null, legalBuf = null, legalKey = 'privacidad';
+  async function loadLegalDefaults() {
+    if (legalDefaults) return legalDefaults;
+    legalDefaults = {};
+    try {
+      const html = await (await fetch('../index.html?_=' + Date.now())).text();
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      Object.entries(LEGAL_IDS).forEach(([k, id]) => {
+        const art = doc.querySelector('#' + id + ' .info-shell');
+        if (art) { const c = art.querySelector('.info-close'); if (c) c.remove(); legalDefaults[k] = art.innerHTML.trim(); }
+        else legalDefaults[k] = '';
+      });
+    } catch (_) { Object.keys(LEGAL_IDS).forEach(k => legalDefaults[k] = ''); }
+    return legalDefaults;
+  }
+  async function renderLegales() {
+    const def = await loadLegalDefaults();
+    if (!legalBuf) legalBuf = Object.assign({}, def, read(K.legal, {}));
+    $('#legalArea').value = legalBuf[legalKey] || '';
+  }
+  $('#legalArea').addEventListener('input', e => { if (legalBuf) legalBuf[legalKey] = e.target.value; });
+  document.addEventListener('click', e => {
+    const t = e.target.closest('#legalTabs [data-legal]'); if (!t) return;
+    if (legalBuf) legalBuf[legalKey] = $('#legalArea').value;
+    legalKey = t.dataset.legal;
+    $$('#legalTabs [data-legal]').forEach(b => b.classList.toggle('is-active', b === t));
+    $('#legalArea').value = (legalBuf && legalBuf[legalKey]) || '';
+  });
+  $('#legalSave').addEventListener('click', () => {
+    if (legalBuf) legalBuf[legalKey] = $('#legalArea').value;
+    write(K.legal, legalBuf || {}); toast('Documentos legales guardados', 'ok');
+  });
+  $('#legalReset').addEventListener('click', () => {
+    if (!legalDefaults || !legalBuf) return;
+    legalBuf[legalKey] = legalDefaults[legalKey]; $('#legalArea').value = legalDefaults[legalKey] || ''; toast('Restaurado al original');
   });
 
   // ============ INIT ============

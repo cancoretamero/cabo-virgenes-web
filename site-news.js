@@ -36,11 +36,20 @@
 
   const ARROW = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>';
 
+  const EDITOR = new URLSearchParams(location.search).has('editor');
+  const SAMPLE = [
+    { title: 'Título de ejemplo de noticia', excerpt: 'Así se verá una noticia. Crea las tuyas desde el panel → Noticias.', category: 'Corporativo', date: new Date().toISOString().slice(0, 10), status: 'published', image: '../esp-1.jpg' },
+  ];
   function renderNews() {
     const sec = document.getElementById('noticias'); if (!sec) return;
-    const items = getNews().filter(n => n.status === 'published')
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || (b.date || '').localeCompare(a.date || ''));
-    const on = settings().newsEnabled && items.length > 0;
+    const sortFn = (a, b) => (a.order ?? 0) - (b.order ?? 0) || (b.date || '').localeCompare(a.date || '');
+    let items = getNews().filter(n => n.status === 'published').sort(sortFn);
+    let on = settings().newsEnabled && items.length > 0;
+    if (EDITOR) {
+      // En el editor visual se muestra siempre (incluye borradores; ejemplos si está vacío)
+      const all = getNews().slice().sort(sortFn);
+      items = all.length ? all : SAMPLE; on = true;
+    }
     sec.hidden = !on;
     document.querySelectorAll('[data-news-nav]').forEach(el => { el.hidden = !on; });
     if (!on) return;
