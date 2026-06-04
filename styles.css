@@ -680,7 +680,7 @@ strong{font-weight:600;color:inherit}
 /* Modal stats (Más sobre nosotros) */
 .info-shell-lg{max-width:720px}
 .modal-stats{
-  list-style:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  list-style:none;display:grid;grid-template-columns:repeat(4,1fr);
   gap:14px;margin:22px 0 18px;padding:18px 22px;
   background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
   border-radius:16px;
@@ -3128,11 +3128,29 @@ html.fit-scale body{
   .info-shell{padding:28px 22px}
   .info-shell h3{font-size:26px}
   /* Modales: evitar desbordes horizontales en móvil */
-  .modal-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:16px}
+  .modal-stats{grid-template-columns:repeat(2,1fr);gap:12px;padding:16px}
   .modal-stats strong{font-size:23px}
-  .info-shell.plant-modal{grid-template-columns:minmax(0,1fr)}
-  .plant-modal{grid-template-columns:minmax(0,1fr)}
-  .pm-gallery,.pm-body{min-width:0}
-  .pm-body{padding:20px 22px 24px}
   .fmt-modal-grid{grid-template-columns:1fr 1fr;min-width:0}
+}
+
+/* ============================================================
+   RENDIMIENTO EN MÓVIL / iOS
+   El uso masivo de backdrop-filter (51 capas) y el vídeo en bucle
+   agotan la memoria de Safari iOS y hacen que la página crashee
+   ("ha generado problemas repetidamente"). En dispositivos táctiles
+   desactivamos el desenfoque (los fondos siguen siendo opacos) y el
+   vídeo decorativo. Sin pérdida visual relevante.
+   ============================================================ */
+@media (hover: none) and (pointer: coarse){
+  *{ backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+  .wave-video{ display:none !important; }
+  .wave-fallback{ display:block !important; }
+  /* Sin blur hay que reforzar la opacidad de los cristales para que no se
+     transparenten sobre el contenido de detrás */
+  .glass{ background:linear-gradient(180deg,rgba(255,255,255,.97),rgba(255,255,255,.93)) }
+  .glass-strong{ background:linear-gradient(180deg,rgba(8,20,40,.6),rgba(8,20,40,.48)) }
+  .glass-deep{ background:linear-gradient(180deg,rgba(8,22,44,.98),rgba(5,15,33,.97)) }
+  .navpill.glass{ background:rgba(255,255,255,.95) }
+  .nav-dropdown,.lang-menu{ background:rgba(255,255,255,.98) }
+  .info-back{ background:rgba(3,9,20,.74) }
 }

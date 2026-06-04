@@ -1,6 +1,15 @@
 // Mark html.js so CSS reveal rules activate only with JS
 document.documentElement.classList.add('js');
 
+// ============ MÓVIL/iOS: liberar memoria (evita crash de Safari) ============
+// En táctil quitamos el vídeo decorativo en bucle para no agotar la memoria.
+try {
+  if (window.matchMedia && window.matchMedia('(hover: none)').matches) {
+    const wv = document.querySelector('.wave-video');
+    if (wv) { try { wv.pause(); } catch (e) {} wv.removeAttribute('autoplay'); wv.removeAttribute('src'); try { wv.load(); } catch (e) {} wv.remove(); }
+  }
+} catch (e) {}
+
 // ============ LAZY LOADER (Leaflet + Lucide on-demand) ============
 // Carga scripts/css externos sólo cuando son necesarios — ahorra ~200KB inicial
 const _loaded = new Set();
