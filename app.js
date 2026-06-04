@@ -662,6 +662,8 @@ document.querySelectorAll('.pm-gallery .pm-thumbs img').forEach(thumb => {
     coins:'<ellipse cx="12" cy="6.4" rx="6.4" ry="2.7"/><path d="M5.6 6.4v5.4c0 1.5 2.9 2.7 6.4 2.7s6.4-1.2 6.4-2.7V6.4M5.6 11.8v5.4c0 1.5 2.9 2.7 6.4 2.7s6.4-1.2 6.4-2.7v-5.4"/>',
     pin:'<path d="M12 21s-6.4-5-6.4-11A6.4 6.4 0 0112 3.6 6.4 6.4 0 0118.4 10c0 6-6.4 11-6.4 11z"/><circle cx="12" cy="9.6" r="2.3"/>',
     people:'<circle cx="9" cy="8" r="3"/><path d="M3.6 19.5c0-3 2.4-5.4 5.4-5.4s5.4 2.4 5.4 5.4M16 5.2a3 3 0 010 5.7M20.4 19.5c0-2.3-1.2-4.2-3-5.1"/>',
+    gauge:'<path d="M4 17.5a8 8 0 1116 0"/><path d="M12 17.5l3.6-3.6"/><circle cx="12" cy="17.5" r="1.2" fill="currentColor" stroke="none"/>',
+    tag:'<path d="M20.4 13.1l-7.3 7.3a1.5 1.5 0 01-2.1 0l-7-7A1.5 1.5 0 013.5 12.3V5.6A1.6 1.6 0 015.1 4h6.7c.42 0 .82.17 1.12.46l7.5 7.5a1.5 1.5 0 010 2.14z"/><circle cx="8" cy="8" r="1.25"/>',
     shield:'<path d="M12 3l7.4 2.8v5.6c0 4.6-3.1 7.5-7.4 8.6-4.3-1.1-7.4-4-7.4-8.6V5.8z"/><path d="M9 12l2.1 2.1L15.1 10"/>'
   };
   // Decorar fichas con iconos
@@ -715,7 +717,10 @@ document.querySelectorAll('.pm-gallery .pm-thumbs img').forEach(thumb => {
     const zoom = document.createElement('button'); zoom.type='button'; zoom.className='sg-zoom'; zoom.setAttribute('aria-label','Ampliar imagen');
     zoom.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-3.6-3.6M11 8.2v5.6M8.2 11h5.6"/></svg>';
     stage.appendChild(prev); stage.appendChild(next); stage.appendChild(zoom);
-    if (imgs.length <= 1) { prev.style.display='none'; next.style.display='none'; }
+    if (imgs.length <= 1) {
+      prev.style.display='none'; next.style.display='none'; counter.style.display='none';
+      const tw = g.querySelector('.sg-thumbs'); if (tw) tw.style.display='none';
+    }
     // Check en miniaturas
     thumbs.forEach(t => { const c=document.createElement('span'); c.className='sg-check'; c.innerHTML='<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg>'; t.appendChild(c); });
 
