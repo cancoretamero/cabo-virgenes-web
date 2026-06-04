@@ -1503,12 +1503,12 @@ strong{font-weight:600;color:inherit}
 
 /* ================ MODAL DE BUQUE (galería rica) ================ */
 .info-shell.ship-modal{
-  width:min(1140px,96vw);max-width:none;padding:0;overflow:hidden;
-  display:grid;grid-template-columns:minmax(340px,0.94fr) 1fr;
-  color:#e8eef5;max-height:92vh;
+  width:min(900px,92vw);max-width:none;padding:0;overflow:hidden;
+  display:grid;grid-template-columns:minmax(300px,0.82fr) 1fr;
+  color:#e8eef5;max-height:84vh;
 }
-.ship-gallery{display:flex;flex-direction:column;gap:14px;padding:22px;background:rgba(6,18,40,.45)}
-.sg-stage{position:relative;border-radius:18px;overflow:hidden;aspect-ratio:1/1.04;border:1px solid rgba(127,227,223,.16);background:#06182f}
+.ship-gallery{display:flex;flex-direction:column;gap:10px;padding:16px;background:rgba(6,18,40,.45)}
+.sg-stage{position:relative;border-radius:16px;overflow:hidden;aspect-ratio:4/3.3;border:1px solid rgba(127,227,223,.16);background:#06182f}
 .sg-main{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in}
 @keyframes sgFade{from{opacity:.4}to{opacity:1}}
 .sg-main.sg-fade{animation:sgFade .35s ease}
@@ -1545,34 +1545,36 @@ strong{font-weight:600;color:inherit}
   opacity:0;transform:scale(.4);transition:opacity .2s,transform .2s;
 }
 .sg-thumb.is-active .sg-check{opacity:1;transform:scale(1)}
-.ship-info{padding:34px 36px;display:flex;flex-direction:column;overflow-y:auto}
-.ship-info h3{font-family:var(--serif);font-weight:500;font-size:38px;line-height:1.02;color:#fff;letter-spacing:-.02em;margin:8px 0 0}
-.ship-desc{font-size:15px;line-height:1.62;color:#b9c8d8;margin:14px 0 0;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,.1)}
-.spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}
+.ship-info{padding:24px 26px;display:flex;flex-direction:column;overflow-y:auto}
+.ship-info h3{font-family:var(--serif);font-weight:500;font-size:29px;line-height:1.02;color:#fff;letter-spacing:-.02em;margin:6px 0 0}
+.ship-desc{font-size:13.5px;line-height:1.55;color:#b9c8d8;margin:10px 0 0;padding-bottom:15px;border-bottom:1px solid rgba(255,255,255,.1)}
+.spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:15px}
 .spec-card{
-  display:flex;align-items:center;gap:13px;padding:14px;border-radius:14px;
+  display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:12px;
   border:1px solid rgba(127,227,223,.14);
   background:linear-gradient(150deg,rgba(127,227,223,.05),rgba(255,255,255,.015));
 }
 .spec-ic{
-  flex:0 0 auto;width:44px;height:44px;border-radius:50%;color:#7fe3df;
+  flex:0 0 auto;width:36px;height:36px;border-radius:50%;color:#7fe3df;
   display:flex;align-items:center;justify-content:center;
   background:rgba(28,181,176,.12);border:1px solid rgba(127,227,223,.25);
 }
-.spec-tx{display:flex;flex-direction:column;gap:3px;min-width:0}
-.spec-tx span{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#7fe3df;font-weight:700}
-.spec-tx strong{font-family:var(--serif);font-size:15px;color:#fff;font-weight:500;line-height:1.2}
+.spec-ic svg{width:17px;height:17px}
+.spec-tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.spec-tx span{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#7fe3df;font-weight:700}
+.spec-tx strong{font-family:var(--serif);font-size:13.5px;color:#fff;font-weight:500;line-height:1.18}
 .spec-highlight{
-  display:flex;align-items:center;gap:14px;margin-top:16px;padding:16px 18px;border-radius:14px;
+  display:flex;align-items:center;gap:12px;margin-top:12px;padding:12px 14px;border-radius:12px;
   border:1px solid rgba(127,227,223,.22);
   background:linear-gradient(135deg,rgba(28,181,176,.14),rgba(28,181,176,.04));
 }
 .sh-ic{
-  flex:0 0 auto;width:42px;height:42px;border-radius:50%;color:#7fe3df;
+  flex:0 0 auto;width:36px;height:36px;border-radius:50%;color:#7fe3df;
   display:flex;align-items:center;justify-content:center;
   background:rgba(28,181,176,.16);border:1px solid rgba(127,227,223,.3);
 }
-.spec-highlight p{font-size:13.5px;line-height:1.5;color:#dceaf2;margin:0}
+.sh-ic svg{width:18px;height:18px}
+.spec-highlight p{font-size:12.5px;line-height:1.45;color:#dceaf2;margin:0}
 @media (max-width:920px){
   .info-shell.ship-modal{grid-template-columns:1fr;max-height:94vh;overflow-y:auto}
   .sg-stage{aspect-ratio:4/3}
