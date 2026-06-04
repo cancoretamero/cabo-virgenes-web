@@ -945,13 +945,18 @@ if (aiChatBtn && aiChat) {
 // ============ SOLAR GRID (Section 07 — 1.100 paneles animados) ============
 const solarGrid = document.getElementById('solarGrid');
 if (solarGrid) {
-  // 40 cols × 28 rows = 1.120 paneles (representa 1.100+)
-  const cols = 40, rows = 28;
+  // Rejilla de paneles (decorativa). 1.120 celdas con transform 3D agotaban la
+  // GPU de iOS y crasheaban la página; usamos muchas menos (sigue leyéndose como
+  // un campo de paneles). En táctil, mínimas y sin animación.
+  const touch = window.matchMedia && window.matchMedia('(hover: none)').matches;
+  const cols = touch ? 12 : 24, rows = touch ? 8 : 15;
+  solarGrid.style.gridTemplateColumns = `repeat(${cols},1fr)`;
+  solarGrid.style.gridTemplateRows = `repeat(${rows},1fr)`;
   const frag = document.createDocumentFragment();
   for (let i = 0; i < cols * rows; i++) {
     const d = document.createElement('span');
     d.className = 'sv-cell';
-    d.style.animationDelay = ((i % cols) * 35 + Math.floor(i / cols) * 20) + 'ms';
+    if (!touch) d.style.animationDelay = ((i % cols) * 50 + Math.floor(i / cols) * 30) + 'ms';
     frag.appendChild(d);
   }
   solarGrid.appendChild(frag);

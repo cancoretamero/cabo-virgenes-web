@@ -3150,6 +3150,7 @@ html.fit-scale body{
   .bg-blobs{ display:none !important; }   /* 3 blobs con filter:blur(80px) + blend */
   .wave-video{ display:none !important; }
   .wave-fallback{ display:block !important; }
+  .sv-grid{ transform:none !important; }  /* sin perspectiva 3D (contexto pesado) */
   /* Sin blur hay que reforzar la opacidad de los cristales para que no se
      transparenten sobre el contenido de detrás */
   .glass{ background:linear-gradient(180deg,rgba(255,255,255,.97),rgba(255,255,255,.93)) }
