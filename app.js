@@ -7,6 +7,35 @@ try {
   if (window.matchMedia && window.matchMedia('(hover: none)').matches) {
     const wv = document.querySelector('.wave-video');
     if (wv) { try { wv.pause(); } catch (e) {} wv.removeAttribute('autoplay'); wv.removeAttribute('src'); try { wv.load(); } catch (e) {} wv.remove(); }
+
+    // Descargar de memoria las imágenes muy fuera de pantalla. En una página
+    // tan larga, la suma de imágenes decodificadas agota la memoria de iOS y
+    // crashea. Mantenemos cargadas ~1,5 pantallas en cada dirección.
+    if ('IntersectionObserver' in window) {
+      const freeIO = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          const img = e.target;
+          if (e.isIntersecting) {
+            const f = img.getAttribute('data-frozen');
+            if (f) { img.setAttribute('src', f); img.removeAttribute('data-frozen'); }
+          } else if (img.getAttribute('src') && !img.getAttribute('data-frozen') && img.complete && img.naturalWidth) {
+            if (img.offsetHeight && !img.style.minHeight) img.style.minHeight = img.offsetHeight + 'px';
+            img.setAttribute('data-frozen', img.getAttribute('src'));
+            img.removeAttribute('src');
+          }
+        });
+      }, { rootMargin: '1400px 0px 1400px 0px' });
+      const watchImgs = () => {
+        document.querySelectorAll('img').forEach((img) => {
+          if (img.dataset.freeWatch) return;
+          if (img.closest('.info-modal, .player-modal, .modal, .drawer, .ac-panel, header, .ft-cert-row, .cert-marquee')) return;
+          img.dataset.freeWatch = '1';
+          freeIO.observe(img);
+        });
+      };
+      watchImgs();
+      setTimeout(watchImgs, 2500); // por si se añaden imágenes (noticias)
+    }
   }
 } catch (e) {}
 
