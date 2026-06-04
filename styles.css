@@ -680,7 +680,7 @@ strong{font-weight:600;color:inherit}
 /* Modal stats (Más sobre nosotros) */
 .info-shell-lg{max-width:720px}
 .modal-stats{
-  list-style:none;display:grid;grid-template-columns:repeat(4,1fr);
+  list-style:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
   gap:14px;margin:22px 0 18px;padding:18px 22px;
   background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
   border-radius:16px;
@@ -1446,6 +1446,8 @@ strong{font-weight:600;color:inherit}
 /* ================ EQUIPO (08) ================ */
 #equipo .sec-head{text-align:center;max-width:760px;margin:0 auto}
 #equipo .sec-head .eyebrow{justify-content:center}
+#equipo .sec-head .lead{margin-left:auto;margin-right:auto;text-align:center}
+#equipo .team-deck{margin-top:44px}
 .team-filter{
   display:flex;flex-wrap:wrap;gap:9px;justify-content:center;
   margin:26px auto 34px;max-width:820px;
@@ -3125,4 +3127,12 @@ html.fit-scale body{
   .player-modal,.info-modal{padding:14px}
   .info-shell{padding:28px 22px}
   .info-shell h3{font-size:26px}
+  /* Modales: evitar desbordes horizontales en móvil */
+  .modal-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:16px}
+  .modal-stats strong{font-size:23px}
+  .info-shell.plant-modal{grid-template-columns:minmax(0,1fr)}
+  .plant-modal{grid-template-columns:minmax(0,1fr)}
+  .pm-gallery,.pm-body{min-width:0}
+  .pm-body{padding:20px 22px 24px}
+  .fmt-modal-grid{grid-template-columns:1fr 1fr;min-width:0}
 }
