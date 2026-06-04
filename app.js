@@ -58,12 +58,15 @@ if ('IntersectionObserver' in window) {
 // monitores anchos. En viewports menores NO se escala — entra el responsive
 // CSS limpio y moderno.
 const DESIGN_W = 1440;
+const MAX_ZOOM = 1; // sin sobre-escalado: la web queda fija y centrada en monitores anchos
 const fitViewport = () => {
   const html = document.documentElement;
   const w = window.innerWidth;
   let zoom = 1;
   if (w > DESIGN_W){
-    zoom = w / DESIGN_W;
+    zoom = Math.min(w / DESIGN_W, MAX_ZOOM);
+  }
+  if (zoom > 1){
     html.style.setProperty('--fit-zoom', zoom);
     html.classList.add('fit-scale');
   } else {

@@ -87,6 +87,7 @@ strong{font-weight:600;color:inherit}
 .stage{
   position:relative;
   width:calc(100% - 56px);
+  max-width:1320px;
   margin:28px auto;
   background:#ffffff;
   border-radius:34px;
@@ -702,6 +703,21 @@ strong{font-weight:600;color:inherit}
   display:block;
   overflow:visible;
 }
+/* Contenedor 3D que flota suavemente (movimiento natural, como sobre el agua) */
+.vcards-3d{
+  position:relative;width:100%;height:100%;
+  transform-style:preserve-3d;
+  animation:deckFloat 12s ease-in-out infinite;
+  will-change:transform;
+}
+@keyframes deckFloat{
+  0%,100%{transform:translate3d(0,0,0) rotateX(0deg) rotateY(0deg)}
+  22%{transform:translate3d(0,-9px,0) rotateX(1.5deg) rotateY(-1.8deg)}
+  48%{transform:translate3d(0,3px,0) rotateX(-1deg) rotateY(1.3deg)}
+  72%{transform:translate3d(0,-5px,0) rotateX(.7deg) rotateY(1.9deg)}
+}
+.vcards-fan:hover .vcards-3d{animation-play-state:paused}
+@media (prefers-reduced-motion:reduce){ .vcards-3d{animation:none} }
 .v-card{
   position:absolute;
   top:0;left:0;
@@ -727,7 +743,7 @@ strong{font-weight:600;color:inherit}
 .v-card[data-fan="3"]{transform:rotate(16deg) translate(170px,90px);z-index:2}
 .v-card[data-fan="4"]{transform:rotate(22deg) translate(210px,140px);z-index:1}
 /* Hover: mantenemos posición de fan, sólo elevamos y resaltamos */
-.v-card{transition:transform .9s cubic-bezier(.3,1,.4,1),box-shadow .5s,filter .4s}
+.v-card{transition:transform .8s cubic-bezier(.22,1,.36,1),box-shadow .5s,filter .4s}
 .v-card[data-fan="0"]:hover{transform:rotate(-2deg) translate(0,-12px) scale(1.025);z-index:10}
 .v-card[data-fan="1"]:hover{transform:rotate(4deg) translate(60px,8px) scale(1.025);z-index:10}
 .v-card[data-fan="2"]:hover{transform:rotate(10deg) translate(120px,38px) scale(1.025);z-index:10}
@@ -1458,6 +1474,7 @@ strong{font-weight:600;color:inherit}
 .team-filter .tf.is-active{background:#1cb5b0;border-color:#1cb5b0;color:#fff;box-shadow:0 8px 20px -8px rgba(28,181,176,.6)}
 
 .team-deck{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.team-deck-6{grid-template-columns:repeat(3,1fr);max-width:1060px;margin-inline:auto;gap:20px}
 .member{
   position:relative;border-radius:18px;overflow:hidden;cursor:pointer;
   border:1px solid rgba(127,227,223,.14);
@@ -2981,6 +2998,7 @@ html.fit-scale body{
     scrollbar-width:none;
   }
   .vcards.vcards-fan::-webkit-scrollbar{display:none}
+  .vcards.vcards-fan .vcards-3d{display:contents !important;animation:none !important}
   .vcards.vcards-fan .v-card{
     position:relative !important;
     width:260px !important;height:420px !important;
