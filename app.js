@@ -58,15 +58,12 @@ if ('IntersectionObserver' in window) {
 // monitores anchos. En viewports menores NO se escala — entra el responsive
 // CSS limpio y moderno.
 const DESIGN_W = 1440;
-const MAX_ZOOM = 1; // sin sobre-escalado: la web queda fija y centrada en monitores anchos
 const fitViewport = () => {
   const html = document.documentElement;
   const w = window.innerWidth;
   let zoom = 1;
   if (w > DESIGN_W){
-    zoom = Math.min(w / DESIGN_W, MAX_ZOOM);
-  }
-  if (zoom > 1){
+    zoom = w / DESIGN_W;
     html.style.setProperty('--fit-zoom', zoom);
     html.classList.add('fit-scale');
   } else {
@@ -915,22 +912,28 @@ if (heroVideo) {
   heroVideo.play().catch(() => {});
 }
 
-// ============ V-CARDS FAN: pager dots cambian la card activa ============
+// ============ V-CARDS FAN: shuffle natural (auto + pager) ============
 const fan = document.getElementById('vcardsFan');
 const pager = document.getElementById('vcardsPager');
 if (fan && pager) {
   const cards = Array.from(fan.querySelectorAll('.v-card'));
   const dots = Array.from(pager.querySelectorAll('button'));
   const total = cards.length;
-  const reorderFan = (active) => {
-    // rotamos: la activa pasa a data-fan=0, el resto se reasigna en orden
+  let active = 0, timer = null;
+  const reorderFan = (a) => {
+    active = ((a % total) + total) % total;
+    // la activa pasa a data-fan=0, el resto se reasigna en orden (baraja)
     cards.forEach((c, idx) => {
-      const offset = ((idx - active) + total) % total;
-      c.dataset.fan = String(offset);
+      c.dataset.fan = String(((idx - active) + total) % total);
     });
     dots.forEach((d, i) => d.classList.toggle('on', i === active));
   };
-  dots.forEach((d, i) => d.addEventListener('click', () => reorderFan(i)));
+  const stop = () => { if (timer) { clearInterval(timer); timer = null; } };
+  const start = () => { stop(); timer = setInterval(() => reorderFan(active + 1), 4000); };
+  dots.forEach((d, i) => d.addEventListener('click', () => { reorderFan(i); start(); }));
+  fan.addEventListener('mouseenter', stop);
+  fan.addEventListener('mouseleave', start);
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) start();
 }
 
 // ============ LANGUAGE DROPDOWN ============

@@ -86,9 +86,8 @@ strong{font-weight:600;color:inherit}
 /* ================ STAGE (frame central restaurado) ================ */
 .stage{
   position:relative;
-  width:calc(100% - 56px);
-  max-width:1320px;
-  margin:28px auto;
+  width:calc(100% - 112px);
+  margin:56px auto;
   background:#ffffff;
   border-radius:34px;
   box-shadow:
@@ -703,21 +702,9 @@ strong{font-weight:600;color:inherit}
   display:block;
   overflow:visible;
 }
-/* Contenedor 3D que flota suavemente (movimiento natural, como sobre el agua) */
-.vcards-3d{
-  position:relative;width:100%;height:100%;
-  transform-style:preserve-3d;
-  animation:deckFloat 12s ease-in-out infinite;
-  will-change:transform;
-}
-@keyframes deckFloat{
-  0%,100%{transform:translate3d(0,0,0) rotateX(0deg) rotateY(0deg)}
-  22%{transform:translate3d(0,-9px,0) rotateX(1.5deg) rotateY(-1.8deg)}
-  48%{transform:translate3d(0,3px,0) rotateX(-1deg) rotateY(1.3deg)}
-  72%{transform:translate3d(0,-5px,0) rotateX(.7deg) rotateY(1.9deg)}
-}
-.vcards-fan:hover .vcards-3d{animation-play-state:paused}
-@media (prefers-reduced-motion:reduce){ .vcards-3d{animation:none} }
+/* Wrapper transparente (sin contexto 3D: evita glitches bajo el zoom de página).
+   El "shuffle" natural lo gestiona el JS reordenando el abanico (transform 2D). */
+.vcards-3d{display:contents}
 .v-card{
   position:absolute;
   top:0;left:0;
