@@ -57,6 +57,9 @@
       <a href="#/legales" data-view="legales" class="side__link"><span class="side__ic" data-ico="scale"></span><span class="side__label">Legales</span></a>
       <span class="side__section">Comunidad</span>
       <a href="#/consultas" data-view="consultas" class="side__link"><span class="side__ic" data-ico="mail"></span><span class="side__label">Consultas</span><span class="side__badge" id="msgBadge" hidden>0</span></a>
+      <a href="#/suscriptores" data-view="suscriptores" class="side__link"><span class="side__ic" data-ico="at-sign"></span><span class="side__label">Suscriptores</span><span class="side__badge" id="subsBadge" hidden>0</span></a>
+      <span class="side__section">Reclutamiento</span>
+      <a href="#/empleo" data-view="empleo" class="side__link"><span class="side__ic" data-ico="briefcase"></span><span class="side__label">Empleo</span><span class="side__badge" id="jobsBadge" hidden>0</span></a>
       <span class="side__section">Sistema</span>
       <a href="#/ajustes" data-view="ajustes" class="side__link"><span class="side__ic" data-ico="settings"></span><span class="side__label">Ajustes</span></a>
     </nav>
@@ -115,6 +118,12 @@
               <button type="button" class="seg" data-device="tablet" title="Tablet 820px">Tablet</button>
               <button type="button" class="seg" data-device="mobile" title="Móvil 390px">Móvil</button>
             </div>
+            <div class="seg-row" role="group" aria-label="Historial">
+              <button type="button" class="seg" id="undoBtn" title="Deshacer (⌘Z)" disabled><span class="ar" data-ico="undo-2"></span> Deshacer</button>
+              <button type="button" class="seg" id="redoBtn" title="Rehacer (⇧⌘Z)" disabled><span class="ar" data-ico="rotate-cw"></span> Rehacer</button>
+            </div>
+            <button type="button" class="btn btn--ghost" id="auditBtn" title="Control de cambios"><span class="ar" data-ico="history"></span> Control de cambios</button>
+            <span class="dirty-flag" id="dirtyFlag" hidden><span class="dirty-flag__dot"></span> Cambios sin guardar</span>
             <button type="button" class="btn btn--ghost" id="editReload"><span class="ar" data-ico="refresh-cw"></span> Recargar</button>
             <button type="button" class="btn btn--solid" id="editSave"><span class="ar" data-ico="save"></span> Guardar cambios</button>
           </div>
@@ -134,6 +143,7 @@
             <p class="view__sub">Crea y gestiona las noticias del sitio. La sección de Noticias está <strong>oculta</strong> hasta que la actives con el interruptor.</p>
           </div>
           <div class="view__actions">
+            <button type="button" class="btn btn--ghost" id="newsImport"><span class="ar" data-ico="link"></span> Importar desde enlace</button>
             <button type="button" class="btn btn--ghost" id="newsSeed"><span class="ar" data-ico="sparkles"></span> Añadir ejemplos</button>
             <button type="button" class="btn btn--solid" id="newsNew"><span class="ar" data-ico="plus"></span> Nueva noticia</button>
           </div>
@@ -155,7 +165,120 @@
           </label>
         </div>
 
-        <div class="news-grid" id="newsGrid"></div>
+        <!-- Sub-pestañas de Noticias -->
+        <div class="seg-row" id="newsTabs" role="tablist">
+          <button type="button" class="seg is-active" data-ntab="biblioteca" role="tab">Biblioteca</button>
+          <button type="button" class="seg" data-ntab="pagina" role="tab">Página</button>
+          <button type="button" class="seg" data-ntab="medios" role="tab">Medios</button>
+          <button type="button" class="seg" data-ntab="redactores" role="tab">Redactores</button>
+        </div>
+
+        <!-- Panel: Biblioteca -->
+        <div class="npanel" id="npanel-biblioteca">
+          <div class="news-grid" id="newsGrid"></div>
+        </div>
+
+        <!-- Panel: Página (editor drag & drop) -->
+        <div class="npanel" id="npanel-pagina" hidden>
+          <div class="page-editor">
+            <aside class="page-pool" id="pagePool" aria-label="Noticias publicadas">
+              <div class="page-pool__head over">Noticias publicadas</div>
+              <div class="page-pool__list" id="pagePoolList" aria-live="polite"></div>
+            </aside>
+            <section class="page-canvas" id="pageCanvas" aria-label="Página pública">
+              <div class="page-canvas__head over">Página pública</div>
+              <div class="page-hero" id="pageHero" aria-label="Noticia destacada (hero)">
+                <span class="page-hero__hint">Arrastra aquí la noticia destacada (hero)</span>
+              </div>
+              <div class="page-list" id="pageList" aria-live="polite">
+                <span class="page-list__hint">Arrastra noticias aquí para ordenar la página pública</span>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <!-- Panel: Medios -->
+        <div class="npanel" id="npanel-medios" hidden>
+          <div class="grid-toolbar">
+            <button type="button" class="btn btn--solid" id="outletNew"><span class="ar" data-ico="plus"></span> Nuevo medio</button>
+          </div>
+          <div class="outlet-grid" id="outletGrid" aria-live="polite"></div>
+        </div>
+
+        <!-- Panel: Redactores -->
+        <div class="npanel" id="npanel-redactores" hidden>
+          <div class="grid-toolbar">
+            <button type="button" class="btn btn--solid" id="journalistNew"><span class="ar" data-ico="user-plus"></span> Nuevo redactor</button>
+          </div>
+          <div class="journalist-grid" id="journalistGrid" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <!-- ===== SUSCRIPTORES ===== -->
+      <section class="view" id="view-suscriptores" hidden>
+        <div class="view__head">
+          <div>
+            <h2 class="view__h">Suscriptores <span class="view__count" id="subsCount">0</span></h2>
+            <p class="view__sub">Base de datos de prensa y boletín recogida desde la web. Busca, exporta o añade contactos manualmente.</p>
+          </div>
+          <div class="view__actions">
+            <label class="field field--search subs-search">
+              <span class="ar" data-ico="search"></span>
+              <input type="search" class="field__input" id="subsSearch" placeholder="Buscar por nombre, correo u origen…" aria-label="Buscar suscriptores">
+            </label>
+            <button type="button" class="btn btn--ghost" id="subsDemo"><span class="ar" data-ico="sparkles"></span> Simular alta</button>
+            <button type="button" class="btn btn--ghost" id="subsExport"><span class="ar" data-ico="download"></span> Exportar CSV</button>
+            <button type="button" class="btn btn--solid" id="subsAdd"><span class="ar" data-ico="plus"></span> Añadir</button>
+          </div>
+        </div>
+        <div class="subs-list" id="subsList" aria-live="polite"></div>
+      </section>
+
+      <!-- ===== EMPLEO ===== -->
+      <section class="view" id="view-empleo" hidden>
+        <div class="view__head">
+          <div>
+            <h2 class="view__h">Empleo</h2>
+            <p class="view__sub">Gestiona las vacantes publicadas y revisa las candidaturas recibidas desde la web.</p>
+          </div>
+          <div class="view__actions">
+            <div class="jobs-toggle-bar">
+              <label class="switch">
+                <input type="checkbox" id="jobsEnabled">
+                <span class="switch__track"></span>
+                <span class="switch__text">Mostrar empleo en la web</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sub-pestañas de Empleo -->
+        <div class="seg-row" id="empTabs" role="tablist">
+          <button type="button" class="seg is-active" data-etab="ofertas" role="tab">Ofertas</button>
+          <button type="button" class="seg" data-etab="candidaturas" role="tab">Candidaturas <span class="seg__count" id="appsCount" hidden>0</span></button>
+        </div>
+
+        <!-- Panel: Ofertas -->
+        <div class="epanel" id="epanel-ofertas">
+          <div class="grid-toolbar">
+            <button type="button" class="btn btn--solid" id="jobNew"><span class="ar" data-ico="plus"></span> Nueva oferta</button>
+          </div>
+          <div class="job-grid" id="jobGrid" aria-live="polite"></div>
+        </div>
+
+        <!-- Panel: Candidaturas -->
+        <div class="epanel" id="epanel-candidaturas" hidden>
+          <div class="apps-filter">
+            <label class="field">
+              <span class="field__label">Filtrar por oferta</span>
+              <select class="field__select" id="appFilter" aria-label="Filtrar candidaturas por oferta">
+                <option value="">Todas las ofertas</option>
+              </select>
+            </label>
+            <span class="apps-filter__count">Candidaturas <span id="appCount">0</span></span>
+          </div>
+          <div class="apps-list" id="appList" aria-live="polite"></div>
+        </div>
       </section>
 
       <!-- ===== EQUIPO ===== -->
@@ -307,6 +430,200 @@
     <div class="modal__foot">
       <button type="button" class="btn btn--ghost" data-close-modal>Cancelar</button>
       <button type="button" class="btn btn--solid" id="teamSave"><span class="ar" data-ico="save"></span> Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL CONTROL DE CAMBIOS (AUDITORÍA) ============ -->
+<div class="modal" id="auditModal" aria-hidden="true" aria-labelledby="auditModalTitle">
+  <div class="modal__back" data-close-modal></div>
+  <div class="modal__card">
+    <div class="modal__head">
+      <h3 class="modal__h" id="auditModalTitle">Control de cambios</h3>
+      <button class="modal__close" data-close-modal aria-label="Cerrar"><span data-ico="x" data-ico-size="18"></span></button>
+    </div>
+    <div class="modal__body">
+      <p class="modal__sub">Historial de modificaciones del contenido del sitio. Las más recientes aparecen primero.</p>
+      <div class="audit-list" id="auditList" aria-live="polite"></div>
+    </div>
+    <div class="modal__foot">
+      <button type="button" class="btn btn--ghost" data-close-modal>Cerrar</button>
+      <button type="button" class="btn btn--danger btn--sm" id="auditClear"><span class="ar" data-ico="trash-2"></span> Limpiar historial</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL MEDIO (OUTLET) ============ -->
+<div class="modal" id="outletModal" aria-hidden="true" aria-labelledby="outletModalTitle">
+  <div class="modal__back" data-close-modal></div>
+  <div class="modal__card">
+    <div class="modal__head">
+      <h3 class="modal__h" id="outletModalTitle">Nuevo medio</h3>
+      <button class="modal__close" data-close-modal aria-label="Cerrar"><span data-ico="x" data-ico-size="18"></span></button>
+    </div>
+    <div class="modal__body">
+      <form id="outletForm">
+        <input type="hidden" id="ofId">
+        <div class="logo-drop" id="ofLogo">
+          <img class="img-prev" id="ofLogoPrev" hidden>
+          <span class="logo-drop__hint"><span data-ico="building-2" data-ico-size="18"></span><br>Clic o arrastra para subir el logo del medio (opcional)</span>
+          <input type="file" id="ofLogoFile" accept="image/*" hidden>
+        </div>
+        <label class="field"><span class="field__label">Nombre del medio</span><input class="field__input" id="ofName" placeholder="La Nación, Clarín, El País…" required></label>
+        <label class="field"><span class="field__label">Sitio web</span><input class="field__input" type="url" id="ofUrl" placeholder="https://…"></label>
+      </form>
+    </div>
+    <div class="modal__foot">
+      <button type="button" class="btn btn--ghost" data-close-modal>Cancelar</button>
+      <button type="button" class="btn btn--solid" id="outletSave"><span class="ar" data-ico="save"></span> Guardar medio</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL REDACTOR (JOURNALIST) ============ -->
+<div class="modal" id="journalistModal" aria-hidden="true" aria-labelledby="journalistModalTitle">
+  <div class="modal__back" data-close-modal></div>
+  <div class="modal__card">
+    <div class="modal__head">
+      <h3 class="modal__h" id="journalistModalTitle">Nuevo redactor</h3>
+      <button class="modal__close" data-close-modal aria-label="Cerrar"><span data-ico="x" data-ico-size="18"></span></button>
+    </div>
+    <div class="modal__body">
+      <form id="journalistForm">
+        <input type="hidden" id="jfId">
+        <div class="img-drop img-drop--avatar" id="jfPhoto">
+          <img class="img-prev" id="jfPhotoPrev" hidden>
+          <span class="img-drop__hint"><span data-ico="image" data-ico-size="18"></span><br>Clic o arrastra para subir la foto del redactor (opcional)</span>
+          <input type="file" id="jfPhotoFile" accept="image/*" hidden>
+        </div>
+        <label class="field"><span class="field__label">Nombre</span><input class="field__input" id="jfName" placeholder="Nombre y apellido" required></label>
+        <div class="grid2">
+          <label class="field"><span class="field__label">Rol / cargo</span><input class="field__input" id="jfRole" placeholder="Redactor, Editor, Corresponsal…"></label>
+          <label class="field"><span class="field__label">Medio</span>
+            <select class="field__select" id="jfOutlet">
+              <option value="">— Medio —</option>
+            </select>
+          </label>
+        </div>
+        <div class="grid2">
+          <label class="field"><span class="field__label">Email</span><input class="field__input" type="email" id="jfEmail" placeholder="redactor@medio.com"></label>
+          <label class="field"><span class="field__label">Teléfono</span><input class="field__input" id="jfPhone" placeholder="+54 …"></label>
+        </div>
+      </form>
+    </div>
+    <div class="modal__foot">
+      <button type="button" class="btn btn--ghost" data-close-modal>Cancelar</button>
+      <button type="button" class="btn btn--solid" id="journalistSave"><span class="ar" data-ico="save"></span> Guardar redactor</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL OFERTA DE EMPLEO ============ -->
+<div class="modal" id="jobModal" aria-hidden="true" aria-labelledby="jobModalTitle">
+  <div class="modal__back" data-close-modal></div>
+  <div class="modal__card">
+    <div class="modal__head">
+      <h3 class="modal__h" id="jobModalTitle">Nueva oferta</h3>
+      <button class="modal__close" data-close-modal aria-label="Cerrar"><span data-ico="x" data-ico-size="18"></span></button>
+    </div>
+    <div class="modal__body">
+      <form id="jobForm">
+        <input type="hidden" id="jbId">
+        <label class="field"><span class="field__label">Título del puesto</span><input class="field__input" id="jbTitle" placeholder="Ingeniero/a Naval Senior" required></label>
+        <div class="grid2">
+          <label class="field"><span class="field__label">Área</span><input class="field__input" id="jbArea" placeholder="Operaciones, Flota, Calidad…"></label>
+          <label class="field"><span class="field__label">Ubicación</span><input class="field__input" id="jbLocation" placeholder="Río Gallegos, Argentina"></label>
+        </div>
+        <div class="grid2">
+          <label class="field"><span class="field__label">Tipo</span>
+            <select class="field__select" id="jbType">
+              <option value="full-time">Jornada completa</option>
+              <option value="part-time">Media jornada</option>
+              <option value="temporada">Temporada</option>
+              <option value="prácticas">Prácticas</option>
+            </select>
+          </label>
+          <label class="field"><span class="field__label">Estado</span>
+            <select class="field__select" id="jbStatus">
+              <option value="open">Abierta (visible en la web)</option>
+              <option value="closed">Cerrada (no visible)</option>
+            </select>
+          </label>
+        </div>
+        <label class="field"><span class="field__label">Resumen</span><textarea class="field__area" id="jbSummary" placeholder="Descripción breve que se ve en la tarjeta…"></textarea></label>
+        <label class="field"><span class="field__label">Cuerpo de la oferta</span><textarea class="field__area" id="jbBody" placeholder="Responsabilidades, requisitos y detalles del puesto…" style="min-height:140px"></textarea></label>
+      </form>
+    </div>
+    <div class="modal__foot">
+      <button type="button" class="btn btn--ghost" data-close-modal>Cancelar</button>
+      <button type="button" class="btn btn--solid" id="jobSave"><span class="ar" data-ico="save"></span> Guardar oferta</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL DETALLE CANDIDATURA ============ -->
+<div class="modal" id="applicationModal" aria-hidden="true" aria-labelledby="applicationModalTitle">
+  <div class="modal__back" data-close-modal></div>
+  <div class="modal__card">
+    <div class="modal__head">
+      <h3 class="modal__h" id="applicationModalTitle">Candidatura</h3>
+      <button class="modal__close" data-close-modal aria-label="Cerrar"><span data-ico="x" data-ico-size="18"></span></button>
+    </div>
+    <div class="modal__body">
+      <div class="app-detail">
+        <dl class="app-detail__grid">
+          <dt>Candidato</dt><dd id="apName">—</dd>
+          <dt>Email</dt><dd id="apEmail">—</dd>
+          <dt>Teléfono</dt><dd id="apPhone">—</dd>
+          <dt>Oferta</dt><dd id="apJob">—</dd>
+        </dl>
+        <div class="app-detail__block">
+          <div class="field__label">Mensaje</div>
+          <p class="app-detail__msg" id="apMessage">—</p>
+        </div>
+        <div class="app-detail__block" id="apCvWrap">
+          <div class="field__label">CV</div>
+          <div id="apCv">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal__foot">
+      <button type="button" class="btn btn--ghost" data-close-modal>Cerrar</button>
+      <button type="button" class="btn btn--danger btn--sm" id="appDelete"><span class="ar" data-ico="trash-2"></span> Eliminar candidatura</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL VISTA PREVIA DE NOTICIA ============ -->
+<div class="modal" id="newsPreviewModal" aria-hidden="true" aria-labelledby="newsPreviewModalTitle">
+  <div class="modal__back" data-close-modal></div>
+  <div class="modal__card">
+    <div class="modal__head">
+      <h3 class="modal__h" id="newsPreviewModalTitle">Vista previa</h3>
+      <button class="modal__close" data-close-modal aria-label="Cerrar"><span data-ico="x" data-ico-size="18"></span></button>
+    </div>
+    <div class="modal__body">
+      <article class="news-preview" id="previewBody"></article>
+    </div>
+    <div class="modal__foot">
+      <button type="button" class="btn btn--solid" data-close-modal>Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL DE CONFIRMACIÓN ============ -->
+<div class="modal modal--sm" id="confirmModal" aria-hidden="true" role="alertdialog" aria-labelledby="confirmTitle" aria-describedby="confirmText">
+  <div class="modal__back" data-close-modal></div>
+  <div class="modal__card">
+    <div class="modal__head">
+      <h3 class="modal__h" id="confirmTitle">Confirmar</h3>
+    </div>
+    <div class="modal__body">
+      <p class="confirm__text" id="confirmText">¿Seguro?</p>
+    </div>
+    <div class="modal__foot">
+      <button type="button" class="btn btn--ghost" id="confirmCancel" data-close-modal>Cancelar</button>
+      <button type="button" class="btn btn--danger" id="confirmOk">Confirmar</button>
     </div>
   </div>
 </div>
