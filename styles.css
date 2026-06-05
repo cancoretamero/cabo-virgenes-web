@@ -2584,17 +2584,7 @@ strong{font-weight:600;color:inherit}
   display:flex;align-items:center;justify-content:center;font-size:22px;line-height:1;
 }
 
-/* TRANSLATING INDICATOR */
-html.translating::after{
-  content:"⚡ Traduciendo con IA…";
-  position:fixed;left:50%;top:24px;transform:translateX(-50%);
-  padding:10px 22px;border-radius:999px;
-  background:linear-gradient(180deg,#1cb5b0,#0fa6a0);
-  color:#fff;font-size:12.5px;font-weight:600;letter-spacing:.04em;
-  border:1px solid rgba(255,255,255,.25);
-  box-shadow:0 12px 28px -10px rgba(28,181,176,.5),0 4px 10px -2px rgba(0,0,0,.2);
-  z-index:9999;
-}
+/* TRANSLATING INDICATOR — desactivado a petición del cliente (no mostrar burbuja) */
 
 /* ================ FAB WIDGETS (AI Chat — único flotante) ================ */
 .fab-stack{
