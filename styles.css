@@ -1652,6 +1652,9 @@ strong{font-weight:600;color:inherit}
 .nc-img{height:190px;background:#dde6ee center/cover no-repeat;position:relative}
 .nc-cat{position:absolute;left:12px;bottom:12px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:rgba(6,18,40,.62);backdrop-filter:blur(6px);padding:5px 11px;border-radius:100px}
 .nc-pin{position:absolute;right:12px;top:12px;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#06182f;background:var(--teal);padding:4px 9px;border-radius:100px}
+/* FDA: por motivos legales NO se usa el logo, solo el texto (adapta su color al contexto) */
+.cert-fda-txt{display:inline-flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-weight:800;font-size:13px;letter-spacing:.09em;color:currentColor;border:1.6px solid currentColor;border-radius:5px;padding:4px 8px;line-height:1;opacity:.92}
+.cert-fda-txt--lg{font-size:24px;padding:7px 14px;letter-spacing:.12em;border-width:2px}
 .nc-body{padding:18px 18px 20px;display:flex;flex-direction:column;gap:8px;flex:1}
 .nc-date{font-size:11.5px;font-weight:600;letter-spacing:.04em;color:#1cb5b0;text-transform:uppercase}
 .nc-title{font-family:var(--serif);font-weight:500;font-size:21px;color:var(--ink);line-height:1.15;letter-spacing:-.01em}
