@@ -58,8 +58,8 @@ certs.png
 fmt-cards.png
 
 # Heavy video/PDF source files (no se sirven directamente o se sirven desde CDN)
+# OJO: cabo-video.mp4 (versión web ~26MB) SÍ se versiona y despliega — es el del modal.
 CABO VIRGENES pesquera Español-sub ingles.mp4
-cabo-video.mp4
 b_f_f_a_mp_.mp4
 f_a_c_ca_a_a_e_f_a_c_ca_a_a_e_mp_.mp4
 ChatGPT Image 13 may 2026, 13_06_25.png

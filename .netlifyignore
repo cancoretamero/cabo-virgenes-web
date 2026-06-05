@@ -10,6 +10,7 @@ _shrimp/
 _vframes/
 *.mp4
 !wave.mp4
+!cabo-video.mp4
 ChatGPT Image *.png
 Literal Web Design.png
 Espartano–Inicio.png
