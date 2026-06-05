@@ -107,10 +107,11 @@ export async function resolveUser(req) {
       if (u) return u;
     }
   } catch { /* auth.mjs aún no disponible */ }
-  // 2) Token maestro de respaldo.
+  // 2) Token maestro o contraseña del panel (la que ya usa el equipo en el login).
   const master = process.env.CABO_ADMIN_TOKEN;
+  const pass = process.env.CABO_ADMIN_PASS; // = contraseña del login del admin
   const got = req.headers.get('x-cabo-admin-token') || bearer(req);
-  if (master && got && got === master) {
+  if (got && ((master && got === master) || (pass && got === pass))) {
     return { id: 'master', user: process.env.CABO_ADMIN_USER || 'admin', name: 'Propietario', role: 'owner', perms: [], master: true };
   }
   return null;

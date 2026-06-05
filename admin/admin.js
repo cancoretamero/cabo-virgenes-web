@@ -2134,10 +2134,11 @@
   });
 
   // ============ SEO / BUSCADOR ============
-  const SEO_KEY_LS = 'cv_seo_key';
   let seoCfg = null;
   let seoProposals = null;
-  const seoKey = () => { try { return sessionStorage.getItem(SEO_KEY_LS) || ''; } catch { return ''; } };
+  // Estando dentro del panel, autoriza con la contraseña del propio login
+  // (el servidor la acepta vía CABO_ADMIN_PASS). Sin claves extra para el equipo.
+  const seoKey = () => (isAuthed() ? CRED.pass : '');
   async function seoApi(method, body) {
     const headers = { 'content-type': 'application/json' };
     const k = seoKey(); if (k) headers['x-cabo-admin-token'] = k;
@@ -2150,7 +2151,7 @@
   const seoEsc = (s) => esc(String(s == null ? '' : s));
 
   async function renderSeo() {
-    $('#seoConnect').hidden = !!seoKey();
+    $('#seoConnect').hidden = true; // auto-autorizado por el login
     if (!seoCfg) { const r = await seoApi('GET'); seoCfg = (r.data && r.data.config) || {}; }
     const c = seoCfg || {};
     $('#seoTitle').value = c.title || '';
@@ -2204,11 +2205,6 @@
   }
 
   ['seoTitle', 'seoDesc', 'seoSite'].forEach(id => { const el = $('#' + id); if (el) el.addEventListener('input', seoUpdatePreview); });
-  $('#seoConnectBtn') && $('#seoConnectBtn').addEventListener('click', () => {
-    const k = $('#seoKey').value.trim(); if (!k) { toast('Introduce la clave', 'err'); return; }
-    try { sessionStorage.setItem(SEO_KEY_LS, k); } catch {}
-    $('#seoConnect').hidden = true; toast('Conectado', 'ok');
-  });
   $('#seoFavFile') && $('#seoFavFile').addEventListener('change', e => { const f = e.target.files[0]; if (!f) return; seoReadFile(f, 100, url => { seoCfg = seoCfg || {}; seoCfg.favicon = url; $('#seoFavPrev').src = url; $('#seoGFav').src = url; }); });
   $('#seoFavReset') && $('#seoFavReset').addEventListener('click', () => { seoCfg = seoCfg || {}; seoCfg.favicon = ''; $('#seoFavPrev').src = '/favicon-32x32.png'; $('#seoGFav').src = '/favicon-32x32.png'; });
   $('#seoOgFile') && $('#seoOgFile').addEventListener('change', e => { const f = e.target.files[0]; if (!f) return; seoReadFile(f, 250, url => { seoCfg = seoCfg || {}; seoCfg.ogImage = url; $('#seoOgPrev').src = url; seoUpdatePreview(); }); });
