@@ -2406,11 +2406,22 @@ strong{font-weight:600;color:inherit}
   font-family:var(--sans);font-size:11px;letter-spacing:.16em;color:#7fe3df;
   text-transform:uppercase;font-weight:700;
 }
-/* Footer: "Somos una empresa de AISA Group" (como Minas) */
-.ft-aisa{display:flex;align-items:center;gap:16px;margin:2px 0}
-.ft-aisa__label{font-size:10.5px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#5f748a;white-space:nowrap}
-.ft-aisa__logo{height:34px;width:auto;filter:brightness(0) invert(1);opacity:.9}
-@media(max-width:560px){.ft-aisa{flex-wrap:wrap;gap:10px}.ft-aisa__logo{height:30px}}
+/* Footer: "Somos una empresa de AISA Group" — sello del grupo, elegante */
+.ft-aisa{
+  display:flex;flex-direction:column;align-items:flex-start;gap:11px;
+  margin-top:6px;padding-top:22px;width:100%;max-width:300px;
+  border-top:1px solid rgba(127,227,223,.16);
+}
+.ft-aisa__label{
+  font-size:9.5px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;
+  color:#6b8198;
+}
+.ft-aisa__logo{
+  height:40px;width:auto;filter:brightness(0) invert(1);opacity:.92;
+  transition:opacity .25s ease;
+}
+.ft-aisa__logo:hover{opacity:1}
+@media(max-width:560px){.ft-aisa{padding-top:18px}.ft-aisa__logo{height:34px}}
 .ft-social{display:flex;gap:10px;margin-top:6px}
 .ft-social a{
   display:flex;width:42px;height:42px;border-radius:50%;
@@ -3327,6 +3338,10 @@ html.fit-scale body{
     filter:none !important;
     animation:none !important;
   }
+  /* Excepción: el logo AISA es oscuro y necesita la inversión para verse
+     blanco sobre el footer oscuro (el reset global lo dejaba invisible).
+     Coste GPU despreciable: una sola imagen pequeña. */
+  .ft-aisa__logo{filter:brightness(0) invert(1) !important}
   /* Flip 3D de las tarjetas de calidad → estático */
   .qcv-inner,.qual-card-v2:hover .qcv-inner{ transform:none !important; }
   .qcv-back{ display:none !important; }

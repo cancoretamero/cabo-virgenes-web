@@ -43,7 +43,7 @@ try {
     // pantallas del viewport y la restaura al acercarse. Mantiene el decode
     // acotado a ~1,5 pantallas (≈25-35 MB) en lugar de 80-120 MB.
     const MARGIN = 550;
-    const SKIP = '.info-modal,.player-modal,.modal,.drawer,.ac-panel,header,.ft-cert-row,.cert-marquee,.brand,.side__top';
+    const SKIP = '.info-modal,.player-modal,.modal,.drawer,.ac-panel,header,.ft-cert-row,.cert-marquee,.brand,.side__top,.ft-aisa,.footer-logo';
     const sweep = () => {
       const vh = window.innerHeight;
       const imgs = document.querySelectorAll('img');
