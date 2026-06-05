@@ -60,7 +60,9 @@
   // Zonas SIEMPRE excluidas de toda edición.
   const SKIP_SEL = '#worldMap,.leaflet-container,.cert-marquee,.cert-track,.fab-stack,.lang-flag,.lang-menu,.cv-bar,.side-rail,.num-rail,.rail-arrow,svg,.play-btn,.nav-menu,.drawer-close';
 
-  const LEGAL_MAP = { privacidad: 'modal-legal-privacidad', terminos: 'modal-legal-terminos', cookies: 'modal-legal-cookies', aviso: 'modal-legal-aviso' };
+  const LEGAL_MAP = { privacidad: 'modal-legal-privacidad', terminos: 'modal-legal-terminos', cookies: 'modal-legal-cookies', aviso: 'modal-legal-aviso', datos: 'modal-legal-datos' };
+  // cv_legal soporta dos formatos: nuevo { tipo:{title,updated,html} } y antiguo { tipo:"<html>" }.
+  const legalHtml = (v) => (v && typeof v === 'object') ? (v.html || '') : (typeof v === 'string' ? v : '');
 
   /* ---------------- autoKey (idéntico en grabación y aplicación) ---------------- */
   function autoKey(node) {
@@ -160,11 +162,12 @@
 
     // Legales (innerHTML del shell, preservando el botón cerrar).
     Object.entries(LEGAL_MAP).forEach(([k, id]) => {
-      if (!legal[k]) return;
+      const html = legalHtml(legal[k]);
+      if (!html) return;
       const art = $('#' + id + ' .info-shell'); if (!art) return;
       const close = art.querySelector('.info-close');
       const closeHTML = close ? close.outerHTML : '';
-      art.innerHTML = closeHTML + legal[k];
+      art.innerHTML = closeHTML + html;
     });
   }
 

@@ -58,6 +58,7 @@
       <span class="side__section">Comunidad</span>
       <a href="#/consultas" data-view="consultas" class="side__link"><span class="side__ic" data-ico="mail"></span><span class="side__label">Consultas</span><span class="side__badge" id="msgBadge" hidden>0</span></a>
       <a href="#/suscriptores" data-view="suscriptores" class="side__link"><span class="side__ic" data-ico="at-sign"></span><span class="side__label">Suscriptores</span><span class="side__badge" id="subsBadge" hidden>0</span></a>
+      <a href="#/boletines" data-view="boletines" class="side__link"><span class="side__ic" data-ico="send"></span><span class="side__label">Boletines</span></a>
       <span class="side__section">Reclutamiento</span>
       <a href="#/empleo" data-view="empleo" class="side__link"><span class="side__ic" data-ico="briefcase"></span><span class="side__label">Empleo</span><span class="side__badge" id="jobsBadge" hidden>0</span></a>
       <span class="side__section">Sistema</span>
@@ -219,19 +220,86 @@
         <div class="view__head">
           <div>
             <h2 class="view__h">Suscriptores <span class="view__count" id="subsCount">0</span></h2>
-            <p class="view__sub">Base de datos de prensa y boletín recogida desde la web. Busca, exporta o añade contactos manualmente.</p>
+            <p class="view__sub">Base de datos de prensa y boletín recogida desde la web. Busca, filtra, exporta o añade contactos manualmente.</p>
           </div>
           <div class="view__actions">
-            <label class="field field--search subs-search">
-              <span class="ar" data-ico="search"></span>
-              <input type="search" class="field__input" id="subsSearch" placeholder="Buscar por nombre, correo u origen…" aria-label="Buscar suscriptores">
-            </label>
             <button type="button" class="btn btn--ghost" id="subsDemo"><span class="ar" data-ico="sparkles"></span> Simular alta</button>
             <button type="button" class="btn btn--ghost" id="subsExport"><span class="ar" data-ico="download"></span> Exportar CSV</button>
             <button type="button" class="btn btn--solid" id="subsAdd"><span class="ar" data-ico="plus"></span> Añadir</button>
           </div>
         </div>
+        <div class="subs-stats" id="subsStats" hidden></div>
+        <div class="subs-toolbar" id="subsToolbar" hidden>
+          <label class="field field--search subs-search">
+            <span class="ar" data-ico="search"></span>
+            <input type="search" class="field__input" id="subsSearch" placeholder="Buscar por nombre, correo o medio…" aria-label="Buscar suscriptores" autocomplete="off">
+          </label>
+          <div class="subs-filters" id="subsFilters"></div>
+        </div>
         <div class="subs-list" id="subsList" aria-live="polite"></div>
+      </section>
+
+      <!-- ===== BOLETINES ===== -->
+      <section class="view" id="view-boletines" hidden>
+        <div class="view__head">
+          <div>
+            <h2 class="view__h">Boletines</h2>
+            <p class="view__sub">Compón un boletín con tus noticias publicadas y envíalo a los suscriptores. Sin servidor de correo: el envío queda registrado y los destinatarios se exportan en CSV; también puedes copiar el HTML o abrir tu cliente de correo.</p>
+          </div>
+          <div class="view__actions">
+            <button type="button" class="btn btn--ghost" id="bnPreviewBtn"><span class="ar" data-ico="eye"></span> Vista previa</button>
+            <button type="button" class="btn btn--solid" id="bnSendBtn"><span class="ar" data-ico="send"></span> Registrar envío</button>
+          </div>
+        </div>
+
+        <div class="bn-grid">
+          <!-- Compositor -->
+          <div class="card bn-compose">
+            <div class="panel-title">Componer</div>
+            <p class="panel-sub">Asunto, introducción, noticias y estilo del boletín.</p>
+
+            <label class="field"><span class="field__label">Asunto</span><input class="field__input" id="bnSubject" placeholder="Novedades de Cabo Vírgenes — temporada 2026"></label>
+            <label class="field"><span class="field__label">Introducción</span><textarea class="field__area" id="bnIntro" placeholder="Un saludo breve y el contexto del boletín…"></textarea></label>
+
+            <label class="field"><span class="field__label">Plantilla / estilo</span>
+              <select class="field__select" id="bnTemplate">
+                <option value="clasico">Clásico — tinta y oro</option>
+                <option value="costa">Costa — teal sobre papel</option>
+                <option value="sobrio">Sobrio — minimalista</option>
+              </select>
+            </label>
+
+            <div class="field" style="margin-bottom:0">
+              <span class="field__label">Noticias a incluir <span class="bn-pick-count" id="bnPickCount">0</span></span>
+              <div class="bn-news-pick" id="bnNewsPick" aria-live="polite"></div>
+            </div>
+          </div>
+
+          <!-- Destinatarios + acciones -->
+          <div class="bn-side">
+            <div class="card bn-aud">
+              <div class="panel-title">Destinatarios</div>
+              <p class="panel-sub">Suscriptores guardados en este navegador.</p>
+              <div class="bn-aud__count"><span class="bn-aud__num" id="bnAudCount">0</span><span class="bn-aud__lbl">suscriptores</span></div>
+              <div class="bn-aud__row">
+                <button type="button" class="btn btn--ghost btn--sm btn--block" id="bnExportDest"><span class="ar" data-ico="download"></span> Descargar destinatarios (CSV)</button>
+                <button type="button" class="btn btn--ghost btn--sm btn--block" id="bnCopyHtml"><span class="ar" data-ico="copy"></span> Copiar HTML del boletín</button>
+                <button type="button" class="btn btn--ghost btn--sm btn--block" id="bnMailto"><span class="ar" data-ico="mail"></span> Abrir en cliente de correo</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Historial -->
+        <div class="card bn-history-card">
+          <div class="view__head" style="margin-bottom:14px">
+            <div>
+              <div class="panel-title">Boletines enviados <span class="view__count" id="bnHistCount">0</span></div>
+              <p class="panel-sub">Registro de los envíos realizados desde este panel.</p>
+            </div>
+          </div>
+          <div class="bn-history" id="bnHistory" aria-live="polite"></div>
+        </div>
       </section>
 
       <!-- ===== EMPLEO ===== -->
@@ -301,11 +369,11 @@
         <div class="view__head">
           <div>
             <h2 class="view__h">Documentos legales</h2>
-            <p class="view__sub">Edita el contenido (HTML) de los avisos legales del sitio. Se aplican a las ventanas de Privacidad, Términos, Cookies y Aviso legal.</p>
+            <p class="view__sub">Edita las políticas y avisos del sitio con el editor visual. Se aplican a las ventanas de Privacidad, Términos, Cookies, Aviso legal y Protección de datos.</p>
           </div>
           <div class="view__actions">
             <button type="button" class="btn btn--ghost" id="legalReset"><span class="ar" data-ico="undo-2"></span> Restaurar original</button>
-            <button type="button" class="btn btn--solid" id="legalSave"><span class="ar" data-ico="save"></span> Guardar</button>
+            <button type="button" class="btn btn--solid" id="legalSave"><span class="ar" data-ico="save"></span> Guardar legales</button>
           </div>
         </div>
         <div class="seg-row" id="legalTabs" role="tablist">
@@ -313,9 +381,67 @@
           <button type="button" class="seg" data-legal="terminos" role="tab">Términos</button>
           <button type="button" class="seg" data-legal="cookies" role="tab">Cookies</button>
           <button type="button" class="seg" data-legal="aviso" role="tab">Aviso legal</button>
+          <button type="button" class="seg" data-legal="datos" role="tab">Protección de datos</button>
         </div>
-        <div class="card" style="margin-top:14px;padding:14px">
-          <textarea class="field__area code-area" id="legalArea" placeholder="Cargando contenido…"></textarea>
+
+        <!-- Generador (plantillas locales) -->
+        <div class="legal-ai">
+          <div class="legal-ai__head">
+            <strong><span class="ar" data-ico="sparkles" data-ico-size="16"></span> Generar documento</strong>
+            <span class="field__hint">Completá los datos de la empresa una vez; se reutilizan en los cinco documentos.</span>
+          </div>
+          <div class="grid2">
+            <label class="field"><span class="field__label">Razón social</span><input type="text" id="lcName" class="field__input" placeholder="Cabo Vírgenes S.A."></label>
+            <label class="field"><span class="field__label">CUIT / NIF</span><input type="text" id="lcCuit" class="field__input" placeholder="30-XXXXXXXX-X"></label>
+          </div>
+          <div class="grid2">
+            <label class="field"><span class="field__label">Domicilio</span><input type="text" id="lcAddr" class="field__input" placeholder="Puerto Rawson, Chubut, Argentina"></label>
+            <label class="field"><span class="field__label">Email de contacto</span><input type="text" id="lcEmail" class="field__input" placeholder="legal@cabovirgenes.com"></label>
+          </div>
+          <label class="field"><span class="field__label">Sitio web</span><input type="text" id="lcSite" class="field__input" placeholder="https://cabovirgenes.com"></label>
+          <button type="button" class="btn btn--ghost legal-ai__btn" id="legalGenBtn"><span class="ar" data-ico="sparkles" data-ico-size="16"></span> Generar “<span id="legalGenKind">Privacidad</span>”</button>
+        </div>
+
+        <!-- Editor RTE + Vista previa -->
+        <div class="legal-grid">
+          <div class="legal-edit">
+            <div class="grid2">
+              <label class="field">
+                <span class="field__label">Título</span>
+                <input type="text" id="legalTitle" class="field__input" placeholder="Política de privacidad">
+              </label>
+              <label class="field">
+                <span class="field__label">Actualizado</span>
+                <input type="date" id="legalUpdated" class="field__input">
+              </label>
+            </div>
+            <div class="field rte-field">
+              <span class="field__label">Contenido del documento</span>
+              <div class="rte">
+                <div class="rte-bar" id="legalRteBar" role="toolbar" aria-label="Formato de texto">
+                  <button type="button" class="rte-btn" data-cmd="h2" title="Título"><span data-ico="heading" data-ico-size="16"></span></button>
+                  <button type="button" class="rte-btn" data-cmd="h3" title="Subtítulo"><span data-ico="type" data-ico-size="16"></span></button>
+                  <button type="button" class="rte-btn rte-btn--txt" data-cmd="p" title="Texto normal">¶</button>
+                  <span class="rte-sep"></span>
+                  <button type="button" class="rte-btn" data-cmd="bold" title="Negrita"><span data-ico="bold" data-ico-size="16"></span></button>
+                  <button type="button" class="rte-btn" data-cmd="italic" title="Cursiva"><span data-ico="italic" data-ico-size="16"></span></button>
+                  <span class="rte-sep"></span>
+                  <button type="button" class="rte-btn" data-cmd="ul" title="Viñetas"><span data-ico="list" data-ico-size="16"></span></button>
+                  <button type="button" class="rte-btn" data-cmd="ol" title="Lista numerada"><span data-ico="list-ordered" data-ico-size="16"></span></button>
+                  <button type="button" class="rte-btn" data-cmd="outdent" title="Reducir sangría"><span data-ico="outdent" data-ico-size="16"></span></button>
+                  <button type="button" class="rte-btn" data-cmd="indent" title="Aumentar sangría"><span data-ico="indent" data-ico-size="16"></span></button>
+                  <span class="rte-sep"></span>
+                  <button type="button" class="rte-btn" data-cmd="link" title="Insertar enlace"><span data-ico="link" data-ico-size="16"></span></button>
+                  <button type="button" class="rte-btn" data-cmd="clear" title="Quitar formato"><span data-ico="remove-formatting" data-ico-size="16"></span></button>
+                </div>
+                <div class="rte-area" id="legalRte" contenteditable="true" spellcheck="true" aria-label="Contenido del documento legal"></div>
+              </div>
+            </div>
+          </div>
+          <div class="legal-preview">
+            <div class="legal-preview__bar over">Vista previa</div>
+            <div class="legal-preview__doc" id="legalPreview"></div>
+          </div>
         </div>
       </section>
 
@@ -327,10 +453,16 @@
             <p class="view__sub">Mensajes recibidos desde el formulario de contacto del sitio.</p>
           </div>
           <div class="view__actions">
+            <button type="button" class="btn btn--ghost" id="inboxRefresh"><span class="ar" data-ico="refresh-cw"></span> Recargar</button>
             <button type="button" class="btn btn--ghost" id="msgDemo"><span class="ar" data-ico="sparkles"></span> Simular consulta</button>
           </div>
         </div>
-        <div class="inbox" id="inbox"></div>
+        <div class="seg-row" id="inboxResolution" role="tablist">
+          <button type="button" class="seg seg--sm is-active" data-resolution="open" role="tab">Abiertas <em class="seg__n" data-rcount="open">0</em></button>
+          <button type="button" class="seg seg--sm" data-resolution="resolved" role="tab">Resueltas <em class="seg__n" data-rcount="resolved">0</em></button>
+          <button type="button" class="seg seg--sm" data-resolution="" role="tab">Todas <em class="seg__n" data-rcount="all">0</em></button>
+        </div>
+        <div class="inbox" id="inbox" aria-live="polite"></div>
       </section>
 
       <!-- ===== AJUSTES ===== -->
@@ -556,6 +688,47 @@
   </div>
 </div>
 
+<!-- ============ MODAL SUSCRIPTOR (alta / edición manual) ============ -->
+<div class="modal" id="subModal" aria-hidden="true" aria-labelledby="subModalTitle">
+  <div class="modal__back" data-close-modal></div>
+  <div class="modal__card">
+    <div class="modal__head">
+      <h3 class="modal__h" id="subModalTitle">Nuevo suscriptor</h3>
+      <button class="modal__close" data-close-modal aria-label="Cerrar"><span data-ico="x" data-ico-size="18"></span></button>
+    </div>
+    <div class="modal__body">
+      <form id="subForm">
+        <input type="hidden" id="sfId">
+        <label class="field"><span class="field__label">Email</span><input class="field__input" type="email" id="sfEmail" placeholder="contacto@empresa.com" required></label>
+        <div class="grid2">
+          <label class="field"><span class="field__label">Nombre</span><input class="field__input" id="sfName" placeholder="Nombre y apellido"></label>
+          <label class="field"><span class="field__label">País</span><input class="field__input" id="sfCountry" placeholder="AR, ES, Otro…"></label>
+        </div>
+        <div class="grid2">
+          <label class="field"><span class="field__label">Medio / empresa</span><input class="field__input" id="sfOutlet" placeholder="La Nación, distribuidor…"></label>
+          <label class="field"><span class="field__label">Teléfono</span><input class="field__input" id="sfPhone" placeholder="+54 …"></label>
+        </div>
+        <label class="field"><span class="field__label">Sitio web</span><input class="field__input" type="url" id="sfWeb" placeholder="https://…"></label>
+        <div class="grid2">
+          <label class="field"><span class="field__label">Intereses (separados por coma)</span><input class="field__input" id="sfInterests" placeholder="Comercial, Prensa, Boletín"></label>
+          <label class="field"><span class="field__label">Origen</span>
+            <select class="field__select" id="sfSource">
+              <option value="manual">Manual</option>
+              <option value="web">Web</option>
+              <option value="prensa">Prensa</option>
+              <option value="boletín">Boletín</option>
+            </select>
+          </label>
+        </div>
+      </form>
+    </div>
+    <div class="modal__foot">
+      <button type="button" class="btn btn--ghost" data-close-modal>Cancelar</button>
+      <button type="button" class="btn btn--solid" id="subSave"><span class="ar" data-ico="save"></span> Guardar suscriptor</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ MODAL OFERTA DE EMPLEO ============ -->
 <div class="modal" id="jobModal" aria-hidden="true" aria-labelledby="jobModalTitle">
   <div class="modal__back" data-close-modal></div>
@@ -644,6 +817,26 @@
       <article class="news-preview" id="previewBody"></article>
     </div>
     <div class="modal__foot">
+      <button type="button" class="btn btn--solid" data-close-modal>Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL VISTA PREVIA DE BOLETÍN ============ -->
+<div class="modal modal--wide" id="bnPreviewModal" aria-hidden="true" aria-labelledby="bnPreviewTitle">
+  <div class="modal__back" data-close-modal></div>
+  <div class="modal__card">
+    <div class="modal__head">
+      <h3 class="modal__h" id="bnPreviewTitle">Vista previa del boletín</h3>
+      <button class="modal__close" data-close-modal aria-label="Cerrar"><span data-ico="x" data-ico-size="18"></span></button>
+    </div>
+    <div class="modal__body">
+      <div class="bn-preview-stage">
+        <iframe id="bnPreviewFrame" title="Vista previa del boletín" src="about:blank"></iframe>
+      </div>
+    </div>
+    <div class="modal__foot">
+      <button type="button" class="btn btn--ghost" id="bnCopyHtml2"><span class="ar" data-ico="copy"></span> Copiar HTML</button>
       <button type="button" class="btn btn--solid" data-close-modal>Cerrar</button>
     </div>
   </div>

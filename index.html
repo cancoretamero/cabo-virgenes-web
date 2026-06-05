@@ -1345,7 +1345,7 @@
       <div class="ft-newsletter">
         <h5>Recibí novedades</h5>
         <p>Actualizaciones de mercado, nuevos formatos y comunicaciones corporativas.</p>
-        <form class="ft-form" onsubmit="event.preventDefault();this.querySelector('input').value='';this.querySelector('.ft-msg').textContent='✓ Suscripto'">
+        <form class="ft-form" id="newsletterForm" onsubmit="event.preventDefault();this.querySelector('.ft-msg').textContent='✓ Suscripto';this.querySelector('input').value=''">
           <input type="email" placeholder="email@empresa.com" required />
           <button type="submit"><i data-lucide="arrow-right" class="lucide-arrow"></i></button>
           <span class="ft-msg"></span>
@@ -1417,6 +1417,7 @@
         <button type="button" data-modal="modal-legal-terminos">Términos</button>
         <button type="button" data-modal="modal-legal-cookies">Cookies</button>
         <button type="button" data-modal="modal-legal-aviso">Aviso legal</button>
+        <button type="button" data-modal="modal-legal-datos">Protección de datos</button>
         <a href="./admin/" class="ft-admin-link">Administración</a>
       </div>
     </div>
@@ -2321,6 +2322,38 @@
     <h4>Reclamaciones</h4>
     <p>Para presentar reclamaciones formales: <strong>legal@cabovirgenes.com</strong> o mediante carta certificada al
       domicilio fiscal indicado.</p>
+  </article>
+</div>
+
+<div class="info-modal" id="modal-legal-datos" aria-hidden="true">
+  <div class="info-back"></div>
+  <article class="info-shell glass-deep info-shell-lg legal-modal">
+    <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <p class="eyebrow eyebrow-light"><span class="dot"></span>LEGAL</p>
+    <h3>Protección de datos</h3>
+    <p class="muted">Última actualización: 14 mayo 2026</p>
+    <h4>1. Responsable del tratamiento</h4>
+    <p>Cabo Vírgenes S.A. — Puerto Rawson, Chubut, Argentina, es responsable del tratamiento de los datos personales
+      recabados a través de este sitio. Contacto del responsable: <strong>legal@cabovirgenes.com</strong>.</p>
+    <h4>2. Principios aplicados</h4>
+    <p>Tratamos los datos conforme a los principios de licitud, lealtad y transparencia, limitación de la finalidad,
+      minimización, exactitud, limitación del plazo de conservación, integridad y confidencialidad establecidos por el
+      RGPD (UE 2016/679) y la Ley 25.326 de Protección de Datos Personales de Argentina.</p>
+    <h4>3. Categorías de datos</h4>
+    <p>Datos identificativos y de contacto (nombre, empresa, email, país, teléfono) y datos de navegación (IP, navegador,
+      páginas visitadas). No tratamos categorías especiales de datos.</p>
+    <h4>4. Medidas de seguridad</h4>
+    <p>Aplicamos medidas técnicas y organizativas apropiadas para garantizar un nivel de seguridad adecuado al riesgo:
+      cifrado en tránsito, control de accesos, copias de respaldo y registro de actividad.</p>
+    <h4>5. Encargados del tratamiento</h4>
+    <p>Recurrimos a proveedores de hosting y herramientas que actúan como encargados del tratamiento bajo contrato con
+      garantías de confidencialidad y cumplimiento del RGPD.</p>
+    <h4>6. Ejercicio de derechos</h4>
+    <p>Podés ejercer tus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad escribiendo a
+      <strong>legal@cabovirgenes.com</strong>, adjuntando copia de un documento que acredite tu identidad.</p>
+    <h4>7. Autoridad de control</h4>
+    <p>Tenés derecho a presentar una reclamación ante la Agencia de Acceso a la Información Pública (AAIP, Argentina) o la
+      Agencia Española de Protección de Datos (AEPD, España).</p>
   </article>
 </div>
 

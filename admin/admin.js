@@ -17,6 +17,7 @@
     // NUEVAS claves
     outlets: 'cv_outlets', journalists: 'cv_journalists', jobs: 'cv_jobs',
     apps: 'cv_applications', subs: 'cv_subscribers', pages: 'cv_pages', audit: 'cv_audit',
+    newsletters: 'cv_newsletters',
   };
   const read = (k, def) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? def : v; } catch { return def; } };
   const write = (k, v) => localStorage.setItem(k, JSON.stringify(v));
@@ -71,6 +72,8 @@
   const setPages = (v) => write(K.pages, v);
   const getAudit = () => read(K.audit, []);
   const setAudit = (v) => write(K.audit, v);
+  const getNewsletters = () => read(K.newsletters, []);
+  const setNewsletters = (v) => write(K.newsletters, v);
 
   // ---------- UI helpers ----------
   const toastEl = $('#toast');
@@ -109,7 +112,7 @@
   $('#logoutBtn').addEventListener('click', () => { localStorage.removeItem(K.auth); location.hash = ''; showLogin(); });
 
   // ============ ROUTING ============
-  const TITLES = { inicio: 'Inicio', edicion: 'Edición visual', noticias: 'Noticias', equipo: 'Equipo', legales: 'Legales', consultas: 'Consultas', suscriptores: 'Suscriptores', empleo: 'Empleo', ajustes: 'Ajustes' };
+  const TITLES = { inicio: 'Inicio', edicion: 'Edición visual', noticias: 'Noticias', equipo: 'Equipo', legales: 'Legales', consultas: 'Consultas', suscriptores: 'Suscriptores', boletines: 'Boletines', empleo: 'Empleo', ajustes: 'Ajustes' };
   function currentView() { const m = (location.hash || '').match(/#\/(\w+)/); return m && TITLES[m[1]] ? m[1] : 'inicio'; }
   function route() {
     const v = currentView();
@@ -129,6 +132,7 @@
     else if (v === 'legales') renderLegales();
     else if (v === 'consultas') renderConsultas();
     else if (v === 'suscriptores') renderSuscriptores();
+    else if (v === 'boletines') renderBoletines();
     else if (v === 'empleo') renderEmpleo();
     else if (v === 'ajustes') renderAjustes();
     hydrate();
@@ -833,100 +837,360 @@
   });
 
   // ============ CONSULTAS ============
-  function renderConsultas() {
-    const msgs = getMsgs().slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-    $('#msgCount').textContent = msgs.length;
-    const box = $('#inbox');
-    if (!msgs.length) { box.innerHTML = `<div class="news-empty"><span data-ico="inbox" data-ico-size="42"></span><p>No hay consultas todavía.</p></div>`; hydrate(); refreshBadges(); return; }
-    box.innerHTML = msgs.map(m => `
-      <div class="msg ${m.read ? '' : 'is-unread'}" data-id="${m.id}">
-        <div class="msg__av">${esc((m.name || '?').charAt(0).toUpperCase())}</div>
+  // Estado del filtro de bandeja: 'open' | 'resolved' | '' (todas)
+  let inboxResolution = 'open';
+  // Normaliza al esquema completo (compatible con consultas antiguas {id,name,email,message,date,read})
+  function msgNorm(m) {
+    m = m || {};
+    const resolution = m.resolution === 'resolved' ? 'resolved' : 'open';
+    const status = m.status || (m.replied || (m.reply && String(m.reply).trim()) ? 'replied' : 'new');
+    return Object.assign({}, m, {
+      id: m.id, name: m.name || '', email: m.email || '', phone: m.phone || '',
+      company: m.company || '', country: m.country || '', topic: m.topic || m.subject || '',
+      message: m.message || '', date: m.date || '', source: m.source || 'contacto',
+      read: !!m.read, status, resolution, reply: m.reply || '',
+      repliedAt: m.repliedAt || '', resolvedAt: m.resolvedAt || '',
+    });
+  }
+  const resolutionOf = (m) => (m.resolution === 'resolved' ? 'resolved' : 'open');
+  function refreshInboxCounts() {
+    const all = getMsgs().map(msgNorm);
+    const open = all.filter(m => resolutionOf(m) === 'open').length;
+    const resolved = all.length - open;
+    const counts = { open, resolved, all: all.length };
+    $$('#inboxResolution [data-rcount]').forEach(node => {
+      const k = node.dataset.rcount; if (counts[k] != null) node.textContent = String(counts[k]);
+    });
+  }
+  function msgHTML(m) {
+    const isReplied = m.status === 'replied';
+    const isResolved = resolutionOf(m) === 'resolved';
+    const tag = isReplied ? '<span class="tag replied">Respondida</span>' : '<span class="tag new">Nueva</span>';
+    const resolvedTag = isResolved ? '<span class="tag resolved">Resuelta</span>' : '';
+    const unreadDot = m.read ? '' : '<span class="tag unread">Sin leer</span>';
+    const meta = [];
+    if (m.company) meta.push(`<span class="msg__meta"><b>Empresa:</b> ${esc(m.company)}</span>`);
+    if (m.country) meta.push(`<span class="msg__meta"><b>País:</b> ${esc(m.country)}</span>`);
+    if (m.topic) meta.push(`<span class="msg__meta"><b>Asunto:</b> ${esc(m.topic)}</span>`);
+    if (m.phone) meta.push(`<span class="msg__meta"><b>Tel:</b> ${esc(m.phone)}</span>`);
+    const replyGiven = (isReplied && m.reply)
+      ? `<div class="msg__reply-given"><span class="lbl">Tu respuesta${m.repliedAt ? ' · ' + esc(fmtTime(m.repliedAt)) : ''}</span>${esc(m.reply)}</div>` : '';
+    return `
+      <article class="msg msg--full${m.read ? '' : ' is-unread'}" data-id="${esc(m.id)}">
         <div class="msg__main">
           <div class="msg__top">
             <span class="msg__from">${esc(m.name || 'Anónimo')}</span>
-            <span class="msg__email">${esc(m.email || '')}</span>
-            <span class="msg__date">${esc(m.date ? new Date(m.date).toLocaleString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '')}</span>
+            ${m.email ? `<a class="msg__email" href="mailto:${esc(m.email)}">${esc(m.email)}</a>` : ''}
+            ${tag}${resolvedTag}${unreadDot}
+            <span class="msg__date">${esc(m.date ? fmtTime(m.date) : '')}</span>
           </div>
+          ${meta.length ? `<div class="msg__rows">${meta.join('')}</div>` : ''}
           <p class="msg__txt">${esc(m.message || '')}</p>
+          ${replyGiven}
+          <div class="msg__actions">
+            <button class="btn btn--ghost btn--sm" data-act="read">${m.read ? 'Marcar no leída' : 'Marcar leída'}</button>
+            ${m.email ? '<button class="btn btn--ghost btn--sm" data-act="reply"><span class="ar" data-ico="reply"></span> Responder</button>' : ''}
+            <button class="btn btn--ghost btn--sm" data-act="resolve">${isResolved ? '<span class="ar" data-ico="rotate-ccw"></span> Reabrir' : '<span class="ar" data-ico="check-circle"></span> Resolver'}</button>
+            <button class="btn btn--danger btn--sm" data-act="del" style="margin-left:auto"><span class="ar" data-ico="trash-2"></span> Eliminar</button>
+          </div>
         </div>
-        <button class="icon-btn danger" data-del-msg="${m.id}" title="Eliminar"><span data-ico="trash-2"></span></button>
-      </div>`).join('');
+      </article>`;
+  }
+  function renderConsultas() {
+    const all = getMsgs().map(msgNorm).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    $('#msgCount').textContent = all.length;
+    refreshInboxCounts();
+    const list = inboxResolution ? all.filter(m => resolutionOf(m) === inboxResolution) : all;
+    const box = $('#inbox');
+    if (!list.length) {
+      const msg = inboxResolution === 'resolved' ? 'No hay consultas resueltas todavía.'
+        : (inboxResolution === 'open' ? 'No hay consultas abiertas. ¡Bandeja al día!' : 'No hay consultas todavía.');
+      box.innerHTML = `<div class="news-empty"><span data-ico="inbox" data-ico-size="42"></span><p>${msg}</p></div>`;
+      hydrate(); refreshBadges(); return;
+    }
+    box.innerHTML = list.map(msgHTML).join('');
     hydrate(); refreshBadges();
   }
+  // Marca leída la consulta al desplegarla (cuando se hace clic en el cuerpo, no en un botón)
   $('#inbox').addEventListener('click', e => {
-    const d = e.target.closest('[data-del-msg]');
-    if (d) { setMsgs(getMsgs().filter(x => x.id !== d.dataset.delMsg)); renderConsultas(); return; }
-    const row = e.target.closest('.msg'); if (row && row.classList.contains('is-unread')) { const msgs = getMsgs(); const m = msgs.find(x => x.id === row.dataset.id); if (m) { m.read = true; setMsgs(msgs); renderConsultas(); } }
+    if (e.target.closest('[data-act]')) return;
+    const row = e.target.closest('.msg');
+    if (row && row.classList.contains('is-unread')) {
+      const msgs = getMsgs(); const m = msgs.find(x => x.id === row.dataset.id);
+      if (m) { m.read = true; setMsgs(msgs); renderConsultas(); }
+    }
   });
+  // Acciones de cada consulta
+  $('#inbox').addEventListener('click', async e => {
+    const btn = e.target.closest('[data-act]'); if (!btn) return;
+    const row = e.target.closest('.msg'); if (!row) return;
+    const id = row.dataset.id; const act = btn.dataset.act;
+    const msgs = getMsgs(); const i = msgs.findIndex(x => x.id === id);
+    if (i < 0) return; const m = msgs[i];
+    if (act === 'read') {
+      m.read = !m.read; setMsgs(msgs); renderConsultas();
+      toast(m.read ? 'Marcada como leída' : 'Marcada como no leída', 'ok');
+    } else if (act === 'reply') {
+      if (!m.email) { toast('Esta consulta no tiene correo', 'err'); return; }
+      const subject = 'Re: ' + (m.topic ? m.topic + ' · ' : '') + 'Cabo Vírgenes';
+      const body = `Hola ${m.name || ''},\n\nGracias por tu consulta a Cabo Vírgenes.\n\n— — —\n${(m.message || '').replace(/\r?\n/g, '\n')}\n— — —\n\n`;
+      window.location.href = 'mailto:' + encodeURIComponent(m.email) + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+      m.read = true; m.status = 'replied'; m.reply = '(Respondida por correo)'; m.repliedAt = new Date().toISOString();
+      setMsgs(msgs); renderConsultas();
+    } else if (act === 'resolve') {
+      const next = resolutionOf(m) === 'resolved' ? 'open' : 'resolved';
+      m.resolution = next; m.resolvedAt = next === 'resolved' ? new Date().toISOString() : '';
+      if (next === 'resolved') m.read = true;
+      setMsgs(msgs); renderConsultas();
+      toast(next === 'resolved' ? 'Consulta resuelta' : 'Consulta reabierta', 'ok');
+    } else if (act === 'del') {
+      if (!await confirmDialog('Eliminar consulta', '¿Eliminar esta consulta de forma permanente?')) return;
+      setMsgs(getMsgs().filter(x => x.id !== id)); renderConsultas(); toast('Consulta eliminada');
+    }
+  });
+  // Filtros Abiertas / Resueltas / Todas
+  $('#inboxResolution') && $('#inboxResolution').addEventListener('click', e => {
+    const tab = e.target.closest('[data-resolution]'); if (!tab) return;
+    $$('#inboxResolution [data-resolution]').forEach(t => t.classList.toggle('is-active', t === tab));
+    inboxResolution = tab.dataset.resolution || '';
+    renderConsultas();
+  });
+  $('#inboxRefresh') && $('#inboxRefresh').addEventListener('click', () => { renderConsultas(); toast('Bandeja actualizada', 'ok'); });
   $('#msgDemo').addEventListener('click', () => {
     const msgs = getMsgs();
-    msgs.push({ id: uid(), name: 'Importador Demo', email: 'compras@ejemplo.com', message: 'Buenos días, nos interesa el langostino HOSO L1 para exportación a Europa. ¿Podrían enviarnos lista de precios y disponibilidad?', date: new Date().toISOString(), read: false });
+    msgs.push(msgNorm({ id: uid(), name: 'Importador Demo', email: 'compras@ejemplo.com', company: 'Mariscos Europa', country: 'España', topic: 'Cotización', message: 'Buenos días, nos interesa el langostino HOSO L1 para exportación a Europa. ¿Podrían enviarnos lista de precios y disponibilidad?', date: new Date().toISOString(), source: 'contacto', read: false }));
     setMsgs(msgs); renderConsultas(); toast('Consulta de ejemplo añadida');
   });
 
   // ============ SUSCRIPTORES ============
-  let subsFilter = '';
-  function renderSuscriptores() {
-    const all = getSubs().slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-    const q = subsFilter.trim().toLowerCase();
-    const subs = q ? all.filter(s => [s.email, s.name, s.source].filter(Boolean).some(t => t.toLowerCase().includes(q))) : all;
-    $('#subsCount').textContent = all.length;
-    const box = $('#subsList');
-    if (!subs.length) {
-      box.innerHTML = `<div class="news-empty"><span data-ico="at-sign" data-ico-size="42"></span><p>${q ? 'Sin resultados para tu búsqueda.' : 'No hay suscriptores todavía.<br>Se añaden desde el formulario de la web.'}</p></div>`;
-    } else {
-      box.innerHTML = `
-        <table class="subs-table">
-          <thead><tr><th>Correo</th><th>Nombre</th><th>Fecha</th><th>Origen</th><th></th></tr></thead>
-          <tbody>
-          ${subs.map(s => `
-            <tr data-id="${s.id}">
-              <td class="subs-table__email">${esc(s.email)}</td>
-              <td>${esc(s.name || '—')}</td>
-              <td>${esc(s.date ? new Date(s.date).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' }) : '')}</td>
-              <td><span class="subs-tag">${esc(s.source || 'web')}</span></td>
-              <td><button class="icon-btn danger" data-sub-del="${s.id}" title="Eliminar"><span data-ico="trash-2"></span></button></td>
-            </tr>`).join('')}
-          </tbody>
-        </table>`;
-    }
-    refreshBadges();
+  // Filtros activos (espejo cliente del backend de Aisa)
+  let subsFilters = { interest: '', country: '', q: '' };
+  let subsStats = null;
+  const subModal = $('#subModal');
+  // Normaliza al esquema completo (compatible con altas antiguas {id,email,name,date,source})
+  function subNorm(s) {
+    s = s || {};
+    return Object.assign({}, s, {
+      id: s.id, email: s.email || '', name: s.name || '', country: s.country || '',
+      interests: Array.isArray(s.interests) ? s.interests : [], outlet: s.outlet || '',
+      web: s.web || '', phone: s.phone || '', tags: Array.isArray(s.tags) ? s.tags : [],
+      notes: s.notes || '', date: s.date || '', source: s.source || 'web',
+    });
+  }
+  function calcSubsStats(all) {
+    const byCountry = {}, byInterest = {}, byOutlet = {};
+    all.forEach(s => {
+      if (s.country) byCountry[s.country] = (byCountry[s.country] || 0) + 1;
+      (s.interests || []).forEach(i => { if (i) byInterest[i] = (byInterest[i] || 0) + 1; });
+      if (s.outlet) byOutlet[s.outlet] = (byOutlet[s.outlet] || 0) + 1;
+    });
+    const facet = (o) => Object.entries(o).map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count);
+    return { total: all.length, byCountry: facet(byCountry), byInterest: facet(byInterest), byOutlet: facet(byOutlet) };
+  }
+  function subsHasFilter() { return !!(subsFilters.interest || subsFilters.country || subsFilters.q); }
+  function subsFacetList(label, arr) {
+    arr = arr || []; if (!arr.length) return '';
+    const items = arr.slice(0, 8).map(f => `<li><span class="subs-facet__v">${esc(f.value || '—')}</span><span class="subs-facet__n">${f.count}</span></li>`).join('');
+    return `<div class="subs-facet"><h4 class="subs-facet__h">${esc(label)}</h4><ul>${items}</ul></div>`;
+  }
+  function renderSubsStats() {
+    const box = $('#subsStats'); if (!box) return;
+    if (!subsStats || !subsStats.total) { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    box.innerHTML =
+      `<div class="subs-stats__total"><span class="subs-stats__num">${subsStats.total}</span><span class="subs-stats__lbl">Suscriptores</span></div>` +
+      `<div class="subs-stats__facets">${subsFacetList('Países', subsStats.byCountry)}${subsFacetList('Intereses', subsStats.byInterest)}${subsFacetList('Medios', subsStats.byOutlet)}</div>`;
+  }
+  function renderSubsFilters() {
+    const box = $('#subsFilters'), tb = $('#subsToolbar'); if (!box) return;
+    const st = subsStats;
+    if (!st || !st.total) { if (tb) tb.hidden = true; box.innerHTML = ''; return; }
+    if (tb) tb.hidden = false;
+    const chip = (kind, value, count) => {
+      const active = subsFilters[kind] === value;
+      return `<button type="button" class="chip${active ? ' is-active' : ''}" data-fkind="${esc(kind)}" data-fval="${esc(value)}">${esc(value || '—')}${count != null ? ' · ' + count : ''}</button>`;
+    };
+    const groups = [];
+    if ((st.byCountry || []).length) groups.push(`<div class="subs-filter-group"><span class="subs-filter-group__lbl"><span class="ar" data-ico="map-pin"></span>Países</span><div class="chip-row">${st.byCountry.map(f => chip('country', f.value, f.count)).join('')}</div></div>`);
+    if ((st.byInterest || []).length) groups.push(`<div class="subs-filter-group"><span class="subs-filter-group__lbl"><span class="ar" data-ico="tag"></span>Intereses</span><div class="chip-row">${st.byInterest.map(f => chip('interest', f.value, f.count)).join('')}</div></div>`);
+    const clear = subsHasFilter() ? '<button type="button" class="btn btn--ghost btn--sm subs-clear" id="subsClear"><span class="ar" data-ico="x"></span> Limpiar filtros</button>' : '';
+    box.innerHTML = groups.join('') + clear;
+    box.querySelectorAll('.chip[data-fkind]').forEach(c => c.addEventListener('click', () => {
+      const kind = c.dataset.fkind, val = c.dataset.fval;
+      subsFilters[kind] = (subsFilters[kind] === val) ? '' : val;
+      renderSuscriptores();
+    }));
+    const cb = $('#subsClear');
+    if (cb) cb.addEventListener('click', () => {
+      subsFilters = { interest: '', country: '', q: '' };
+      const sb = $('#subsSearch'); if (sb) sb.value = '';
+      renderSuscriptores();
+    });
     hydrate();
   }
-  $('#subsSearch') && $('#subsSearch').addEventListener('input', e => { subsFilter = e.target.value; renderSuscriptores(); });
-  $('#subsList') && $('#subsList').addEventListener('click', async e => {
-    const d = e.target.closest('[data-sub-del]'); if (!d) return;
-    if (!await confirmDialog('Eliminar suscriptor', '¿Eliminar este contacto de la base de datos?')) return;
-    setSubs(getSubs().filter(x => x.id !== d.dataset.subDel)); renderSuscriptores(); toast('Suscriptor eliminado');
-  });
-  $('#subsAdd') && $('#subsAdd').addEventListener('click', () => {
-    const email = prompt('Correo del nuevo suscriptor:');
-    if (!email) return;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { toast('Correo no válido', 'err'); return; }
-    const name = prompt('Nombre (opcional):') || '';
+  function subHTML(s) {
+    const interests = (s.interests || []).map(i => `<span class="tag">${esc(i)}</span>`).join('');
+    const tags = (s.tags || []).map(t => `<span class="chip chip--tag" data-tag="${esc(t)}">${esc(t)}<button type="button" class="chip__x" data-act="untag" data-tag="${esc(t)}" aria-label="Quitar etiqueta"><span class="ar" data-ico="x"></span></button></span>`).join('');
+    const rows = [];
+    if (s.outlet) rows.push(`<span class="sub__meta"><b>Medio:</b> ${esc(s.outlet)}</span>`);
+    if (s.web) rows.push(`<span class="sub__meta"><b>Web:</b> <a href="${esc(s.web)}" target="_blank" rel="noopener">${esc(s.web)}</a></span>`);
+    if (s.country) rows.push(`<span class="sub__meta"><b>País:</b> ${esc(s.country)}</span>`);
+    if (s.phone) rows.push(`<span class="sub__meta"><b>Tel:</b> ${esc(s.phone)}</span>`);
+    rows.push(`<span class="sub__meta"><b>Origen:</b> ${esc(s.source || 'web')}</span>`);
+    return `
+      <article class="msg sub" data-id="${esc(s.id)}">
+        <div class="msg__main">
+          <div class="msg__top">
+            <span class="msg__from">${esc(s.name || 'Anónimo')}</span>
+            ${s.email ? `<a class="msg__email" href="mailto:${esc(s.email)}">${esc(s.email)}</a>` : ''}
+            <span class="msg__date">${esc(s.date ? fmtTime(s.date) : '')}</span>
+          </div>
+          ${rows.length ? `<div class="sub__rows">${rows.join('')}</div>` : ''}
+          ${interests ? `<div class="sub__tags">${interests}</div>` : ''}
+          <div class="sub__crm">
+            <div class="sub__crm-tags" data-tags>${tags || '<span class="sub__crm-empty">Sin etiquetas</span>'}</div>
+            <div class="sub__crm-add">
+              <input type="text" class="field__input sub__tag-input" data-tag-input placeholder="Añadir etiqueta…" autocomplete="off">
+              <button type="button" class="btn btn--ghost btn--sm" data-act="addtag"><span class="ar" data-ico="plus"></span> Etiqueta</button>
+            </div>
+            <textarea class="field__input field__area sub__notes" data-notes placeholder="Notas internas sobre este suscriptor…">${esc(s.notes || '')}</textarea>
+          </div>
+          <div class="msg__actions">
+            <button class="btn btn--ghost btn--sm" data-act="edit"><span class="ar" data-ico="pencil"></span> Editar</button>
+            <button class="btn btn--ghost btn--sm" data-act="savecrm"><span class="ar" data-ico="check"></span> Guardar</button>
+            <button class="btn btn--danger btn--sm" data-act="del" style="margin-left:auto"><span class="ar" data-ico="trash-2"></span> Eliminar</button>
+          </div>
+        </div>
+      </article>`;
+  }
+  function bindSubscribers() {
+    $$('#subsList .sub').forEach(node => {
+      const id = node.dataset.id;
+      const rec = getSubs().map(subNorm).find(x => String(x.id) === String(id)) || {};
+      let tags = (rec.tags || []).slice();
+      const tagsBox = node.querySelector('[data-tags]');
+      const tagInput = node.querySelector('[data-tag-input]');
+      const notesEl = node.querySelector('[data-notes]');
+      function paintTags() {
+        if (!tags.length) { tagsBox.innerHTML = '<span class="sub__crm-empty">Sin etiquetas</span>'; }
+        else { tagsBox.innerHTML = tags.map(t => `<span class="chip chip--tag" data-tag="${esc(t)}">${esc(t)}<button type="button" class="chip__x" data-act="untag" data-tag="${esc(t)}" aria-label="Quitar etiqueta"><span class="ar" data-ico="x"></span></button></span>`).join(''); }
+        hydrate(); bindUntag();
+      }
+      function bindUntag() {
+        tagsBox.querySelectorAll('[data-act="untag"]').forEach(b => b.addEventListener('click', () => { tags = tags.filter(t => t !== b.dataset.tag); paintTags(); }));
+      }
+      function addTag() {
+        const v = (tagInput.value || '').trim(); if (!v) return;
+        if (!tags.includes(v)) tags.push(v);
+        tagInput.value = ''; paintTags(); tagInput.focus();
+      }
+      bindUntag();
+      node.querySelector('[data-act="addtag"]').addEventListener('click', addTag);
+      tagInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } });
+      node.querySelector('[data-act="savecrm"]').addEventListener('click', () => {
+        const subs = getSubs(); const idx = subs.findIndex(x => String(x.id) === String(id));
+        if (idx >= 0) { subs[idx].tags = tags.slice(); subs[idx].notes = notesEl.value; setSubs(subs); toast('Suscriptor actualizado', 'ok'); }
+      });
+      node.querySelector('[data-act="edit"]').addEventListener('click', () => openSub(id));
+      node.querySelector('[data-act="del"]').addEventListener('click', async () => {
+        if (!await confirmDialog('Eliminar suscriptor', '¿Eliminar este contacto de la base de datos?')) return;
+        setSubs(getSubs().filter(x => String(x.id) !== String(id))); renderSuscriptores(); toast('Suscriptor eliminado');
+      });
+    });
+  }
+  function renderSuscriptores() {
+    const all = getSubs().map(subNorm).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    subsStats = calcSubsStats(all);
+    $('#subsCount').textContent = all.length;
+    let filtered = all.slice();
+    if (subsFilters.country) filtered = filtered.filter(s => s.country === subsFilters.country);
+    if (subsFilters.interest) filtered = filtered.filter(s => (s.interests || []).includes(subsFilters.interest));
+    if (subsFilters.q) {
+      const q = subsFilters.q.trim().toLowerCase();
+      filtered = filtered.filter(s => [s.name, s.email, s.outlet, s.country, s.source].filter(Boolean).some(t => String(t).toLowerCase().includes(q)));
+    }
+    renderSubsStats(); renderSubsFilters();
+    const box = $('#subsList');
+    if (!filtered.length) {
+      box.innerHTML = `<div class="news-empty"><span data-ico="at-sign" data-ico-size="42"></span><p>${subsHasFilter() && all.length ? 'Sin resultados para este filtro.' : 'No hay suscriptores todavía.<br>Se añaden desde el formulario de la web o manualmente.'}</p></div>`;
+    } else {
+      box.innerHTML = filtered.map(subHTML).join('');
+      bindSubscribers();
+    }
+    refreshBadges(); hydrate();
+  }
+  // Alta sin duplicar por correo (devuelve true si era nuevo)
+  function upsertSub(rec, opts) {
+    opts = opts || {};
+    const email = String(rec.email || '').trim().toLowerCase();
     const subs = getSubs();
-    subs.push({ id: uid(), email: email.trim(), name: name.trim(), date: new Date().toISOString(), source: 'manual' });
-    setSubs(subs); renderSuscriptores(); toast('Suscriptor añadido', 'ok');
+    const i = subs.findIndex(s => String(s.email || '').trim().toLowerCase() === email && (!rec.id || String(s.id) !== String(rec.id)));
+    const editIdx = rec.id ? subs.findIndex(s => String(s.id) === String(rec.id)) : -1;
+    if (editIdx >= 0) { subs[editIdx] = Object.assign({}, subs[editIdx], rec); setSubs(subs); return false; }
+    if (i >= 0) {
+      if (opts.merge) {
+        ['name', 'country', 'outlet', 'web', 'phone'].forEach(k => { if (rec[k] && !subs[i][k]) subs[i][k] = rec[k]; });
+        const set = new Set([...(subs[i].interests || []), ...(rec.interests || [])].filter(Boolean));
+        subs[i].interests = Array.from(set); setSubs(subs);
+      }
+      return false;
+    }
+    subs.push(Object.assign({ id: uid(), date: new Date().toISOString(), interests: [], tags: [], notes: '' }, rec, { email: String(rec.email || '').trim() }));
+    setSubs(subs); return true;
+  }
+  function openSub(id) {
+    const s = id ? getSubs().map(subNorm).find(x => String(x.id) === String(id)) : null;
+    $('#subModalTitle').textContent = s ? 'Editar suscriptor' : 'Nuevo suscriptor';
+    $('#sfId').value = s ? s.id : '';
+    $('#sfEmail').value = s ? s.email : '';
+    $('#sfName').value = s ? s.name : '';
+    $('#sfCountry').value = s ? s.country : '';
+    $('#sfOutlet').value = s ? s.outlet : '';
+    $('#sfPhone').value = s ? s.phone : '';
+    $('#sfWeb').value = s ? s.web : '';
+    $('#sfInterests').value = s ? (s.interests || []).join(', ') : '';
+    $('#sfSource').value = s ? (s.source || 'manual') : 'manual';
+    subModal.classList.add('open'); subModal.setAttribute('aria-hidden', 'false'); hydrate();
+    setTimeout(() => $('#sfEmail').focus(), 60);
+  }
+  $('#subSave') && $('#subSave').addEventListener('click', () => {
+    const email = $('#sfEmail').value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('Correo no válido', 'err'); $('#sfEmail').focus(); return; }
+    const id = $('#sfId').value;
+    const interests = $('#sfInterests').value.split(',').map(x => x.trim()).filter(Boolean);
+    const data = {
+      id: id || undefined, email, name: $('#sfName').value.trim(), country: $('#sfCountry').value.trim(),
+      outlet: $('#sfOutlet').value.trim(), phone: $('#sfPhone').value.trim(), web: $('#sfWeb').value.trim(),
+      interests, source: $('#sfSource').value || 'manual',
+    };
+    const wasNew = upsertSub(data);
+    if (!wasNew && !id) { toast('Ya existe un suscriptor con ese correo', 'err'); return; }
+    closeModal(subModal); renderSuscriptores(); toast(id ? 'Suscriptor actualizado' : 'Suscriptor añadido', 'ok');
   });
+  $('#subsSearch') && $('#subsSearch').addEventListener('input', e => { subsFilters.q = e.target.value; renderSuscriptores(); });
+  $('#subsRefresh') && $('#subsRefresh').addEventListener('click', () => { renderSuscriptores(); toast('Base actualizada', 'ok'); });
+  $('#subsAdd') && $('#subsAdd').addEventListener('click', () => openSub(null));
   $('#subsDemo') && $('#subsDemo').addEventListener('click', () => {
     const samples = [
-      { email: 'redaccion@lanacion.com.ar', name: 'Redacción La Nación', source: 'prensa' },
-      { email: 'compras@mariscoseuropa.es', name: 'Mariscos Europa', source: 'boletín' },
-      { email: 'ana.perez@gmail.com', name: 'Ana Pérez', source: 'web' },
+      { email: 'redaccion@lanacion.com.ar', name: 'Redacción La Nación', country: 'AR', outlet: 'La Nación', source: 'prensa', interests: ['Prensa'] },
+      { email: 'compras@mariscoseuropa.es', name: 'Mariscos Europa', country: 'ES', outlet: 'Mariscos Europa', source: 'boletín', interests: ['Comercial', 'Boletín'] },
+      { email: 'ana.perez@gmail.com', name: 'Ana Pérez', country: 'AR', source: 'web', interests: ['Boletín'] },
     ];
     const pick = samples[Math.floor(Math.random() * samples.length)];
-    const subs = getSubs();
-    subs.push(Object.assign({ id: uid(), date: new Date().toISOString() }, pick));
-    setSubs(subs); renderSuscriptores(); toast('Alta simulada añadida');
+    const wasNew = upsertSub(pick, { merge: true });
+    renderSuscriptores(); toast(wasNew ? 'Alta simulada añadida' : 'Ese contacto ya existía', wasNew ? 'ok' : 'info');
   });
   $('#subsExport') && $('#subsExport').addEventListener('click', () => {
-    const subs = getSubs();
+    const subs = getSubs().map(subNorm);
     if (!subs.length) { toast('No hay suscriptores que exportar', 'err'); return; }
-    const head = ['email', 'nombre', 'fecha', 'origen'];
-    const rows = subs.map(s => [s.email || '', s.name || '', s.date || '', s.source || ''].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(','));
-    const csv = head.join(',') + '\n' + rows.join('\n');
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'cabo-virgenes-suscriptores.csv'; a.click();
+    const head = ['Correo', 'Nombre', 'País', 'Medio', 'Web', 'Teléfono', 'Intereses', 'Etiquetas', 'Notas', 'Fecha', 'Origen'];
+    const escCsv = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const rows = subs.map(s => [s.email, s.name, s.country, s.outlet, s.web, s.phone, (s.interests || []).join(' · '), (s.tags || []).join(' · '), s.notes, s.date, s.source].map(escCsv).join(','));
+    const csv = head.map(escCsv).join(',') + '\r\n' + rows.join('\r\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'cabo-virgenes-suscriptores-' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
     toast('CSV exportado', 'ok');
   });
 
@@ -1203,8 +1467,21 @@
   });
 
   // ============ LEGALES ============
-  const LEGAL_IDS = { privacidad: 'modal-legal-privacidad', terminos: 'modal-legal-terminos', cookies: 'modal-legal-cookies', aviso: 'modal-legal-aviso' };
-  let legalDefaults = null, legalBuf = null, legalKey = 'privacidad';
+  // Editor visual (RTE) con tabs, generador por plantillas locales y vista previa.
+  // Modelo cv_legal: { tipo:{ title, updated, html }, _company:{ name,cuit,address,email,site } }.
+  // Migra el formato antiguo (tipo -> "string HTML").
+  const LEGAL_IDS = { privacidad: 'modal-legal-privacidad', terminos: 'modal-legal-terminos', cookies: 'modal-legal-cookies', aviso: 'modal-legal-aviso', datos: 'modal-legal-datos' };
+  const LEGAL_LABELS = { privacidad: 'Privacidad', terminos: 'Términos', cookies: 'Cookies', aviso: 'Aviso legal', datos: 'Protección de datos' };
+  const LEGAL_DEFAULT_TITLE = { privacidad: 'Política de privacidad', terminos: 'Términos y condiciones', cookies: 'Política de cookies', aviso: 'Aviso legal', datos: 'Protección de datos' };
+  let legalDefaults = null, legalBuf = null, activeLegal = 'privacidad', legalBound = false;
+
+  const toDateInput = (s) => {
+    if (!s) return '';
+    const d = new Date(/^\d{4}-\d{2}-\d{2}/.test(s) ? s + 'T00:00:00' : s);
+    return isNaN(d) ? '' : d.toISOString().slice(0, 10);
+  };
+
+  // Extrae el HTML por defecto de cada modal legal del sitio público (fallback inicial).
   async function loadLegalDefaults() {
     if (legalDefaults) return legalDefaults;
     legalDefaults = {};
@@ -1219,29 +1496,577 @@
     } catch (_) { Object.keys(LEGAL_IDS).forEach(k => legalDefaults[k] = ''); }
     return legalDefaults;
   }
-  async function renderLegales() {
-    const def = await loadLegalDefaults();
-    if (!legalBuf) legalBuf = Object.assign({}, def, read(K.legal, {}));
-    $('#legalArea').value = legalBuf[legalKey] || '';
+
+  // Normaliza una entrada (string antigua u objeto nuevo) a { title, updated, html }.
+  function normLegalEntry(v, key, def) {
+    if (v && typeof v === 'object' && !Array.isArray(v)) {
+      return { title: v.title || LEGAL_DEFAULT_TITLE[key] || '', updated: v.updated || '', html: v.html || '' };
+    }
+    const html = (typeof v === 'string' && v) ? v : (def || '');
+    return { title: LEGAL_DEFAULT_TITLE[key] || '', updated: '', html };
   }
-  $('#legalArea').addEventListener('input', e => { if (legalBuf) legalBuf[legalKey] = e.target.value; });
-  document.addEventListener('click', e => {
-    const t = e.target.closest('#legalTabs [data-legal]'); if (!t) return;
-    if (legalBuf) legalBuf[legalKey] = $('#legalArea').value;
-    legalKey = t.dataset.legal;
-    $$('#legalTabs [data-legal]').forEach(b => b.classList.toggle('is-active', b === t));
-    $('#legalArea').value = (legalBuf && legalBuf[legalKey]) || '';
-  });
-  $('#legalSave').addEventListener('click', () => {
-    if (legalBuf) legalBuf[legalKey] = $('#legalArea').value;
-    write(K.legal, legalBuf || {});
-    logAudit('legal', legalKey, '', 'Editado');
-    toast('Documentos legales guardados', 'ok');
-  });
-  $('#legalReset').addEventListener('click', () => {
-    if (!legalDefaults || !legalBuf) return;
-    legalBuf[legalKey] = legalDefaults[legalKey]; $('#legalArea').value = legalDefaults[legalKey] || ''; toast('Restaurado al original');
-  });
+
+  // Construye legalBuf desde localStorage + defaults, migrando formatos.
+  async function ensureLegalBuf() {
+    if (legalBuf) return legalBuf;
+    const def = await loadLegalDefaults();
+    const stored = read(K.legal, {}) || {};
+    legalBuf = {};
+    Object.keys(LEGAL_IDS).forEach(k => { legalBuf[k] = normLegalEntry(stored[k], k, def[k]); });
+    legalBuf._company = Object.assign({ name: '', cuit: '', address: '', email: '', site: '' }, stored._company || {});
+    return legalBuf;
+  }
+
+  function getCompany() {
+    if (!legalBuf) return { name: '', cuit: '', address: '', email: '', site: '' };
+    legalBuf._company = legalBuf._company || { name: '', cuit: '', address: '', email: '', site: '' };
+    return legalBuf._company;
+  }
+  function setCompany(obj) { if (legalBuf) legalBuf._company = Object.assign(getCompany(), obj); }
+  function getLegalDoc(key) {
+    if (!legalBuf) return { title: '', updated: '', html: '' };
+    legalBuf[key] = legalBuf[key] || { title: LEGAL_DEFAULT_TITLE[key] || '', updated: '', html: '' };
+    return legalBuf[key];
+  }
+
+  function populateCompany() {
+    const c = getCompany();
+    $('#lcName').value = c.name || '';
+    $('#lcCuit').value = c.cuit || '';
+    $('#lcAddr').value = c.address || '';
+    $('#lcEmail').value = c.email || '';
+    $('#lcSite').value = c.site || '';
+  }
+  function stashCompany() {
+    setCompany({
+      name: $('#lcName').value.trim(), cuit: $('#lcCuit').value.trim(),
+      address: $('#lcAddr').value.trim(), email: $('#lcEmail').value.trim(), site: $('#lcSite').value.trim(),
+    });
+  }
+
+  // ---- Editor de texto enriquecido (contenteditable) ----
+  function getLegalHtml() { const r = $('#legalRte'); return r ? cleanRteHtml(r.innerHTML) : ''; }
+  function setLegalHtml(h) { const r = $('#legalRte'); if (r) r.innerHTML = h || ''; }
+  function cleanRteHtml(h) {
+    return String(h || '')
+      .replace(/<div>/gi, '<p>').replace(/<\/div>/gi, '</p>')
+      .replace(/<p>(\s|&nbsp;|<br\s*\/?>)*<\/p>/gi, '')
+      .replace(/\sstyle="[^"]*"/gi, '')
+      .trim();
+  }
+  function rteCmd(cmd) {
+    const area = $('#legalRte'); if (!area) return;
+    area.focus();
+    try {
+      if (cmd === 'h2' || cmd === 'h3' || cmd === 'p') document.execCommand('formatBlock', false, cmd);
+      else if (cmd === 'bold') document.execCommand('bold');
+      else if (cmd === 'italic') document.execCommand('italic');
+      else if (cmd === 'ul') document.execCommand('insertUnorderedList');
+      else if (cmd === 'ol') document.execCommand('insertOrderedList');
+      else if (cmd === 'indent') document.execCommand('indent');
+      else if (cmd === 'outdent') document.execCommand('outdent');
+      else if (cmd === 'clear') { document.execCommand('removeFormat'); document.execCommand('formatBlock', false, 'p'); }
+      else if (cmd === 'link') { const url = prompt('Dirección del enlace:', 'https://'); if (url) document.execCommand('createLink', false, url); }
+    } catch (e) {}
+    stashLegal();
+    renderLegalPreview();
+  }
+  function bindRteToolbar() {
+    const bar = $('#legalRteBar'); if (!bar) return;
+    bar.addEventListener('mousedown', (e) => { if (e.target.closest('[data-cmd]')) e.preventDefault(); });
+    bar.addEventListener('click', (e) => { const b = e.target.closest('[data-cmd]'); if (b) rteCmd(b.getAttribute('data-cmd')); });
+  }
+
+  // ---- Plantillas locales (sin IA): interpolan los datos de empresa ----
+  function legalTemplate(kind, co) {
+    const name = esc(co.name || 'la empresa');
+    const cuit = esc(co.cuit || '—');
+    const addr = esc(co.address || '—');
+    const email = esc(co.email || 'legal@cabovirgenes.com');
+    const siteRaw = (co.site || '').trim();
+    const site = esc(siteRaw || 'este sitio web');
+    const today = new Date().toISOString().slice(0, 10);
+    const T = {
+      privacidad: {
+        title: 'Política de privacidad',
+        html:
+`<h4>1. Responsable del tratamiento</h4>
+<p><strong>${name}</strong>, con domicilio en ${addr} (CUIT/NIF ${cuit}), es responsable del tratamiento de los datos personales recabados a través de ${site}. Contacto: <strong>${email}</strong>.</p>
+<h4>2. Datos que recopilamos</h4>
+<p>Recopilamos los datos que voluntariamente nos proporcionás mediante nuestros formularios (nombre, empresa, email, país, mensaje) y datos técnicos de navegación (IP, navegador, idioma, páginas visitadas) a través de cookies estrictamente necesarias.</p>
+<h4>3. Finalidad</h4>
+<p>Tratamos los datos para responder consultas comerciales o institucionales, enviar comunicaciones solicitadas, cumplir obligaciones legales y mejorar el rendimiento del sitio.</p>
+<h4>4. Base jurídica</h4>
+<p>Tu consentimiento explícito y el interés legítimo de ${name} para gestionar relaciones comerciales (RGPD UE 2016/679 y Ley 25.326 de Argentina).</p>
+<h4>5. Conservación</h4>
+<p>Conservamos los datos mientras dure la relación comercial o durante 5 años desde el último contacto, salvo obligación legal de mayor plazo.</p>
+<h4>6. Tus derechos</h4>
+<p>Podés ejercer tus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad escribiendo a <strong>${email}</strong>, así como presentar reclamación ante la autoridad de control competente (AAIP Argentina / AEPD España).</p>`,
+      },
+      terminos: {
+        title: 'Términos y condiciones',
+        html:
+`<h4>1. Titularidad</h4>
+<p>${site} es operado por <strong>${name}</strong> (CUIT/NIF ${cuit}), con domicilio en ${addr}.</p>
+<h4>2. Objeto</h4>
+<p>Estas condiciones regulan el acceso y uso del sitio. El acceso implica la aceptación plena de los presentes términos.</p>
+<h4>3. Uso del sitio</h4>
+<p>El usuario se compromete a utilizar el sitio conforme a la ley y a no realizar actividades que dañen, inutilicen o sobrecarguen los servicios, ni vulneren derechos de terceros.</p>
+<h4>4. Propiedad intelectual</h4>
+<p>Los contenidos, marcas, logotipos e imágenes son titularidad de ${name} o de sus licenciantes y están protegidos por la normativa de propiedad intelectual e industrial.</p>
+<h4>5. Responsabilidad</h4>
+<p>La información se publica con fines informativos. ${name} no garantiza la ausencia de errores ni la disponibilidad ininterrumpida del sitio.</p>
+<h4>6. Legislación aplicable</h4>
+<p>Estas condiciones se rigen por la legislación argentina y, en su caso, española. Para consultas: <strong>${email}</strong>.</p>`,
+      },
+      cookies: {
+        title: 'Política de cookies',
+        html:
+`<h4>1. Qué son las cookies</h4>
+<p>Las cookies son pequeños archivos que se almacenan en tu dispositivo al navegar por ${site} y permiten recordar tus preferencias y medir el uso del sitio.</p>
+<h4>2. Cookies que utilizamos</h4>
+<p><strong>Estrictamente necesarias:</strong> garantizan el funcionamiento básico del sitio. <strong>Analíticas:</strong> nos ayudan a entender de forma agregada cómo se usa el sitio.</p>
+<h4>3. Gestión de cookies</h4>
+<p>Podés configurar o eliminar las cookies desde tu navegador en cualquier momento. Deshabilitarlas puede afectar a algunas funciones del sitio.</p>
+<h4>4. Consentimiento</h4>
+<p>Al continuar navegando consentís el uso de cookies según esta política. Para más información escribí a <strong>${email}</strong>.</p>`,
+      },
+      aviso: {
+        title: 'Aviso legal',
+        html:
+`<h4>Identificación de la empresa</h4>
+<p><strong>Razón social:</strong> ${name}<br/>
+<strong>CUIT / NIF:</strong> ${cuit}<br/>
+<strong>Domicilio:</strong> ${addr}<br/>
+<strong>Email:</strong> ${email}<br/>
+<strong>Sitio web:</strong> ${site}</p>
+<h4>Actividad</h4>
+<p>Captura, procesamiento, comercialización y exportación de productos del mar.</p>
+<h4>Responsabilidad</h4>
+<p>El contenido publicado es de carácter informativo. ${name} no garantiza la inexistencia de errores ni la actualidad permanente de la información.</p>
+<h4>Reclamaciones</h4>
+<p>Para presentar reclamaciones formales: <strong>${email}</strong> o mediante carta certificada al domicilio indicado.</p>`,
+      },
+      datos: {
+        title: 'Protección de datos',
+        html:
+`<h4>1. Responsable del tratamiento</h4>
+<p><strong>${name}</strong>, con domicilio en ${addr} (CUIT/NIF ${cuit}), es responsable del tratamiento de los datos personales recabados a través de ${site}. Contacto: <strong>${email}</strong>.</p>
+<h4>2. Principios aplicados</h4>
+<p>Tratamos los datos conforme a los principios de licitud, lealtad y transparencia, limitación de la finalidad, minimización, exactitud, limitación del plazo de conservación, integridad y confidencialidad (RGPD UE 2016/679 y Ley 25.326).</p>
+<h4>3. Categorías de datos</h4>
+<p>Datos identificativos y de contacto y datos de navegación. No tratamos categorías especiales de datos.</p>
+<h4>4. Medidas de seguridad</h4>
+<p>Aplicamos medidas técnicas y organizativas apropiadas: cifrado en tránsito, control de accesos, copias de respaldo y registro de actividad.</p>
+<h4>5. Ejercicio de derechos</h4>
+<p>Podés ejercer tus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad escribiendo a <strong>${email}</strong>.</p>
+<h4>6. Autoridad de control</h4>
+<p>Tenés derecho a presentar una reclamación ante la AAIP (Argentina) o la AEPD (España).</p>`,
+      },
+    };
+    const tpl = T[kind] || T.privacidad;
+    return { title: tpl.title, updated: today, html: tpl.html };
+  }
+
+  // ---- Render / flujo ----
+  function populateLegal() {
+    const doc = getLegalDoc(activeLegal);
+    $('#legalTitle').value = doc.title || '';
+    $('#legalUpdated').value = doc.updated ? toDateInput(doc.updated) : '';
+    setLegalHtml(doc.html || '');
+    $('#legalGenKind').textContent = LEGAL_LABELS[activeLegal] || activeLegal;
+    renderLegalPreview();
+  }
+  async function renderLegales() {
+    await ensureLegalBuf();
+    bindLegal();
+    populateCompany();
+    populateLegal();
+    hydrate();
+  }
+  function renderLegalPreview() {
+    const p = $('#legalPreview'); if (!p) return;
+    p.innerHTML = getLegalHtml() || '<p style="color:var(--gray-400)">Sin contenido.</p>';
+  }
+  function stashLegal() {
+    if (!legalBuf) return;
+    const doc = getLegalDoc(activeLegal);
+    doc.title = $('#legalTitle').value;
+    doc.updated = $('#legalUpdated').value;
+    doc.html = getLegalHtml();
+  }
+
+  // Generador local (sin backend): rellena con la plantilla del documento activo.
+  function legalGen() {
+    stashCompany();
+    const btn = $('#legalGenBtn'); btn.classList.add('is-busy');
+    try {
+      const gen = legalTemplate(activeLegal, getCompany());
+      setLegalHtml(gen.html);
+      if (!$('#legalTitle').value.trim()) $('#legalTitle').value = gen.title;
+      $('#legalUpdated').value = gen.updated;
+      stashLegal();
+      renderLegalPreview();
+      toast('Documento generado. Revisalo y pulsá “Guardar legales”.', 'ok');
+    } catch (err) { toast('No se pudo generar el documento', 'err'); }
+    finally { btn.classList.remove('is-busy'); }
+  }
+
+  function saveLegal() {
+    stashLegal();
+    const btn = $('#legalSave'); btn.classList.add('is-busy');
+    try {
+      write(K.legal, legalBuf || {});
+      logAudit('legal', activeLegal, '', 'Guardado');
+      toast('Documentos legales guardados', 'ok');
+    } catch (err) { toast('Error al guardar', 'err'); }
+    finally { btn.classList.remove('is-busy'); }
+  }
+
+  function bindLegal() {
+    if (legalBound) return; legalBound = true;
+    $$('#legalTabs [data-legal]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        stashLegal();
+        $$('#legalTabs [data-legal]').forEach((b) => b.classList.toggle('is-active', b === btn));
+        activeLegal = btn.dataset.legal;
+        populateLegal();
+      });
+    });
+    ['legalTitle', 'legalUpdated'].forEach((id) => {
+      const el = $('#' + id);
+      if (el) el.addEventListener('input', () => { stashLegal(); renderLegalPreview(); });
+    });
+    const rte = $('#legalRte');
+    if (rte) rte.addEventListener('input', () => { stashLegal(); renderLegalPreview(); });
+    bindRteToolbar();
+    ['lcName', 'lcCuit', 'lcAddr', 'lcEmail', 'lcSite'].forEach((id) => {
+      const el = $('#' + id);
+      if (el) el.addEventListener('input', stashCompany);
+    });
+    const gen = $('#legalGenBtn'); if (gen) gen.addEventListener('click', legalGen);
+    const save = $('#legalSave'); if (save) save.addEventListener('click', saveLegal);
+    const reset = $('#legalReset');
+    if (reset) reset.addEventListener('click', async () => {
+      const def = await loadLegalDefaults();
+      const doc = getLegalDoc(activeLegal);
+      doc.html = def[activeLegal] || '';
+      doc.title = LEGAL_DEFAULT_TITLE[activeLegal] || '';
+      populateLegal();
+      toast('Restaurado al original');
+    });
+  }
+
+  // ============ BOLETINES / NEWSLETTER ============
+  // 100% cliente (localStorage cv_newsletters). Compón asunto + intro + selección
+  // de noticias publicadas + estilo, previsualiza el HTML email, y "envía" sin
+  // backend: registra el envío y exporta destinatarios (CSV) / copia HTML / mailto.
+  const BN_SITE = (function () {
+    try { return location.origin + location.pathname.replace(/\/admin\/.*/, '/'); }
+    catch (_) { return '../'; }
+  })();
+  const BN_TEMPLATES = {
+    clasico: { label: 'Clásico — tinta y oro', bg: '#eef2f6', paper: '#ffffff', ink: '#0b1a2c', accent: '#e9b048', soft: '#06182f' },
+    costa:   { label: 'Costa — teal sobre papel', bg: '#e9f3f3', paper: '#ffffff', ink: '#0b1a2c', accent: '#1cb5b0', soft: '#0fa6a0' },
+    sobrio:  { label: 'Sobrio — minimalista', bg: '#f4f5f6', paper: '#ffffff', ink: '#1a1a1a', accent: '#6b7a8a', soft: '#22303f' },
+  };
+  // Estado del compositor (en memoria; el historial vive en cv_newsletters)
+  let bnDraft = { subject: '', intro: '', template: 'clasico', items: [] };
+  let bnBound = false;
+
+  function bnPublishedNews() {
+    return getNews()
+      .filter(n => n.status === 'published' && !n.archived)
+      .slice()
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  }
+
+  function renderBoletines() {
+    bindBoletines();
+    // limpia ids de noticias que ya no existan / no estén publicadas
+    const valid = new Set(bnPublishedNews().map(n => n.id));
+    bnDraft.items = (bnDraft.items || []).filter(id => valid.has(id));
+    if ($('#bnSubject')) $('#bnSubject').value = bnDraft.subject || '';
+    if ($('#bnIntro')) $('#bnIntro').value = bnDraft.intro || '';
+    if ($('#bnTemplate')) $('#bnTemplate').value = bnDraft.template || 'clasico';
+    renderBnNewsPick();
+    renderBnAudience();
+    renderBnHistory();
+    hydrate();
+  }
+
+  function renderBnNewsPick() {
+    const box = $('#bnNewsPick'); if (!box) return;
+    const news = bnPublishedNews();
+    const sel = new Set(bnDraft.items || []);
+    if (!news.length) {
+      box.innerHTML = `<div class="bn-pick-empty">No hay noticias publicadas. Publica noticias en <b>Noticias › Biblioteca</b> para incluirlas en el boletín.</div>`;
+    } else {
+      box.innerHTML = news.map(n => `
+        <label class="bn-pick${sel.has(n.id) ? ' is-on' : ''}" data-id="${esc(n.id)}">
+          <input type="checkbox" class="bn-pick__cb" data-pick="${esc(n.id)}"${sel.has(n.id) ? ' checked' : ''}>
+          <span class="bn-pick__thumb"${n.image ? ` style="background-image:url('${esc(n.image)}')"` : ''}>${n.image ? '' : '<span data-ico="image" data-ico-size="16"></span>'}</span>
+          <span class="bn-pick__b">
+            <span class="bn-pick__t">${esc(n.title)}</span>
+            <span class="bn-pick__m">${esc(fmtDate(n.date))}${n.category ? ' · ' + esc(n.category) : ''}</span>
+          </span>
+          <span class="bn-pick__check" data-ico="check" data-ico-size="15"></span>
+        </label>`).join('');
+    }
+    const cnt = $('#bnPickCount'); if (cnt) cnt.textContent = (bnDraft.items || []).length;
+    hydrate();
+  }
+
+  function renderBnAudience() {
+    const subs = getSubs().map(subNorm);
+    const el = $('#bnAudCount'); if (el) el.textContent = subs.length;
+  }
+
+  function bnSelectedNews() {
+    const byId = {}; bnPublishedNews().forEach(n => byId[n.id] = n);
+    return (bnDraft.items || []).map(id => byId[id]).filter(Boolean);
+  }
+
+  function bnStashDraft() {
+    bnDraft.subject = $('#bnSubject') ? $('#bnSubject').value : bnDraft.subject;
+    bnDraft.intro = $('#bnIntro') ? $('#bnIntro').value : bnDraft.intro;
+    bnDraft.template = ($('#bnTemplate') && $('#bnTemplate').value) || 'clasico';
+  }
+
+  // ---- Render HTML email-safe (estética Cabo, inline styles + tablas) ----
+  function bnRenderHTML() {
+    bnStashDraft();
+    const t = BN_TEMPLATES[bnDraft.template] || BN_TEMPLATES.clasico;
+    const subject = bnDraft.subject || 'Boletín de Cabo Vírgenes';
+    const intro = (bnDraft.intro || '').trim();
+    const news = bnSelectedNews();
+    const cap = (s, n) => { s = String(s || ''); return s.length > n ? s.slice(0, n - 1).trim() + '…' : s; };
+
+    const introHTML = intro
+      ? intro.split(/\n{2,}/).map(p => `<p style="margin:0 0 14px;font-size:15px;line-height:1.65;color:${t.ink}">${esc(p).replace(/\n/g, '<br>')}</p>`).join('')
+      : '';
+
+    const itemsHTML = news.map(n => `
+      <tr><td style="padding:0 0 22px">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid #e2e8ee;border-radius:14px;overflow:hidden;background:#ffffff">
+          ${n.image ? `<tr><td><img src="${esc(n.image)}" alt="" width="100%" style="display:block;width:100%;max-height:240px;object-fit:cover"></td></tr>` : ''}
+          <tr><td style="padding:18px 22px 20px">
+            ${n.category ? `<span style="display:inline-block;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:${t.accent};margin-bottom:8px">${esc(n.category)}</span>` : ''}
+            <h3 style="margin:0 0 8px;font-family:Georgia,'Times New Roman',serif;font-size:20px;line-height:1.25;color:${t.ink};font-weight:500">${esc(n.title)}</h3>
+            ${n.excerpt ? `<p style="margin:0 0 6px;font-size:14px;line-height:1.6;color:#4a5a6a">${esc(cap(n.excerpt, 220))}</p>` : ''}
+            <span style="display:block;font-size:12px;color:#8a98a6;margin-top:6px">${esc(fmtDate(n.date))}</span>
+          </td></tr>
+        </table>
+      </td></tr>`).join('');
+
+    const noNews = news.length ? '' : `<tr><td style="padding:0 0 22px;font-size:13px;color:#8a98a6">— Aún no has seleccionado noticias para este boletín. —</td></tr>`;
+
+    return `<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(subject)}</title>
+</head>
+<body style="margin:0;padding:0;background:${t.bg};-webkit-text-size-adjust:100%">
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:${t.bg};padding:28px 0">
+  <tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="width:600px;max-width:600px;background:${t.paper};border-radius:18px;overflow:hidden;box-shadow:0 14px 40px -24px rgba(11,26,44,.5)">
+      <!-- Cabecera -->
+      <tr><td style="background:${t.soft};padding:30px 34px">
+        <span style="display:block;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:${t.accent}">Boletín</span>
+        <span style="display:block;margin-top:8px;font-family:Georgia,'Times New Roman',serif;font-size:26px;line-height:1.15;color:#ffffff;font-weight:500">Cabo Vírgenes</span>
+      </td></tr>
+      <!-- Cuerpo -->
+      <tr><td style="padding:32px 34px 14px">
+        <h1 style="margin:0 0 16px;font-family:Georgia,'Times New Roman',serif;font-size:24px;line-height:1.25;color:${t.ink};font-weight:500">${esc(subject)}</h1>
+        ${introHTML}
+      </td></tr>
+      <tr><td style="padding:8px 34px 0">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+          ${itemsHTML || noNews}
+        </table>
+      </td></tr>
+      <!-- CTA -->
+      <tr><td style="padding:6px 34px 34px" align="left">
+        <a href="${esc(BN_SITE)}" style="display:inline-block;background:${t.accent};color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:700;text-decoration:none;padding:12px 24px;border-radius:100px">Visitar el sitio</a>
+      </td></tr>
+      <!-- Pie -->
+      <tr><td style="padding:24px 34px;background:#f5f7f9;border-top:1px solid #e2e8ee">
+        <p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#8a98a6">Recibes este boletín porque te suscribiste en cabovirgenes.com.</p>
+        <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#8a98a6">Para darte de baja, responde a este mensaje con el asunto «Baja». · Cabo Vírgenes · Parte de AISA Group</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>`;
+  }
+
+  function bnOpenPreview() {
+    const html = bnRenderHTML();
+    const frame = $('#bnPreviewFrame');
+    if (frame) frame.srcdoc = html;
+    const m = $('#bnPreviewModal'); if (m) { m.classList.add('open'); m.setAttribute('aria-hidden', 'false'); }
+    hydrate();
+  }
+
+  // ---- Copiar HTML al portapapeles ----
+  function bnCopyHtml() {
+    const html = bnRenderHTML();
+    const done = () => toast('HTML del boletín copiado al portapapeles', 'ok');
+    const fallback = () => {
+      const ta = document.createElement('textarea');
+      ta.value = html; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch (_) { toast('No se pudo copiar el HTML', 'err'); }
+      ta.remove();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(html).then(done).catch(fallback);
+    } else fallback();
+  }
+
+  // ---- Exportar destinatarios (CSV) ----
+  function bnExportDest() {
+    const subs = getSubs().map(subNorm);
+    if (!subs.length) { toast('No hay suscriptores que exportar', 'err'); return; }
+    const head = ['Correo', 'Nombre', 'País', 'Intereses'];
+    const escCsv = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const rows = subs.map(s => [s.email, s.name, s.country, (s.interests || []).join(' · ')].map(escCsv).join(','));
+    const csv = head.map(escCsv).join(',') + '\r\n' + rows.join('\r\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    const slug = (bnDraft.subject || 'boletin').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'boletin';
+    a.download = 'cabo-virgenes-destinatarios-' + slug + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    toast('Destinatarios exportados (' + subs.length + ')', 'ok');
+  }
+
+  // ---- Abrir cliente de correo (mailto, destinatarios en BCC) ----
+  function bnMailto() {
+    bnStashDraft();
+    const subs = getSubs().map(subNorm).map(s => s.email).filter(Boolean);
+    const subject = bnDraft.subject || 'Boletín de Cabo Vírgenes';
+    const body = (bnDraft.intro || '') + '\n\n[Pega aquí el contenido del boletín o usa «Copiar HTML».]\n';
+    const bcc = subs.slice(0, 50).join(',');
+    const href = 'mailto:?bcc=' + encodeURIComponent(bcc) + '&subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    window.location.href = href;
+    if (subs.length > 50) toast('Tu cliente abrió los primeros 50 destinatarios. Usa el CSV para el resto.', 'info');
+  }
+
+  // ---- Registrar envío (sin backend) ----
+  async function bnSend() {
+    bnStashDraft();
+    const subject = (bnDraft.subject || '').trim();
+    if (!subject) { toast('Pon un asunto para el boletín', 'err'); if ($('#bnSubject')) $('#bnSubject').focus(); return; }
+    const subs = getSubs().map(subNorm);
+    if (!subs.length) {
+      if (!await confirmDialog('Sin suscriptores', 'No hay suscriptores en la base. ¿Registrar el envío de todos modos (0 destinatarios)?')) return;
+    }
+    const news = bnSelectedNews();
+    if (!await confirmDialog('Registrar envío', `Se registrará el boletín «${subject}» para ${subs.length} destinatario(s). No se envía correo real: descarga el CSV de destinatarios o copia el HTML para enviarlo desde tu plataforma. ¿Continuar?`)) return;
+    const rec = {
+      id: uid(),
+      subject,
+      intro: bnDraft.intro || '',
+      template: bnDraft.template || 'clasico',
+      date: new Date().toISOString(),
+      recipientCount: subs.length,
+      items: news.map(n => ({ id: n.id, title: n.title })),
+      html: bnRenderHTML(),
+    };
+    const list = getNewsletters(); list.unshift(rec); setNewsletters(list);
+    logAudit('settings', 'boletín', '∅', 'Enviado: ' + subject);
+    // limpia el compositor tras registrar
+    bnDraft = { subject: '', intro: '', template: bnDraft.template, items: [] };
+    if ($('#bnSubject')) $('#bnSubject').value = '';
+    if ($('#bnIntro')) $('#bnIntro').value = '';
+    renderBnNewsPick();
+    renderBnHistory();
+    toast('Boletín registrado. Exporta los destinatarios o copia el HTML para enviarlo.', 'ok');
+  }
+
+  // ---- Historial de boletines enviados ----
+  function renderBnHistory() {
+    const list = getNewsletters();
+    const cnt = $('#bnHistCount'); if (cnt) cnt.textContent = list.length;
+    const box = $('#bnHistory'); if (!box) return;
+    if (!list.length) {
+      box.innerHTML = `<div class="news-empty"><span data-ico="send" data-ico-size="40"></span><p>Aún no has registrado boletines.<br>Compón uno arriba y pulsa «Registrar envío».</p></div>`;
+      hydrate(); return;
+    }
+    box.innerHTML = list.map(b => {
+      const items = (b.items || []).length;
+      const tmpl = (BN_TEMPLATES[b.template] || {}).label || b.template || '';
+      return `<article class="bn-hrow" data-id="${esc(b.id)}">
+        <span class="bn-hrow__ic" data-ico="send" data-ico-size="18"></span>
+        <div class="bn-hrow__b">
+          <span class="bn-hrow__subj">${esc(b.subject || 'Sin asunto')}</span>
+          <span class="bn-hrow__meta">${esc(fmtTime(b.date))} · ${b.recipientCount || 0} destinatario(s) · ${items} noticia(s)${tmpl ? ' · ' + esc(tmpl) : ''}</span>
+        </div>
+        <div class="bn-hrow__act">
+          <button type="button" class="icon-btn" data-bn-view="${esc(b.id)}" title="Ver HTML"><span data-ico="eye"></span></button>
+          <button type="button" class="icon-btn" data-bn-copy="${esc(b.id)}" title="Copiar HTML"><span data-ico="copy"></span></button>
+          <button type="button" class="icon-btn danger" data-bn-del="${esc(b.id)}" title="Eliminar del registro"><span data-ico="trash-2"></span></button>
+        </div>
+      </article>`;
+    }).join('');
+    hydrate();
+  }
+
+  function bnHistById(id) { return getNewsletters().find(b => String(b.id) === String(id)); }
+  function bnCopyHtmlOf(id) {
+    const b = bnHistById(id); if (!b || !b.html) { toast('Este boletín no tiene HTML guardado', 'err'); return; }
+    const done = () => toast('HTML copiado al portapapeles', 'ok');
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(b.html).then(done).catch(() => toast('No se pudo copiar', 'err'));
+    else {
+      const ta = document.createElement('textarea'); ta.value = b.html; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (_) { toast('No se pudo copiar', 'err'); } ta.remove();
+    }
+  }
+  function bnViewHtmlOf(id) {
+    const b = bnHistById(id); if (!b || !b.html) { toast('Este boletín no tiene HTML guardado', 'err'); return; }
+    const frame = $('#bnPreviewFrame'); if (frame) frame.srcdoc = b.html;
+    const m = $('#bnPreviewModal'); if (m) { m.classList.add('open'); m.setAttribute('aria-hidden', 'false'); }
+    hydrate();
+  }
+
+  // ---- Bindings (una sola vez) ----
+  function bindBoletines() {
+    if (bnBound) return; bnBound = true;
+    const subj = $('#bnSubject'); if (subj) subj.addEventListener('input', () => { bnDraft.subject = subj.value; });
+    const intro = $('#bnIntro'); if (intro) intro.addEventListener('input', () => { bnDraft.intro = intro.value; });
+    const tpl = $('#bnTemplate'); if (tpl) tpl.addEventListener('change', () => { bnDraft.template = tpl.value; });
+
+    const pick = $('#bnNewsPick');
+    if (pick) pick.addEventListener('change', e => {
+      const cb = e.target.closest('[data-pick]'); if (!cb) return;
+      const id = cb.dataset.pick;
+      const set = new Set(bnDraft.items || []);
+      if (cb.checked) set.add(id); else set.delete(id);
+      bnDraft.items = Array.from(set);
+      const row = cb.closest('.bn-pick'); if (row) row.classList.toggle('is-on', cb.checked);
+      const cnt = $('#bnPickCount'); if (cnt) cnt.textContent = bnDraft.items.length;
+    });
+
+    const pv = $('#bnPreviewBtn'); if (pv) pv.addEventListener('click', bnOpenPreview);
+    const send = $('#bnSendBtn'); if (send) send.addEventListener('click', bnSend);
+    const expd = $('#bnExportDest'); if (expd) expd.addEventListener('click', bnExportDest);
+    const cph = $('#bnCopyHtml'); if (cph) cph.addEventListener('click', bnCopyHtml);
+    const cph2 = $('#bnCopyHtml2'); if (cph2) cph2.addEventListener('click', bnCopyHtml);
+    const mt = $('#bnMailto'); if (mt) mt.addEventListener('click', bnMailto);
+
+    const hist = $('#bnHistory');
+    if (hist) hist.addEventListener('click', async e => {
+      const v = e.target.closest('[data-bn-view]'); if (v) return bnViewHtmlOf(v.dataset.bnView);
+      const c = e.target.closest('[data-bn-copy]'); if (c) return bnCopyHtmlOf(c.dataset.bnCopy);
+      const d = e.target.closest('[data-bn-del]');
+      if (d) {
+        if (!await confirmDialog('Eliminar del registro', '¿Quitar este boletín del historial? No afecta a correos ya enviados desde tu plataforma.')) return;
+        setNewsletters(getNewsletters().filter(b => String(b.id) !== String(d.dataset.bnDel)));
+        renderBnHistory(); toast('Boletín eliminado del registro');
+      }
+    });
+  }
 
   // ============ INIT ============
   bindPageDnd();

@@ -145,18 +145,63 @@
     if (closer) { const md = closer.closest('.info-modal'); if (md) { md.classList.remove('open'); md.setAttribute('aria-hidden', 'true'); } }
   });
 
-  // Captura de consultas del formulario de contacto
+  // Alta de suscriptor sin duplicar por correo (compartido con el panel /admin)
+  function addSubscriber(rec) {
+    const email = String(rec.email || '').trim().toLowerCase();
+    if (!email) return;
+    const subs = read('cv_subscribers', []);
+    const i = subs.findIndex(s => String(s.email || '').trim().toLowerCase() === email);
+    if (i >= 0) {
+      // Completa datos vacíos del registro existente sin pisar lo que ya hay.
+      ['name', 'country', 'outlet', 'web', 'phone'].forEach(k => { if (rec[k] && !subs[i][k]) subs[i][k] = rec[k]; });
+      if (Array.isArray(rec.interests)) {
+        const set = new Set([...(subs[i].interests || []), ...rec.interests].filter(Boolean));
+        subs[i].interests = Array.from(set);
+      }
+    } else {
+      subs.push(Object.assign({
+        id: 'su' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
+        email: String(rec.email || '').trim(), name: '', country: '', interests: [],
+        outlet: '', web: '', phone: '', tags: [], notes: '',
+        date: new Date().toISOString(), source: 'web'
+      }, rec, { email: String(rec.email || '').trim() }));
+    }
+    localStorage.setItem('cv_subscribers', JSON.stringify(subs));
+  }
+
+  // Captura de consultas del formulario de contacto (todos los campos)
   const cf = document.getElementById('contactForm');
   if (cf) cf.addEventListener('submit', () => {
     try {
       const fd = new FormData(cf);
+      const name = (fd.get('name') || '').toString().trim();
+      const email = (fd.get('email') || '').toString().trim();
+      const company = (fd.get('company') || '').toString().trim();
+      const country = (fd.get('country') || '').toString().trim();
+      const topic = (fd.get('topic') || '').toString().trim();
+      const message = (fd.get('msg') || '').toString().trim();
       const arr = read('cv_consultas', []);
       arr.push({
-        id: 'c' + Date.now().toString(36), name: fd.get('name') || '', email: fd.get('email') || '',
-        message: (fd.get('msg') || '') + (fd.get('topic') ? ` · ${fd.get('topic')}` : '') + (fd.get('country') ? ` · ${fd.get('country')}` : ''),
-        date: new Date().toISOString(), read: false
+        id: 'c' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
+        name, email, company, country, topic, message,
+        date: new Date().toISOString(), source: 'contacto',
+        status: 'new', resolution: 'open', read: false
       });
       localStorage.setItem('cv_consultas', JSON.stringify(arr));
+      // Quien escribe por «Prensa» o pide novedades entra también a la base de suscriptores.
+      if (email && topic === 'Prensa') {
+        addSubscriber({ email, name, country, outlet: company, source: 'prensa', interests: ['Prensa'] });
+      }
+    } catch (_) {}
+  }, true);
+
+  // Captura del formulario de boletín (footer)
+  const nf = document.getElementById('newsletterForm');
+  if (nf) nf.addEventListener('submit', () => {
+    try {
+      const inp = nf.querySelector('input[type="email"]');
+      const email = inp ? inp.value.trim() : '';
+      if (email) addSubscriber({ email, source: 'boletín', interests: ['Boletín'] });
     } catch (_) {}
   }, true);
 
