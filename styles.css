@@ -2557,11 +2557,14 @@ strong{font-weight:600;color:inherit}
   padding:32px;
 }
 .player-modal.open{opacity:1;pointer-events:auto}
-.player-back{position:absolute;inset:0;background:rgba(2,8,18,.6);backdrop-filter:blur(16px) saturate(140%)}
+/* Fondo idéntico al de los demás modales (.info-back), sin "liquid glass" */
+.player-back{position:absolute;inset:0;background:rgba(2,8,18,.55);backdrop-filter:blur(14px)}
 .player-shell{
-  position:relative;width:min(1200px,100%);
-  border-radius:26px;overflow:hidden;
+  position:relative;width:min(980px,100%);
+  border-radius:22px;overflow:hidden;
   display:flex;flex-direction:column;
+  border:1px solid rgba(127,227,223,.14);
+  box-shadow:0 40px 90px -30px rgba(0,0,0,.7);
   transform:scale(.92);transition:transform .35s cubic-bezier(.3,1.3,.5,1);
 }
 .player-modal.open .player-shell{transform:scale(1)}
@@ -2581,23 +2584,26 @@ strong{font-weight:600;color:inherit}
 }
 .play-big:hover{transform:scale(1.06)}
 .player-title{
-  position:absolute;top:18px;left:22px;color:#fff;font-size:12px;
-  letter-spacing:.1em;font-weight:600;opacity:.9;z-index:2;
-  padding:7px 13px;background:rgba(0,0,0,.35);backdrop-filter:blur(10px);
-  border-radius:999px;border:1px solid rgba(255,255,255,.2);
+  position:absolute;top:16px;left:18px;color:#fff;font-size:10px;
+  letter-spacing:.16em;text-transform:uppercase;font-weight:700;opacity:.92;z-index:2;
+  padding:6px 12px;background:rgba(6,18,40,.78);
+  border-radius:999px;border:1px solid rgba(127,227,223,.22);
 }
+/* X de cierre igual que el resto de modales (.info-close) */
 .player-close{
   position:absolute;top:16px;right:16px;
   width:36px;height:36px;border-radius:50%;color:#fff;
   display:flex;align-items:center;justify-content:center;z-index:3;
-  transition:transform .2s;
+  background:rgba(8,20,40,.85);border:1px solid rgba(127,227,223,.22);
+  transition:transform .2s,background .2s;
 }
-.player-close:hover{transform:rotate(90deg)}
+.player-close:hover{transform:rotate(90deg);background:rgba(28,181,176,.85)}
 
+/* Barra de controles SÓLIDA (sin cristal translúcido), a tono con el modal oscuro */
 .player-controls{
-  display:flex;align-items:center;gap:10px;padding:12px 16px;
-  background:linear-gradient(180deg,rgba(8,18,32,.85),rgba(2,8,18,.95));
-  border-top:1px solid rgba(255,255,255,.08);
+  display:flex;align-items:center;gap:10px;padding:13px 16px;
+  background:linear-gradient(180deg,rgba(8,22,44,.99),rgba(5,15,33,.99));
+  border-top:1px solid rgba(127,227,223,.12);
 }
 .pc-btn{
   width:36px;height:36px;border-radius:50%;color:#fff;
