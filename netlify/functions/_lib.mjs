@@ -32,7 +32,9 @@ export function preflight(req) {
 //    ajustes). Import ESTÁTICO (el dinámico se bundlea mal con esbuild y pierde
 //    los métodos del store). try/catch: si no hay contexto Netlify (test local),
 //    devuelve un stub no-op para no romper el flujo. ──
-export async function store(name) {
+// SÍNCRONA (no async): si fuese async, store(name) devolvería una Promesa y
+// store(name).setJSON(...) fallaría ("setJSON is not a function"). Igual que Aisa.
+export function store(name) {
   try {
     return getStore({ name, consistency: 'strong' });
   } catch {
