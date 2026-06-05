@@ -583,9 +583,6 @@ const initWorldMap = async () => {
     ['Egipto','af',[30.04,31.24],'Hospitality Mediterráneo'],
     ['Sudáfrica','af',[-25.75,28.19],'Hub Sub-Sahara'],
     ['Nigeria','af',[9.08,8.68],'Retail emergente'],
-    // Oceanía (oc)
-    ['Australia','oc',[-33.87,151.21],'Premium retail + foodservice'],
-    ['Nueva Zelanda','oc',[-41.29,174.78],'Foodservice premium'],
   ];
 
   const mktMarkers = [];
@@ -646,7 +643,6 @@ const initWorldMap = async () => {
     [35.68, 139.69],  // Japón
     [39.90, 116.40],  // China
     [-25.75, 28.19],  // Sudáfrica
-    [-33.87, 151.21], // Australia
   ];
   keyDest.forEach(d => {
     L.polyline([hubArgentina, d], {
@@ -853,11 +849,11 @@ const KB = [
   { keys:['producto','productos','venden','vendes','vende','que vende','que producen','que produce','que hace','que hacen','catalogo','catálogo','oferta'],
     a:`Cabo Vírgenes es especialista en <strong>langostino austral salvaje</strong> (<em>Pleoticus muelleri</em>), capturado en el Atlántico Sudoccidental (FAO 41). Ofrecemos 5 formatos:<ul><li><strong>HOSO</strong> — entero con cabeza y caparazón</li><li><strong>HLSO</strong> — cola con caparazón</li><li><strong>EZP</strong> — easy peel</li><li><strong>P&D</strong> — pelado y desvenado</li><li><strong>PDTO</strong> — tail-on</li></ul>Y 6 calibres (L1, L2, L3, C1, C2, CR).`},
   { keys:['ubicacion','ubicación','donde estan','dónde están','donde están','sede','oficina','direccion','dirección','plantas','planta','localizacion'],
-    a:`Tenemos <strong>2 plantas operativas</strong>:<ul><li>🇦🇷 <strong>Puerto Rawson, Chubut (Argentina)</strong> — núcleo productivo. Congelación 100 t/día, almacenamiento 1.600 t.</li><li>🇪🇸 <strong>Palencia (España)</strong> — plataforma logística + valor agregado. 4.600 m², procesamiento 22.000 kg/día.</li></ul>Exportamos a 40+ países en 5 continentes.`},
+    a:`Tenemos <strong>2 plantas operativas</strong>:<ul><li>🇦🇷 <strong>Puerto Rawson, Chubut (Argentina)</strong> — núcleo productivo. Congelación 100 t/día, almacenamiento 1.600 t.</li><li>🇪🇸 <strong>Palencia (España)</strong> — plataforma logística + valor agregado. 4.600 m², procesamiento 22.000 kg/día.</li></ul>Exportamos a 40 países en 4 continentes.`},
   { keys:['certificacion','certificación','certificaciones','calidad','iso','haccp','msc','brcgs','ifs','asc','fda'],
     a:`Tenemos <strong>6 certificaciones activas</strong>:<ul><li><strong>HACCP</strong> — análisis de peligros</li><li><strong>BRCGS</strong> — Global Food Safety v9</li><li><strong>IFS Food</strong> — Higher Level</li><li><strong>MSC</strong> — pesca sostenible (en proceso)</li><li><strong>ASC</strong> — acuicultura responsable</li><li><strong>FDA</strong> — habilitación EEUU</li></ul>Más SENASA (Argentina), CIQ (China) y EU Approved.`},
   { keys:['cotizacion','cotización','precio','presupuesto','comprar','pedido','muestra','muestras','quote'],
-    a:`Para cotizar, escribinos a <strong>comercial@cabovirgenes.com</strong> o llamá al <strong>+54 280 4495000</strong>. Respondemos en menos de 24h con:<ul><li>Disponibilidad por formato/calibre</li><li>Presentaciones (estuches, bloques, granel)</li><li>Volúmenes y precios por destino</li><li>Tiempos de despacho desde Puerto Rawson o Palencia</li></ul>También podés llenar el formulario en la sección Contacto.`},
+    a:`Para cotizar, escribinos a <strong>info@cabovirgenes.com</strong> o llamá al <strong>+54 280 4495000</strong>. Te responderemos a la mayor brevedad con:<ul><li>Disponibilidad por formato/calibre</li><li>Presentaciones (estuches, bloques, granel)</li><li>Volúmenes y precios por destino</li><li>Tiempos de despacho desde Puerto Rawson o Palencia</li></ul>También podés llenar el formulario en la sección Contacto.`},
   { keys:['rasa','rawson ambiental','biosalina','efluentes','sostenibilidad','sostenible','ambiental','medio ambiente','reciclaje','circular'],
     a:`<strong>RASA (Rawson Ambiental S.A.)</strong> es nuestra apuesta de economía circular. Es la <strong>primera planta del país</strong> que combina tratamiento integral de efluentes pesqueros con una <strong>granja biosalina</strong>.<br/><br/>El agua tratada se reutiliza para cultivar 4 halófitos comercializables: <strong>Salicornia</strong> (gourmet), <strong>Microalgas</strong> (acuícola), <strong>Zampa</strong> (forraje) y <strong>Piquillín</strong> (bayas nativas). Cabo Vírgenes participa accionariamente. 0% de vertido al océano.`},
   { keys:['flota','barcos','barco','buques','buque','espartano','mar esmeralda','kaleu','cristo','iglu'],
@@ -865,17 +861,17 @@ const KB = [
   { keys:['historia','fundacion','fundación','año','desde cuando','quienes son','quiénes son','empresa','aisa'],
     a:`Cabo Vírgenes fue <strong>fundada en 2008</strong>. En <strong>enero de 2025</strong> se incorporó a <strong>AISA Group</strong>, consolidando su posicionamiento en la industria pesquera internacional. Estructura binacional Argentina–España, especializada en langostino austral salvaje.`},
   { keys:['exportacion','exportación','exportan','paises','países','mercados','destino','europa','asia','estados unidos','china','japon','japón','msc countries','clientes'],
-    a:`Exportamos a <strong>40+ países en 5 continentes</strong>:<ul><li><strong>Europa</strong> (14): España, Italia, Francia, UK, Alemania, Países Bajos, Portugal, Bélgica, Polonia, Grecia, Suecia, Dinamarca, Rumania, Croacia</li><li><strong>América</strong> (9): USA, Canadá, México, Brasil, Chile, etc.</li><li><strong>Asia</strong> (12): Japón, China, Corea del Sur, Singapur, Tailandia, etc.</li><li><strong>África</strong> (4) y <strong>Oceanía</strong> (2)</li></ul>`},
+    a:`Exportamos a <strong>40 países en 4 continentes</strong>:<ul><li><strong>Europa</strong>: España, Italia, Francia, UK, Alemania, Países Bajos, Portugal, Bélgica, Polonia, Grecia, Suecia, Dinamarca, Rumania, Croacia</li><li><strong>América</strong>: USA, Canadá, México, Brasil, Chile, etc.</li><li><strong>Asia</strong>: Japón, China, Corea del Sur, Singapur, Tailandia, etc.</li><li><strong>África</strong>: Egipto, Sudáfrica, Nigeria, etc.</li></ul>`},
   { keys:['trazabilidad','origen','captura','pesca','seguimiento','traceability','lote'],
     a:`Trazabilidad <strong>end-to-end</strong> por lote: cada caja máster lleva impresos la zona FAO, buque captor, fecha de captura, planta de procesamiento y código de lote. Sistema compatible con auditorías UE, FDA, SENASA y CIQ China. Captura en FAO 41 (Atlántico Sudoccidental).`},
   { keys:['solar','energia','energía','renovable','paneles','sol','fotovoltaico','co2','huella'],
     a:`Tenemos <strong>1.100+ paneles fotovoltaicos</strong> en la planta de Palencia, activados en 2024. Sistema de autoconsumo que cubre el <strong>38%</strong> de la demanda eléctrica y evita <strong>~450 t de CO₂/año</strong>.`},
   { keys:['contacto','hablar','telefono','teléfono','email','whatsapp','wa','escribir'],
-    a:`Múltiples canales de contacto:<ul><li>📧 <strong>info@cabovirgenes.com</strong> (general)</li><li>📧 <strong>comercial@cabovirgenes.com</strong> (cotizaciones)</li><li>📧 <strong>prensa@cabovirgenes.com</strong> (PR)</li><li>📧 <strong>rrhh@cabovirgenes.com</strong> (RRHH)</li><li>📞 <strong>+54 280 4495000</strong></li><li>💬 <strong><a href="https://wa.me/542804495000" target="_blank">WhatsApp</a></strong> — respuesta inmediata</li></ul>`},
+    a:`Múltiples canales de contacto:<ul><li>📧 <strong>info@cabovirgenes.com</strong> (general)</li><li>📧 <strong>info@cabovirgenes.com</strong> (cotizaciones)</li><li>📧 <strong>prensa@cabovirgenes.com</strong> (PR)</li><li>📧 <strong>rrhh@cabovirgenes.com</strong> (RRHH)</li><li>📞 <strong>+54 280 4495000</strong></li><li>💬 <strong><a href="https://wa.me/542804495000" target="_blank">WhatsApp</a></strong> — respuesta inmediata</li></ul>`},
   { keys:['hola','hi','hey','buenas','buenos dias','buenos días','buen dia','buen día','saludos'],
     a:`¡Hola! 👋 Soy el asistente virtual de Cabo Vírgenes. Puedo ayudarte con información sobre productos, certificaciones, plantas, flota, sostenibilidad o cualquier consulta sobre la empresa. ¿En qué puedo ayudarte?`},
   { keys:['gracias','thanks'],
-    a:`¡Gracias a vos! Si necesitás algo más, escribime. Para consultas comerciales formales: <strong>comercial@cabovirgenes.com</strong> o <a href="https://wa.me/542804495000" target="_blank">WhatsApp</a>.`},
+    a:`¡Gracias a vos! Si necesitás algo más, escribime. Para consultas comerciales formales: <strong>info@cabovirgenes.com</strong> o <a href="https://wa.me/542804495000" target="_blank">WhatsApp</a>.`},
 ];
 
 function normalize(s){
@@ -894,7 +890,7 @@ function findAnswer(q){
     if (score > bestScore) { bestScore = score; best = item; }
   }
   return best ? best.a :
-    `No encontré información específica sobre eso. Te recomiendo:<ul><li>Escribir a <strong>info@cabovirgenes.com</strong></li><li>Mandar <a href="https://wa.me/542804495000?text=${encodeURIComponent(q)}" target="_blank"><strong>WhatsApp</strong></a> con tu consulta</li><li>Llenar el formulario en la sección Contacto</li></ul>El equipo te responde en menos de 24h hábiles.`;
+    `No encontré información específica sobre eso. Te recomiendo:<ul><li>Escribir a <strong>info@cabovirgenes.com</strong></li><li>Mandar <a href="https://wa.me/542804495000?text=${encodeURIComponent(q)}" target="_blank"><strong>WhatsApp</strong></a> con tu consulta</li><li>Llenar el formulario en la sección Contacto</li></ul>El equipo te responde a la mayor brevedad.`;
 }
 
 function addMsg(html, type='bot'){
