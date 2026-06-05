@@ -158,9 +158,16 @@ strong{font-weight:600;color:inherit}
 .nav-menu .nav-menu-bar{
   display:block;
   width:15px;height:1.6px;background:#fff;border-radius:1.5px;
-  transition:transform .35s cubic-bezier(.3,1,.4,1),width .3s;
+  transition:transform .35s cubic-bezier(.3,1,.4,1),width .3s,opacity .25s;
 }
 .nav-menu:hover .nav-menu-bar:nth-child(2){width:10px}
+/* Abierto → la hamburguesa se transforma en X (cambia el estado del propio botón,
+   no aparece un segundo menú). */
+.nav-menu[aria-expanded="true"] .nav-menu-bar{width:18px}
+.nav-menu[aria-expanded="true"] .nav-menu-bar:nth-child(1){transform:translateY(5.6px) rotate(45deg)}
+.nav-menu[aria-expanded="true"] .nav-menu-bar:nth-child(2){opacity:0;transform:scaleX(.2)}
+.nav-menu[aria-expanded="true"] .nav-menu-bar:nth-child(3){transform:translateY(-5.6px) rotate(-45deg)}
+.nav-menu[aria-expanded="true"]:hover .nav-menu-bar:nth-child(2){width:18px}
 
 /* Móvil: botón perfectamente circular, sombra mínima y centrada */
 @media (max-width:720px){
@@ -174,6 +181,10 @@ strong{font-weight:600;color:inherit}
   }
   .nav-menu .nav-menu-bar{background:#0b1a2c;width:17px;height:2px;border-radius:2px}
   .nav-menu:hover .nav-menu-bar:nth-child(2){width:12px}
+  /* X en móvil: barras 2px + gap 4px → centros a 6px */
+  .nav-menu[aria-expanded="true"] .nav-menu-bar{width:19px}
+  .nav-menu[aria-expanded="true"] .nav-menu-bar:nth-child(1){transform:translateY(6px) rotate(45deg)}
+  .nav-menu[aria-expanded="true"] .nav-menu-bar:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
 }
 
 /* Nav dropdown — floating menu estilo lang */
@@ -1622,6 +1633,40 @@ strong{font-weight:600;color:inherit}
 }
 @media (max-width:520px){ .spec-grid{grid-template-columns:1fr} }
 
+/* ===== Modales de sostenibilidad: mismo formato/tamaño que los de producto =====
+   Dos columnas (panel visual + contenido), igual que .ship-modal. */
+.info-shell.sust-modal{
+  width:min(880px,92vw);max-width:none;padding:0;overflow:hidden;
+  display:grid;grid-template-columns:minmax(250px,.7fr) 1fr;
+  color:#e8eef5;max-height:86vh;
+}
+.sm-media{
+  position:relative;display:flex;flex-direction:column;justify-content:flex-end;
+  padding:22px;overflow:hidden;min-height:100%;
+}
+.sm-media::after{content:"";position:absolute;inset:0;z-index:1;
+  background:linear-gradient(180deg,rgba(4,12,26,.04),rgba(4,12,26,.5))}
+.sm-ico{position:absolute;top:50%;left:50%;transform:translate(-50%,-56%);
+  width:118px;height:118px;color:#fff;opacity:.95;z-index:2}
+.sm-ico svg{width:100%;height:100%;display:block}
+.sm-content{padding:32px 32px 34px;overflow-y:auto;display:flex;flex-direction:column}
+.sm-content>.eyebrow:first-child{margin-top:0}
+.sm-content h3{margin-top:2px}
+.sm-media-energia{background:linear-gradient(155deg,#e9b048,#6d4a0e)}
+.sm-media-pesca{background:linear-gradient(155deg,#1cb5b0,#0a4750)}
+.sm-media-rasa{background:linear-gradient(155deg,#4a96d4,#123a63)}
+.sm-media-circular{background:linear-gradient(155deg,#7d8ed8,#272c5e)}
+.sm-media-salicornia{background:radial-gradient(circle at 50% 38%,#a8d4a3,#0f5733)}
+.sm-media-microalgas{background:radial-gradient(circle at 50% 38%,#88d8a5,#0f8c4d)}
+.sm-media-zampa{background:radial-gradient(circle at 50% 38%,#bfd28e,#496f2a)}
+.sm-media-piquillin{background:radial-gradient(circle at 50% 38%,#d39a96,#7a1f1a)}
+@media (max-width:820px){
+  .info-shell.sust-modal{grid-template-columns:1fr;max-height:94vh;overflow-y:auto}
+  .sm-media{min-height:150px;max-height:170px}
+  .sm-ico{width:88px;height:88px;transform:translate(-50%,-50%)}
+  .sm-content{padding:26px 24px 28px}
+}
+
 /* Lightbox de galería */
 .sg-lightbox{
   position:fixed;inset:0;z-index:1200;display:flex;align-items:center;justify-content:center;
@@ -2361,6 +2406,11 @@ strong{font-weight:600;color:inherit}
   font-family:var(--sans);font-size:11px;letter-spacing:.16em;color:#7fe3df;
   text-transform:uppercase;font-weight:700;
 }
+/* Footer: "Somos una empresa de AISA Group" (como Minas) */
+.ft-aisa{display:flex;align-items:center;gap:16px;margin:2px 0}
+.ft-aisa__label{font-size:10.5px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#5f748a;white-space:nowrap}
+.ft-aisa__logo{height:34px;width:auto;filter:brightness(0) invert(1);opacity:.9}
+@media(max-width:560px){.ft-aisa{flex-wrap:wrap;gap:10px}.ft-aisa__logo{height:30px}}
 .ft-social{display:flex;gap:10px;margin-top:6px}
 .ft-social a{
   display:flex;width:42px;height:42px;border-radius:50%;
@@ -3151,9 +3201,24 @@ html.fit-scale body{
   .wave-band{height:200px;margin-top:18px}
 
   /* Modal player y info: padding menor */
-  .player-modal,.info-modal{padding:14px}
-  .info-shell{padding:28px 22px}
+  .player-modal,.info-modal{padding:10px}
+  .info-shell{padding:26px 20px}
   .info-shell h3{font-size:26px}
+  /* TODOS los modales: scroll interno para no desbordar la pantalla y X de
+     cierre SIEMPRE alcanzable en la esquina. El shell está transformado
+     (scale), así que position:fixed en .info-close se ancla a la caja del
+     modal y NO se va con el scroll del contenido. */
+  .info-shell,.info-shell.ship-modal,.info-shell-lg,.info-shell-xl{
+    max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  }
+  .info-close{
+    position:fixed;top:14px;right:14px;width:44px;height:44px;font-size:26px;
+    z-index:95;background:rgba(8,20,40,.92);
+    box-shadow:0 8px 22px -6px rgba(0,0,0,.7);border:1px solid rgba(127,227,223,.28);
+  }
+  /* el contenido scrollable no debe quedar tapado por la X fija */
+  .info-shell>:first-child:not(.info-close),
+  .info-shell .ship-info,.info-shell .nm-body{padding-top:6px}
   /* Modales: evitar desbordes horizontales en móvil */
   .modal-stats{grid-template-columns:repeat(2,1fr);gap:12px;padding:16px}
   .modal-stats strong{font-size:23px}

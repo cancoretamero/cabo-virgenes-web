@@ -221,7 +221,7 @@
         </div>
 
         <button type="button" class="more-link" data-modal="modal-empresa-full">
-          Más sobre nosotros
+          <span class="more-txt">Más sobre nosotros</span>
           <span class="more-circle"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         </button>
 
@@ -351,7 +351,7 @@
         </div>
 
         <button type="button" class="more-link more-link-light" data-modal="modal-producto-full">
-          Especificaciones completas
+          <span class="more-txt">Especificaciones completas</span>
           <span class="more-circle"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         </button>
       </div>
@@ -480,7 +480,7 @@
         </div>
 
         <button type="button" class="more-link" data-modal="modal-flota-full">
-          Ver flota completa
+          <span class="more-txt">Ver flota completa</span>
           <span class="more-circle"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         </button>
       </div>
@@ -636,7 +636,7 @@
             <li>Congelación de <strong>100 t/día</strong></li>
             <li>Logística orientada a exportación</li>
           </ul>
-          <span class="plant-cta"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M4 5h16v14H4zM4 9h16M9 5v14" fill="none" stroke="currentColor" stroke-width="1.6"/></svg> Ver ficha</span>
+          <span class="plant-cta"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M4 5h16v14H4zM4 9h16M9 5v14" fill="none" stroke="currentColor" stroke-width="1.6"/></svg> <span class="pc-txt">Ver ficha</span></span>
         </article>
         <article class="plant-card glass plant-card-clickable" data-modal="modal-plant-palencia">
           <div class="plant-flag"><svg viewBox="0 0 60 40" width="42" height="28"><rect width="60" height="40" rx="3" fill="#aa151b"/><rect y="10" width="60" height="20" fill="#f1bf00"/></svg></div>
@@ -649,7 +649,7 @@
             <li>Certificaciones <strong>BRCGS</strong> e <strong>IFS</strong></li>
             <li>Reprocesado y distribución europea</li>
           </ul>
-          <span class="plant-cta"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M4 5h16v14H4zM4 9h16M9 5v14" fill="none" stroke="currentColor" stroke-width="1.6"/></svg> Ver ficha</span>
+          <span class="plant-cta"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M4 5h16v14H4zM4 9h16M9 5v14" fill="none" stroke="currentColor" stroke-width="1.6"/></svg> <span class="pc-txt">Ver ficha</span></span>
         </article>
       </div>
     </div>
@@ -1247,13 +1247,13 @@
 
         <form class="contact-form" id="contactForm">
           <div class="row">
-            <label>Nombre<input type="text" name="name" required placeholder="Tu nombre" /></label>
-            <label>Empresa<input type="text" name="company" placeholder="Compañía" /></label>
+            <label><span>Nombre</span><input type="text" name="name" required placeholder="Tu nombre" /></label>
+            <label><span>Empresa</span><input type="text" name="company" placeholder="Compañía" /></label>
           </div>
-          <label>Email<input type="email" name="email" required placeholder="email@empresa.com" /></label>
+          <label><span>Email</span><input type="email" name="email" required placeholder="email@empresa.com" /></label>
           <div class="row">
-            <label>País<input type="text" name="country" placeholder="Tu mercado" /></label>
-            <label>Tipo de consulta
+            <label><span>País</span><input type="text" name="country" placeholder="Tu mercado" /></label>
+            <label><span>Tipo de consulta</span>
               <select name="topic">
                 <option>Cotización</option>
                 <option>Distribución</option>
@@ -1262,7 +1262,7 @@
               </select>
             </label>
           </div>
-          <label>Mensaje<textarea name="msg" rows="4" placeholder="Contanos qué necesitás..."></textarea></label>
+          <label><span>Mensaje</span><textarea name="msg" rows="4" placeholder="Contanos qué necesitás..."></textarea></label>
           <label class="consent">
             <input type="checkbox" name="consent" required />
             <span>Acepto la política de privacidad</span>
@@ -1314,6 +1314,10 @@
           Pesca, procesamiento y exportación de productos del mar.
           <span class="ft-tagline-meta">Argentina · España · 40+ países</span>
         </p>
+        <div class="ft-aisa">
+          <span class="ft-aisa__label">Somos una empresa de</span>
+          <img class="ft-aisa__logo" src="./aisa-group.png" alt="AISA Group" loading="lazy" decoding="async" />
+        </div>
         <div class="ft-social">
           <a href="#" aria-label="LinkedIn">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3v9zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19a.66.66 0 000 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg>
@@ -2022,8 +2026,10 @@
 <!-- MODALES Sostenibilidad (Section 07) -->
 <div class="info-modal" id="modal-sust-energia" aria-hidden="true">
   <div class="info-back"></div>
-  <article class="info-shell glass-deep info-shell-lg">
+  <article class="info-shell glass-deep sust-modal">
     <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <div class="sm-media sm-media-energia"><span class="sm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.5M12 19v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M2.5 12H5M19 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg></span></div>
+    <div class="sm-content">
     <p class="eyebrow eyebrow-light"><span class="dot"></span>01 · ENERGÍA SOLAR</p>
     <h3>1.100+ paneles fotovoltaicos en Palencia</h3>
     <p>Sistema de autoconsumo activado en 2024 que alimenta cámaras frigoríficas, líneas de procesamiento y oficinas
@@ -2036,12 +2042,15 @@
     </ul>
     <p>La instalación equivale a <strong>~600 MWh/año</strong> de energía limpia generada, reduciendo significativamente
       la huella de carbono asociada a procesos refrigerados.</p>
+    </div>
   </article>
 </div>
 <div class="info-modal" id="modal-sust-pesca" aria-hidden="true">
   <div class="info-back"></div>
-  <article class="info-shell glass-deep info-shell-lg">
+  <article class="info-shell glass-deep sust-modal">
     <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <div class="sm-media sm-media-pesca"><span class="sm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c3-5 8-6 12-4 2 1 4 2.5 5.5 4-1.5 1.5-3.5 3-5.5 4-4 2-9 1-12-4z"/><path d="M20.5 12c1 0 2 .6 2.5 1.4M16 9.5h.01"/><path d="M3 12c-1.2 0-2 1-2 2.2M5.5 8.5c-1-1-1.2-2.4-.8-3.6.0 0 2 .6 2.8 2.4"/></svg></span></div>
+    <div class="sm-content">
     <p class="eyebrow eyebrow-light"><span class="dot"></span>02 · PESCA RESPONSABLE</p>
     <h3>Captura bajo criterios MSC</h3>
     <p>Operación pesquera sometida a los lineamientos del Consejo Federal Pesquero argentino: vedas
@@ -2053,12 +2062,15 @@
       <li><strong>100%</strong><span>Pesca salvaje</span></li>
     </ul>
     <p>La pureza del mar patagónico, intacta. Producto 100% natural y salvaje desde el origen.</p>
+    </div>
   </article>
 </div>
 <div class="info-modal" id="modal-sust-rasa" aria-hidden="true">
   <div class="info-back"></div>
-  <article class="info-shell glass-deep info-shell-lg">
+  <article class="info-shell glass-deep sust-modal">
     <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <div class="sm-media sm-media-rasa"><span class="sm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5c3 3.8 5.5 6.6 5.5 9.6A5.5 5.5 0 0 1 12 18.6a5.5 5.5 0 0 1-5.5-5.5C6.5 10.1 9 7.3 12 3.5z"/><path d="M9.5 13a2.5 2.5 0 0 0 2.5 2.4"/></svg></span></div>
+    <div class="sm-content">
     <p class="eyebrow eyebrow-light"><span class="dot"></span>03 · AGUA Y EFLUENTES · RASA</p>
     <h3>Rawson Ambiental S.A.</h3>
     <p><strong>RASA</strong> es una sociedad anónima público-privada constituida en Puerto Rawson para resolver,
@@ -2075,14 +2087,17 @@
       agua costera, restaura suelos salinos degradados y genera ingresos económicos adicionales para la región.</p>
     <p class="muted">Cabo Vírgenes participa accionariamente desde la constitución de RASA, junto a otras empresas
       del sector pesquero patagónico. Las autoridades provinciales no integran RASA, no son accionistas; han sido parte de las habilitaciones y realizan periódicamente auditorías.</p>
+    </div>
   </article>
 </div>
 
 <!-- MODALES de los 4 cultivos halófitos -->
 <div class="info-modal" id="modal-biocrop-salicornia" aria-hidden="true">
   <div class="info-back"></div>
-  <article class="info-shell glass-deep info-shell-lg">
+  <article class="info-shell glass-deep sust-modal">
     <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <div class="sm-media sm-media-salicornia"><span class="sm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-9M12 12c0-3 2.3-5.3 5.3-5.3 0 3-2.3 5.3-5.3 5.3zM12 13c0-2.6-2-4.6-4.6-4.6 0 2.6 2 4.6 4.6 4.6z"/></svg></span></div>
+    <div class="sm-content">
     <p class="eyebrow eyebrow-light"><span class="dot"></span>01 · CULTIVO GOURMET</p>
     <h3>Salicornia · <em>Salicornia neei</em></h3>
     <p>Halófito comestible apodado "<strong>espárrago de mar</strong>". Crece en suelos hipersalinos donde casi nada más
@@ -2097,13 +2112,16 @@
       sustitución natural de sal en haute cuisine. Comercializada fresca, encurtida y deshidratada.</p>
     <p><strong>Beneficio ecológico:</strong> absorbe sales del suelo y secuestra carbono. Una hectárea retira ~5 t/año
       de CO₂ atmosférico.</p>
+    </div>
   </article>
 </div>
 
 <div class="info-modal" id="modal-biocrop-microalgas" aria-hidden="true">
   <div class="info-back"></div>
-  <article class="info-shell glass-deep info-shell-lg">
+  <article class="info-shell glass-deep sust-modal">
     <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <div class="sm-media sm-media-microalgas"><span class="sm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="11" r="6"/><circle cx="10" cy="9.5" r="1.4"/><circle cx="14" cy="9" r="1"/><circle cx="13.5" cy="13" r="1.6"/><circle cx="9.5" cy="13" r="1.1"/><path d="M5 20c2-1.5 4-1.5 6 0s4 1.5 6 0"/></svg></span></div>
+    <div class="sm-content">
     <p class="eyebrow eyebrow-light"><span class="dot"></span>02 · ALIMENTO ACUÍCOLA</p>
     <h3>Microalgas · <em>Spirulina · Chlorella</em></h3>
     <p>Cultivo en fotobiorreactores y raceways con agua tratada de RASA. Las microalgas absorben nitrógeno y fósforo
@@ -2122,13 +2140,16 @@
       verdeazulada. En RASA surge de la tercera laguna de tratamiento —altamente verde por la producción de fitoplancton,
       excelente capturadora de gases de efecto invernadero— y hoy integra una línea de investigación para la producción de
       colorantes naturales.</p>
+    </div>
   </article>
 </div>
 
 <div class="info-modal" id="modal-biocrop-zampa" aria-hidden="true">
   <div class="info-back"></div>
-  <article class="info-shell glass-deep info-shell-lg">
+  <article class="info-shell glass-deep sust-modal">
     <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <div class="sm-media sm-media-zampa"><span class="sm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8M12 13l-3.5-5M12 13l3.5-5M12 13l-5 1.5M12 13l5 1.5M12 8.5V5M9 9.5L6.5 8M15 9.5L17.5 8"/></svg></span></div>
+    <div class="sm-content">
     <p class="eyebrow eyebrow-light"><span class="dot"></span>03 · FORRAJE HALÓFITO</p>
     <h3>Zampa · <em>Atriplex lampa</em></h3>
     <p>Arbusto halófito nativo de la estepa patagónica. Tolera salinidades extremas, sequía severa y heladas — ideal
@@ -2147,13 +2168,16 @@
       composición y diversidad de sus comunidades bacterianas e identificar los géneros que ayudan a aliviar el estrés
       salino, con potencial biotecnológico para el desarrollo de insumos agronómicos. Estudio desarrollado en el
       IPEEC-CONICET y la Universidad Favaloro.</p>
+    </div>
   </article>
 </div>
 
 <div class="info-modal" id="modal-biocrop-piquillin" aria-hidden="true">
   <div class="info-back"></div>
-  <article class="info-shell glass-deep info-shell-lg">
+  <article class="info-shell glass-deep sust-modal">
     <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <div class="sm-media sm-media-piquillin"><span class="sm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6.5C11 8.5 12 10 12 12M16 6.5C13 8.5 12 10 12 12M12 12v8"/><circle cx="9" cy="13.5" r="2.3"/><circle cx="15" cy="13.5" r="2.3"/><circle cx="12" cy="16.5" r="2.3"/></svg></span></div>
+    <div class="sm-content">
     <p class="eyebrow eyebrow-light"><span class="dot"></span>04 · ESPECIE NATIVA</p>
     <h3>Piquillín · <em>Condalia microphylla</em></h3>
     <p>Arbusto endémico del monte patagónico que produce bayas rojas dulces (drupas) muy apreciadas en gastronomía
@@ -2171,12 +2195,15 @@
     <p><strong>Investigación:</strong> se trabaja sobre los extractos de sus frutos por su potencial actividad antiviral
       frente a herpesvirus, lo que lo convierte en una fuente promisoria para el desarrollo de fitofármacos y alimentos
       funcionales.</p>
+    </div>
   </article>
 </div>
 <div class="info-modal" id="modal-sust-circular" aria-hidden="true">
   <div class="info-back"></div>
-  <article class="info-shell glass-deep info-shell-lg">
+  <article class="info-shell glass-deep sust-modal">
     <button class="info-close glass-strong" data-close-modal aria-label="Cerrar">×</button>
+    <div class="sm-media sm-media-circular"><span class="sm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7.5l2.2-3.7c.5-.8 1.6-.8 2.1 0l1.7 2.9M17.5 9l2.1 3.6c.5.8 0 1.8-.9 1.8h-3.4M9 19.5H5.2c-.9 0-1.4-1-.9-1.8L6 14.7"/><path d="M13 5.7l2.6.7-.7 2.6M19 14.4l-.7 2.6-2.6-.7M6 14.7l-2.6.7"/><path d="M9 19.5l1.8 1.8M9 19.5l1.8-1.8"/></svg></span></div>
+    <div class="sm-content">
     <p class="eyebrow eyebrow-light"><span class="dot"></span>04 · ECONOMÍA CIRCULAR</p>
     <h3>De subproducto a nueva línea</h3>
     <p>4 productos derivados de la operación de RASA, comercializados como líneas independientes con alto valor agregado:</p>
@@ -2188,6 +2215,7 @@
     </ul>
     <p>Estos cultivos absorben CO₂, mejoran suelos costeros degradados y generan ingresos adicionales sin extracción
       del medio marino.</p>
+    </div>
   </article>
 </div>
 

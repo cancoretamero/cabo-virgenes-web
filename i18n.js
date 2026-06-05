@@ -705,7 +705,7 @@ const SKIP_TAGS = new Set(['SCRIPT','STYLE','NOSCRIPT','TEXTAREA','INPUT','SELEC
 const SKIP_SELECTORS = '#worldMap,.leaflet-container,.fab-stack,.cert-marquee,.skip-translate,.cv-marker-hq,.cv-marker-mkt,.solar-viz,.cf-lines,.cf-ring,.lang-flag,.cf-emoji,.bc-illus,.lang-menu,.lang-pill,.lang-name,.lang-code';
 // Contenedores cuyo texto NO se traduce como bloque: se desciende para traducir
 // etiqueta y valor por separado (preserva el estilo span/strong de las fichas).
-const SPLIT_SELECTORS = '.spec-tx,.tm-meta li,.fmt-modal-grid div,.kpi-strip>div,.sc-stats li,.cc-meta,.qi-stat,.mip-stats>span,.modal-stats>li,.sp-stat,.rasa-stats li,.cf-stats li,.v-stats li,.rg-item figcaption';
+const SPLIT_SELECTORS = '.spec-tx,.tm-meta li,.fmt-modal-grid div,.kpi-strip>div,.sc-stats li,.cc-meta,.qi-stat,.mip-stats,.mip-stats>span,.modal-stats>li,.sp-stat,.rasa-stats li,.cf-stats li,.v-stats li,.rg-item figcaption';
 
 function isUntranslatable(text){
   if (!text || text.trim().length < 2) return true;
@@ -724,6 +724,7 @@ function decodeEntities(s){ _decoder.innerHTML = s; return _decoder.value; }
 // Captura unidades traducibles. Cada unidad = { el, originalText, originalHTML, parentTag }
 // Para elementos con sólo inline children, capturamos el elemento padre y traducimos su textContent.
 const units = [];
+const attrUnits = []; // placeholders u otros atributos traducibles
 function collectUnits(){
   units.length = 0;
   const root = document.querySelector('main') || document.body;
@@ -734,6 +735,16 @@ function collectUnits(){
     if (el.closest(SKIP_SELECTORS)) return false;
     // Contenedor a dividir → no es unidad, se desciende
     if (el.children.length && el.matches && el.matches(SPLIT_SELECTORS)) return false;
+    // Patrón etiqueta+valor (stats/fichas): hijos = {STRONG/B + SPAN/EM} (en cualquier
+    // orden), sin texto suelto significativo → separar para no fusionar "ESLORA21 m".
+    if (el.children.length >= 2 && el.children.length <= 3) {
+      const tags = Array.from(el.children).map(c => c.tagName);
+      const hasVal = tags.includes('STRONG') || tags.includes('B');
+      const hasLbl = tags.includes('SPAN') || tags.includes('EM');
+      const onlyValLbl = tags.every(t => t === 'STRONG' || t === 'B' || t === 'SPAN' || t === 'EM');
+      const looseText = el.textContent.replace(/\s+/g, '') !== Array.from(el.children).map(c => c.textContent).join('').replace(/\s+/g, '');
+      if (hasVal && hasLbl && onlyValLbl && !looseText) return false;
+    }
     // Sin hijos elemento → es text leaf
     if (el.children.length === 0) return el.textContent.trim().length > 0;
     // Tiene hijos: pero TODOS son inline simples (BR/STRONG/EM/SPAN sin nested complex)
@@ -765,6 +776,25 @@ function collectUnits(){
   walk(root);
   // También los modales y el drawer (están fuera de <main>)
   document.querySelectorAll('.info-modal, .drawer, .ac-panel').forEach(walk);
+
+  // Opciones de <select> (walk salta SELECT/OPTION) → se traducen como unidades de texto.
+  document.querySelectorAll('select option').forEach((opt) => {
+    if (opt.closest && opt.closest(SKIP_SELECTORS)) return;
+    const t = opt.textContent;
+    if (t && !isUntranslatable(t)) {
+      units.push({ el: opt, originalText: t, originalHTML: opt.innerHTML });
+    }
+  });
+
+  // Placeholders de inputs/textarea → atributos (no texto). Lista aparte.
+  attrUnits.length = 0;
+  document.querySelectorAll('input[placeholder], textarea[placeholder]').forEach((inp) => {
+    if (inp.closest && inp.closest(SKIP_SELECTORS)) return;
+    const ph = inp.getAttribute('placeholder');
+    if (ph && !isUntranslatable(ph)) {
+      attrUnits.push({ el: inp, attr: 'placeholder', original: ph });
+    }
+  });
 }
 function snapshotTextNodes(){ collectUnits(); }
 function snapshot(){ collectUnits(); }
@@ -854,9 +884,21 @@ async function setLanguage(lang){
     units.forEach(({ el, originalHTML }) => {
       if (el && el.isConnected) el.innerHTML = originalHTML;
     });
+    attrUnits.forEach(({ el, attr, original }) => {
+      if (el && el.isConnected) el.setAttribute(attr, original);
+    });
     window.dispatchEvent(new CustomEvent('langchange', { detail:{ lang } }));
     return;
   }
+
+  // Placeholders y atributos: aplican del diccionario (o se dejan en ES si no hay)
+  const amap = dict[lang] || {};
+  attrUnits.forEach(({ el, attr, original }) => {
+    if (!el || !el.isConnected) return;
+    const key = original.trim().replace(/\s+/g,' ');
+    const tr = amap[key] || amap[decodeEntities(key)];
+    if (tr) el.setAttribute(attr, tr);
+  });
 
   // 2) Apply dictionary primero (instantáneo)
   const map = dict[lang] || {};
