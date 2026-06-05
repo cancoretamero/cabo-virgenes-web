@@ -3174,3 +3174,38 @@ html.fit-scale body{
 
 /* Imagen estática del mapa (sólo visible en móvil; ver media query táctil) */
 .map-static{display:none;width:100%;height:100%;object-fit:cover;border-radius:inherit}
+
+/* ════════════════════════════════════════════════════════════════════════
+   MÓVIL — BLINDAJE ANTI-CRASH (iOS Safari). Va AL FINAL del archivo para
+   ganar por orden de fuente a cualquier regla previa con !important y de
+   igual especificidad (p.ej. la que forzaba blur(18px) en navpill/lang).
+   backdrop-filter y filter:blur crean capas GPU que agotan la memoria del
+   tab en iOS y cierran la página. Aquí se eliminan SIN excepción.
+   ════════════════════════════════════════════════════════════════════════ */
+@media (hover: none) and (pointer: coarse){
+  *, *::before, *::after{
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+    will-change:auto !important;
+  }
+  /* Selectores de clase (alta especificidad) que aún forzaban desenfoque */
+  .lang-menu,.nav-dropdown,.navpill,.lang-pill,.glass,.glass-strong,.glass-deep,
+  .play-btn,.info-shell,.drawer,.ac-panel,.cv-bar,.modal__card,.cert-marquee{
+    backdrop-filter:none !important; -webkit-backdrop-filter:none !important;
+  }
+  /* Blobs desenfocados: fuera del DOM de render */
+  .bg-blobs,.blob{ display:none !important; filter:none !important; }
+  /* Cristales: opacidad sólida (sin blur no deben transparentarse) */
+  .nav-dropdown,.lang-menu{ background:#ffffff !important; }
+  .navpill,.navpill.glass,.lang-pill{ background:rgba(255,255,255,.96) !important; }
+  /* Sin sombras gigantes ni filtros que también crean capas costosas */
+  .blob,[style*="blur"]{ filter:none !important; }
+}
+
+/* Pantallas estrechas (cubre móviles que no exponen hover:none correctamente) */
+@media (max-width:720px){
+  .bg-blobs,.blob{ display:none !important; }
+  .lang-menu,.nav-dropdown,.navpill,.lang-pill,.glass,.glass-strong,.glass-deep{
+    backdrop-filter:none !important; -webkit-backdrop-filter:none !important;
+  }
+}
