@@ -3305,3 +3305,42 @@ html.cv-news-studio .news-card::after{
   padding:7px 11px; border-radius:100px; opacity:0; transition:opacity .15s; pointer-events:none;
 }
 html.cv-news-studio .news-card:hover::after{ opacity:1 }
+
+/* ===== Biblioteca flotante del estudio (panel de vidrio) ===== */
+.cv-stlib{position:fixed;top:18px;right:18px;z-index:60;width:320px;max-height:calc(100vh - 36px);display:flex;flex-direction:column;
+  background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(245,250,253,.88));backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);
+  border:1px solid rgba(255,255,255,.7);border-radius:18px;box-shadow:0 30px 70px -24px rgba(11,26,44,.5);overflow:hidden;font-family:'Inter',sans-serif}
+.cv-stlib__head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:grab;border-bottom:1px solid rgba(11,26,44,.08);user-select:none}
+.cv-stlib__brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:12px;color:#0b1a2c}
+.cv-stlib__min{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#6b7a8a;transition:.18s;border:0;background:none;cursor:pointer}
+.cv-stlib__min:hover{background:rgba(11,26,44,.06);color:#0b1a2c}
+.cv-stlib.is-min{width:auto}
+.cv-stlib.is-min .cv-stlib__inner{display:none}
+.cv-stlib.is-min .cv-stlib__min{transform:rotate(180deg)}
+.cv-stlib__inner{display:flex;flex-direction:column;min-height:0;padding:12px;gap:10px}
+.cv-stlib__new{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;border-radius:11px;background:#1cb5b0;color:#06182f;font-weight:700;font-size:12.5px;transition:.2s;border:0;cursor:pointer}
+.cv-stlib__new:hover{background:#0fa6a0;color:#fff}
+.cv-stlib__tabs{display:flex;gap:5px;flex-wrap:wrap}
+.cv-stlib__tabs button{font-size:11px;font-weight:600;color:#3a4a5a;padding:6px 9px;border-radius:100px;border:1px solid rgba(11,26,44,.12);background:#fff;display:inline-flex;align-items:center;gap:5px;transition:.18s;cursor:pointer}
+.cv-stlib__tabs button em{font-style:normal;font-size:10px;background:rgba(11,26,44,.08);padding:1px 6px;border-radius:100px}
+.cv-stlib__tabs button.is-active{background:#0b1a2c;color:#fff;border-color:#0b1a2c}
+.cv-stlib__tabs button.is-active em{background:rgba(255,255,255,.22)}
+.cv-stlib__list{overflow-y:auto;display:flex;flex-direction:column;gap:9px;padding-right:2px}
+.cv-stlib__empty{color:#6b7a8a;font-size:12.5px;text-align:center;padding:24px 10px}
+.cv-stlib__hint{font-size:10.5px;color:#6b7a8a;line-height:1.4;padding-top:4px}
+.cv-stlc{display:flex;gap:10px;background:#fff;border:1px solid rgba(11,26,44,.1);border-radius:12px;padding:8px;cursor:pointer;transition:.15s}
+.cv-stlc:hover{border-color:#1cb5b0;box-shadow:0 8px 20px -12px rgba(11,26,44,.4)}
+.cv-stlc__media{width:52px;height:52px;border-radius:9px;background:#dde6ee center/cover no-repeat;flex:none;display:flex;align-items:center;justify-content:center;color:#9aa8b6}
+.cv-stlc__body{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.cv-stlc__top{display:flex;align-items:center;gap:6px}
+.cv-stlc__cat{font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#0fa6a0}
+.cv-stlc__chip{font-size:9px;font-weight:700;padding:2px 7px;border-radius:100px;white-space:nowrap}
+.cv-stlc__chip--published{background:rgba(28,181,176,.16);color:#0fa6a0}
+.cv-stlc__chip--draft{background:rgba(233,176,72,.2);color:#a9772a}
+.cv-stlc__chip--archived{background:rgba(11,26,44,.08);color:#6b7a8a}
+.cv-stlc__title{font-family:'Fraunces',serif;font-weight:500;font-size:13.5px;color:#0b1a2c;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cv-stlc__acts{display:flex;gap:3px;margin-top:2px}
+.cv-stlc__acts button{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#6b7a8a;transition:.15s;border:0;background:none;cursor:pointer}
+.cv-stlc__acts button:hover{background:rgba(11,26,44,.07);color:#0b1a2c}
+.cv-stlc__acts button.on{color:#0fa6a0}
+.cv-stlc__acts button.danger:hover{background:rgba(192,69,59,.12);color:#c0453b}

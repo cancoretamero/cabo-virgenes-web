@@ -547,6 +547,7 @@
       if (i >= 0) { logAudit('news', title, news[i].title, title); news[i] = Object.assign(news[i], data); }
     } else { data.id = uid(); data.order = news.length; news.unshift(data); logAudit('news', title, '∅', 'Creada'); }
     setNews(news); closeModal(newsModal); renderBiblioteca();
+    reloadNewsStudioFrame();   // refresca la sección y la biblioteca flotante del estudio
     if (newsTab === 'pagina') { renderPagina(); pageRecord(); }   // refresca el estudio si está activo
     toast('Noticia guardada', 'ok');
   });
@@ -644,12 +645,18 @@
     fr.src = '../?editor=1&studio=news&_=' + Date.now();
   }
   function reloadNewsStudioFrame() { const fr = $('#newsStudioFrame'); if (fr && _studioFrameLoaded) fr.src = '../?editor=1&studio=news&_=' + Date.now(); }
-  // Clic en una tarjeta de noticia dentro del iframe del estudio → editar esa noticia.
+  // Mensajes del iframe del estudio: editar una noticia o refrescar tras un cambio.
   window.addEventListener('message', (e) => {
     if (e.origin !== location.origin) return;
-    const d = e.data; if (!d || d.type !== 'cv:studio-edit') return;
-    if (d.id && getNews().some(n => String(n.id) === String(d.id))) openNews(d.id);
-    else openNews(null); // ejemplo o sin id → nueva noticia
+    const d = e.data; if (!d) return;
+    if (d.type === 'cv:studio-edit') {
+      if (d.id && getNews().some(n => String(n.id) === String(d.id))) openNews(d.id);
+      else openNews(null); // ejemplo o sin id → nueva noticia
+    } else if (d.type === 'cv:studio-changed') {
+      // El estudio modificó cv_news (publicar/archivar/destacar/eliminar): refresca el admin.
+      try { refreshBadges(); } catch (_) {}
+      try { if (newsTab === 'biblioteca') renderBiblioteca(); if (newsTab === 'pagina') renderPagina(); } catch (_) {}
+    }
   });
 
   function renderPagina() {

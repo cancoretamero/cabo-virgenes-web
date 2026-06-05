@@ -225,7 +225,108 @@
     } catch (_) {}
   }, true);
 
-  function run() { try { applyTeam(); } catch (_) {} try { renderNews(); } catch (_) {} if (STUDIO) { try { focusNewsStudio(); } catch (_) {} } }
+  /* ============================================================
+     BIBLIOTECA FLOTANTE del estudio (modo ?studio=news) — réplica del
+     panel de vidrio de Aisa: tabs por estado + contadores, crear,
+     tarjetas con chip de estado y acciones, minimizar y arrastrar.
+     ============================================================ */
+  const setNews = (v) => { try { localStorage.setItem('cv_news', JSON.stringify(v)); } catch (_) {} };
+  const stStatusOf = (n) => n.archived ? 'archived' : (n.status === 'draft' ? 'draft' : 'published');
+  const ICN = {
+    drag: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></svg>',
+    chev: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>',
+    plus: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    image: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 16l-5-5L5 21"/></svg>',
+    edit: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-5"/><path d="M18.4 3.6a1.8 1.8 0 012.5 2.5L12 15l-3.5.9.9-3.5z"/></svg>',
+    pub: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>',
+    draft: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 5.2A9.6 9.6 0 0112 5c6.5 0 10 7 10 7a18 18 0 01-3 3.8M6.3 6.3A18 18 0 002 12s3.5 7 10 7a9.6 9.6 0 004.3-1M3 3l18 18"/></svg>',
+    pin: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.3 5 5.2.5-4 3.4 1.3 5.1L12 19l-4.1 3 1.3-5.1-4-3.4 5.2-.5z"/></svg>',
+    archive: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 001 1h12a1 1 0 001-1V8M10 12h4"/></svg>',
+    trash: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M6 7l1 13a2 2 0 002 2h6a2 2 0 002-2l1-13"/></svg>',
+  };
+  let stLibTab = 'all', stLibEl = null, stLibList = null, stLibMin = false;
+  function studioMatch(n, tab) {
+    if (tab === 'all') return true;
+    if (tab === 'archived') return n.archived === true;
+    if (tab === 'draft') return !n.archived && n.status === 'draft';
+    if (tab === 'published') return !n.archived && n.status !== 'draft';
+    return true;
+  }
+  function studioLibCard(n) {
+    const st = stStatusOf(n);
+    const lbl = st === 'archived' ? 'Archivada' : (st === 'draft' ? 'Borrador' : 'Publicada');
+    const media = n.image
+      ? `<div class="cv-stlc__media" style="background-image:url('${esc(String(n.image).replace(/'/g, '%27'))}')"></div>`
+      : `<div class="cv-stlc__media cv-stlc__media--empty">${ICN.image}</div>`;
+    return `<article class="cv-stlc" data-news-id="${esc(n.id || '')}" data-st="${st}">
+      ${media}
+      <div class="cv-stlc__body">
+        <div class="cv-stlc__top"><span class="cv-stlc__cat">${esc(n.category || 'Actualidad')}</span><span class="cv-stlc__chip cv-stlc__chip--${st}">${lbl}</span></div>
+        <h5 class="cv-stlc__title">${esc(n.title || 'Sin título')}</h5>
+        <div class="cv-stlc__acts">
+          <button type="button" data-act="edit" title="Editar">${ICN.edit}</button>
+          <button type="button" class="${st === 'published' ? 'on' : ''}" data-act="status" title="Publicar / borrador">${st === 'published' ? ICN.pub : ICN.draft}</button>
+          <button type="button" class="${n.pinned ? 'on' : ''}" data-act="pin" title="Destacar">${ICN.pin}</button>
+          <button type="button" class="${n.archived ? 'on' : ''}" data-act="archive" title="Archivar">${ICN.archive}</button>
+          <button type="button" class="danger" data-act="del" title="Eliminar">${ICN.trash}</button>
+        </div>
+      </div>
+    </article>`;
+  }
+  function renderStudioLib() {
+    if (!stLibEl) return;
+    const arr = getNews();
+    const counts = { all: arr.length, published: 0, draft: 0, archived: 0 };
+    arr.forEach(n => { if (n.archived) counts.archived++; else if (n.status === 'draft') counts.draft++; else counts.published++; });
+    Object.keys(counts).forEach(k => { const em = stLibEl.querySelector('[data-c="' + k + '"]'); if (em) em.textContent = counts[k]; });
+    const items = arr.filter(n => studioMatch(n, stLibTab));
+    stLibList.innerHTML = items.length ? items.map(studioLibCard).join('') : '<div class="cv-stlib__empty">Sin noticias en esta vista.</div>';
+  }
+  function studioAction(act, id) {
+    const arr = getNews(); const i = arr.findIndex(n => String(n.id) === String(id));
+    if (act === 'edit') { try { parent.postMessage({ type: 'cv:studio-edit', id: id }, '*'); } catch (_) {} return; }
+    if (i < 0) return;
+    if (act === 'status') { arr[i].status = arr[i].status === 'draft' ? 'published' : 'draft'; if (arr[i].status === 'published') arr[i].archived = false; }
+    else if (act === 'pin') arr[i].pinned = !arr[i].pinned;
+    else if (act === 'archive') arr[i].archived = !arr[i].archived;
+    else if (act === 'del') { if (!confirm('¿Eliminar esta noticia?')) return; arr.splice(i, 1); }
+    setNews(arr); renderNews(); renderStudioLib(); try { parent.postMessage({ type: 'cv:studio-changed' }, '*'); } catch (_) {}
+  }
+  function buildStudioLib() {
+    if (stLibEl) { renderStudioLib(); return; }
+    stLibEl = document.createElement('aside');
+    stLibEl.className = 'cv-stlib';
+    stLibEl.innerHTML =
+      `<header class="cv-stlib__head"><span class="cv-stlib__brand">${ICN.drag} Biblioteca de noticias</span>` +
+      `<button type="button" class="cv-stlib__min" data-lib="min" title="Minimizar">${ICN.chev}</button></header>` +
+      `<div class="cv-stlib__inner">` +
+        `<button type="button" class="cv-stlib__new" data-lib="new">${ICN.plus} Crear noticia</button>` +
+        `<div class="cv-stlib__tabs">` +
+          `<button type="button" data-tab="all" class="is-active">Todas <em data-c="all">0</em></button>` +
+          `<button type="button" data-tab="published">Publicadas <em data-c="published">0</em></button>` +
+          `<button type="button" data-tab="draft">Borradores <em data-c="draft">0</em></button>` +
+          `<button type="button" data-tab="archived">Archivadas <em data-c="archived">0</em></button>` +
+        `</div><div class="cv-stlib__list" id="cvStLibList"></div>` +
+        `<footer class="cv-stlib__hint">Clic en una tarjeta del panel o de la página para editarla. Usa los iconos para publicar, destacar o archivar.</footer>` +
+      `</div>`;
+    document.body.appendChild(stLibEl);
+    stLibList = stLibEl.querySelector('#cvStLibList');
+    stLibEl.addEventListener('click', (ev) => {
+      const t = ev.target.closest('[data-tab],[data-lib],[data-act]'); if (!t) return;
+      if (t.hasAttribute('data-tab')) { stLibTab = t.getAttribute('data-tab'); stLibEl.querySelectorAll('.cv-stlib__tabs button').forEach(b => b.classList.toggle('is-active', b === t)); renderStudioLib(); return; }
+      if (t.getAttribute('data-lib') === 'min') { stLibMin = !stLibMin; stLibEl.classList.toggle('is-min', stLibMin); return; }
+      if (t.getAttribute('data-lib') === 'new') { try { parent.postMessage({ type: 'cv:studio-edit', id: '' }, '*'); } catch (_) {} return; }
+      if (t.hasAttribute('data-act')) { ev.preventDefault(); ev.stopPropagation(); const c = t.closest('.cv-stlc'); if (c) studioAction(t.getAttribute('data-act'), c.getAttribute('data-news-id')); }
+    });
+    // arrastrar el panel por su cabecera
+    const head = stLibEl.querySelector('.cv-stlib__head'); let drag = false, ox = 0, oy = 0;
+    head.addEventListener('pointerdown', (ev) => { if (ev.target.closest('[data-lib]')) return; drag = true; const r = stLibEl.getBoundingClientRect(); ox = ev.clientX - r.left; oy = ev.clientY - r.top; stLibEl.style.transition = 'none'; try { head.setPointerCapture(ev.pointerId); } catch (_) {} });
+    head.addEventListener('pointermove', (ev) => { if (!drag) return; stLibEl.style.left = Math.max(8, Math.min(innerWidth - 60, ev.clientX - ox)) + 'px'; stLibEl.style.top = Math.max(8, Math.min(innerHeight - 60, ev.clientY - oy)) + 'px'; stLibEl.style.right = 'auto'; });
+    head.addEventListener('pointerup', () => { drag = false; stLibEl.style.transition = ''; });
+    renderStudioLib();
+  }
+
+  function run() { try { applyTeam(); } catch (_) {} try { renderNews(); } catch (_) {} if (STUDIO) { try { focusNewsStudio(); } catch (_) {} try { buildStudioLib(); } catch (_) {} } }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
   window.addEventListener('storage', (e) => { if (['cv_settings', 'cv_news', 'cv_team'].includes(e.key)) run(); });
 })();
