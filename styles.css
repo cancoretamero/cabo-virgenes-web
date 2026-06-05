@@ -3336,6 +3336,16 @@ html.fit-scale body{
     content-visibility:auto;
     contain-intrinsic-size:auto 760px;
   }
+  /* CAUSA REAL DEL CRASH (descubierta 2026-06-05): los modales están en
+     position:fixed;inset:0, así que aunque estén CERRADOS sus imágenes lazy se
+     consideran "en viewport" y se decodifican (~45 MB en galerías de buques y
+     fichas de producto), y el barrido las excluye → nunca se liberan → iOS
+     agota la memoria del proceso y recarga en bucle. Con content-visibility
+     en los modales cerrados, sus imágenes NO se decodifican hasta abrirlos. */
+  .info-modal:not(.open),
+  .player-modal:not(.open){
+    content-visibility:hidden;
+  }
   /* Sin contextos 3D ni capas de composición costosas */
   *,*::before,*::after{
     perspective:none !important;
