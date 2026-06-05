@@ -182,7 +182,7 @@
   $('#logoutBtn').addEventListener('click', () => { localStorage.removeItem(K.auth); location.hash = ''; showLogin(); });
 
   // ============ ROUTING ============
-  const TITLES = { inicio: 'Inicio', edicion: 'Edición visual', noticias: 'Noticias', equipo: 'Equipo', legales: 'Legales', consultas: 'Consultas', suscriptores: 'Suscriptores', boletines: 'Boletines', empleo: 'Empleo', ajustes: 'Ajustes' };
+  const TITLES = { inicio: 'Inicio', edicion: 'Edición visual', noticias: 'Noticias', equipo: 'Equipo', legales: 'Legales', consultas: 'Consultas', suscriptores: 'Suscriptores', boletines: 'Boletines', empleo: 'Empleo', seo: 'SEO / Buscador', ajustes: 'Ajustes' };
   function currentView() { const m = (location.hash || '').match(/#\/(\w+)/); return m && TITLES[m[1]] ? m[1] : 'inicio'; }
   function route() {
     const v = currentView();
@@ -204,6 +204,7 @@
     else if (v === 'suscriptores') renderSuscriptores();
     else if (v === 'boletines') renderBoletines();
     else if (v === 'empleo') renderEmpleo();
+    else if (v === 'seo') renderSeo();
     else if (v === 'ajustes') renderAjustes();
     hydrate();
   }
@@ -2130,6 +2131,129 @@
     setApps(getApps().filter(x => x.id !== id));
     if (a) logAudit('apps', a.name || a.email || id, 'Existía', 'Eliminada');
     appCurrentId = ''; closeModal($('#applicationModal')); renderEmpKpis(); renderApps(); toast('Candidatura eliminada');
+  });
+
+  // ============ SEO / BUSCADOR ============
+  const SEO_KEY_LS = 'cv_seo_key';
+  let seoCfg = null;
+  let seoProposals = null;
+  const seoKey = () => { try { return sessionStorage.getItem(SEO_KEY_LS) || ''; } catch { return ''; } };
+  async function seoApi(method, body) {
+    const headers = { 'content-type': 'application/json' };
+    const k = seoKey(); if (k) headers['x-cabo-admin-token'] = k;
+    let res, data = {};
+    try { res = await fetch('/api/seo', { method, headers, body: body ? JSON.stringify(body) : undefined }); }
+    catch (e) { return { ok: false, status: 0, data: { message: 'Sin conexión con el servidor (¿estás en el sitio publicado?).' } }; }
+    try { data = await res.json(); } catch {}
+    return { ok: res.ok, status: res.status, data };
+  }
+  const seoEsc = (s) => esc(String(s == null ? '' : s));
+
+  async function renderSeo() {
+    $('#seoConnect').hidden = !!seoKey();
+    if (!seoCfg) { const r = await seoApi('GET'); seoCfg = (r.data && r.data.config) || {}; }
+    const c = seoCfg || {};
+    $('#seoTitle').value = c.title || '';
+    $('#seoDesc').value = c.description || '';
+    $('#seoSite').value = c.siteName || 'Cabo Vírgenes';
+    $('#seoPublished').checked = !!c.published;
+    $('#seoFavPrev').src = c.favicon || '/favicon-32x32.png';
+    $('#seoGFav').src = c.favicon || '/favicon-32x32.png';
+    $('#seoOgPrev').src = c.ogImage || '/og-image.jpg';
+    $('#seoStatus').textContent = c.updatedAt ? (c.published ? '✓ Publicado · ' : 'Guardado (sin publicar) · ') + new Date(c.updatedAt).toLocaleString() : '';
+    seoUpdatePreview(); seoRenderFaq(); seoRenderProposals();
+  }
+
+  function seoUpdatePreview() {
+    const t = $('#seoTitle').value.trim() || '—';
+    const d = $('#seoDesc').value.trim() || '—';
+    const site = $('#seoSite').value.trim() || 'Cabo Vírgenes';
+    $('#seoGTitle').textContent = t;
+    $('#seoGDesc').textContent = d.length > 160 ? d.slice(0, 158) + '…' : d;
+    $('#seoGSite').textContent = site;
+    $('#seoShareTitle').textContent = t;
+    $('#seoShareDesc').textContent = d;
+    const tl = $('#seoTitle').value.length, dl = $('#seoDesc').value.length;
+    const tc = $('#seoTitleCount'), dc = $('#seoDescCount');
+    tc.textContent = tl + '/60'; tc.className = 'seo-count ' + (tl > 60 ? 'over' : tl >= 15 ? 'ok' : '');
+    dc.textContent = dl + '/155'; dc.className = 'seo-count ' + (dl > 155 ? 'over' : dl >= 70 ? 'ok' : '');
+    const og = $('#seoOgPrev').src;
+    $('#seoShareImg').style.backgroundImage = "url('" + og + "')";
+  }
+
+  function seoRenderProposals() {
+    const box = $('#seoProposals'); if (!box) return;
+    const p = seoProposals; if (!p) { box.innerHTML = '<p class="panel-sub">Pulsa “Generar propuestas” para que la IA proponga títulos, descripciones y preguntas frecuentes.</p>'; return; }
+    const grp = (title, items, render) => items && items.length ? `<div class="seo-prop-group"><h4>${title}</h4>${items.map(render).join('')}</div>` : '';
+    box.innerHTML =
+      grp('Títulos', p.titles, (t, i) => `<div class="seo-prop"><div class="seo-prop__txt">${seoEsc(t)} <small>(${t.length})</small></div><div class="seo-prop__act"><button class="seo-pill-btn ok" data-seo-apply="title" data-i="${i}">Usar</button></div></div>`) +
+      grp('Descripciones', p.descriptions, (t, i) => `<div class="seo-prop"><div class="seo-prop__txt">${seoEsc(t)} <small>(${t.length})</small></div><div class="seo-prop__act"><button class="seo-pill-btn ok" data-seo-apply="desc" data-i="${i}">Usar</button></div></div>`) +
+      grp('Preguntas frecuentes', p.faq, (f, i) => `<div class="seo-prop"><div class="seo-prop__txt"><strong>${seoEsc(f.q)}</strong><br><span style="color:#5a6b7e">${seoEsc(f.a)}</span></div><div class="seo-prop__act"><button class="seo-pill-btn ok" data-seo-faq="${i}">Añadir</button></div></div>`);
+    hydrate();
+  }
+
+  function seoRenderFaq() {
+    const box = $('#seoFaqList'); if (!box) return;
+    const faqs = (seoCfg && seoCfg.faq) || [];
+    box.innerHTML = faqs.length ? faqs.map((f, i) => `<div class="seo-faq"><div class="seo-faq__body"><input class="seo-faq__q" data-faq-q="${i}" value="${seoEsc(f.q)}"><textarea class="seo-faq__a" data-faq-a="${i}">${seoEsc(f.a)}</textarea></div><button class="seo-faq__del" data-faq-del="${i}" title="Eliminar">×</button></div>`).join('') : '<p class="panel-sub">Sin preguntas todavía. Genera propuestas con IA o añade una manualmente.</p>';
+  }
+
+  function seoReadFile(file, maxKB, cb) {
+    if (file.size > maxKB * 1024) { toast('Imagen demasiado grande (máx ' + maxKB + ' KB)', 'err'); return; }
+    const r = new FileReader(); r.onload = () => cb(r.result); r.readAsDataURL(file);
+  }
+
+  ['seoTitle', 'seoDesc', 'seoSite'].forEach(id => { const el = $('#' + id); if (el) el.addEventListener('input', seoUpdatePreview); });
+  $('#seoConnectBtn') && $('#seoConnectBtn').addEventListener('click', () => {
+    const k = $('#seoKey').value.trim(); if (!k) { toast('Introduce la clave', 'err'); return; }
+    try { sessionStorage.setItem(SEO_KEY_LS, k); } catch {}
+    $('#seoConnect').hidden = true; toast('Conectado', 'ok');
+  });
+  $('#seoFavFile') && $('#seoFavFile').addEventListener('change', e => { const f = e.target.files[0]; if (!f) return; seoReadFile(f, 100, url => { seoCfg = seoCfg || {}; seoCfg.favicon = url; $('#seoFavPrev').src = url; $('#seoGFav').src = url; }); });
+  $('#seoFavReset') && $('#seoFavReset').addEventListener('click', () => { seoCfg = seoCfg || {}; seoCfg.favicon = ''; $('#seoFavPrev').src = '/favicon-32x32.png'; $('#seoGFav').src = '/favicon-32x32.png'; });
+  $('#seoOgFile') && $('#seoOgFile').addEventListener('change', e => { const f = e.target.files[0]; if (!f) return; seoReadFile(f, 250, url => { seoCfg = seoCfg || {}; seoCfg.ogImage = url; $('#seoOgPrev').src = url; seoUpdatePreview(); }); });
+  $('#seoOgReset') && $('#seoOgReset').addEventListener('click', () => { seoCfg = seoCfg || {}; seoCfg.ogImage = '/og-image.jpg'; $('#seoOgPrev').src = '/og-image.jpg'; seoUpdatePreview(); });
+  $('#seoGenBtn') && $('#seoGenBtn').addEventListener('click', async () => {
+    if (!seoKey()) { $('#seoConnect').hidden = false; toast('Conecta primero (clave de publicación)', 'err'); return; }
+    const btn = $('#seoGenBtn'); const old = btn.innerHTML; btn.disabled = true; btn.textContent = 'Generando…';
+    const r = await seoApi('POST', { action: 'generate' });
+    btn.disabled = false; btn.innerHTML = old; hydrate();
+    if (!r.ok) { toast((r.data && r.data.message) || 'Error de IA', 'err'); if (r.status === 401 || r.status === 503) $('#seoConnect').hidden = false; return; }
+    seoProposals = r.data.proposals; seoRenderProposals(); toast('Propuestas generadas', 'ok');
+  });
+  $('#seoProposals') && $('#seoProposals').addEventListener('click', e => {
+    const ap = e.target.closest('[data-seo-apply]'); const fq = e.target.closest('[data-seo-faq]');
+    if (ap) { const i = +ap.dataset.i; if (ap.dataset.seoApply === 'title') $('#seoTitle').value = seoProposals.titles[i]; else $('#seoDesc').value = seoProposals.descriptions[i]; seoUpdatePreview(); toast('Aplicado al editor', 'ok'); }
+    if (fq) { const f = seoProposals.faq[+fq.dataset.seoFaq]; seoCfg = seoCfg || {}; seoCfg.faq = seoCfg.faq || []; seoCfg.faq.push({ q: f.q, a: f.a }); seoRenderFaq(); toast('FAQ añadida', 'ok'); }
+  });
+  $('#seoFaqList') && $('#seoFaqList').addEventListener('input', e => {
+    const q = e.target.closest('[data-faq-q]'), a = e.target.closest('[data-faq-a]');
+    if (q && seoCfg.faq[+q.dataset.faqQ]) seoCfg.faq[+q.dataset.faqQ].q = q.value;
+    if (a && seoCfg.faq[+a.dataset.faqA]) seoCfg.faq[+a.dataset.faqA].a = a.value;
+  });
+  $('#seoFaqList') && $('#seoFaqList').addEventListener('click', e => {
+    const d = e.target.closest('[data-faq-del]'); if (d) { seoCfg.faq.splice(+d.dataset.faqDel, 1); seoRenderFaq(); }
+  });
+  $('#seoAddFaq') && $('#seoAddFaq').addEventListener('click', () => { seoCfg = seoCfg || {}; seoCfg.faq = seoCfg.faq || []; seoCfg.faq.push({ q: '', a: '' }); seoRenderFaq(); });
+  $('#seoSaveBtn') && $('#seoSaveBtn').addEventListener('click', async () => {
+    if (!seoKey()) { $('#seoConnect').hidden = false; toast('Conecta primero (clave de publicación)', 'err'); return; }
+    const cfg = {
+      published: $('#seoPublished').checked,
+      siteName: $('#seoSite').value.trim(),
+      title: $('#seoTitle').value.trim(),
+      description: $('#seoDesc').value.trim(),
+      ogImage: (seoCfg && seoCfg.ogImage) || '/og-image.jpg',
+      favicon: (seoCfg && seoCfg.favicon) || '',
+      faq: ((seoCfg && seoCfg.faq) || []).filter(f => f.q && f.a),
+    };
+    const btn = $('#seoSaveBtn'); btn.disabled = true;
+    const r = await seoApi('PUT', { config: cfg });
+    btn.disabled = false;
+    if (!r.ok) { toast((r.data && r.data.message) || 'No se pudo guardar', 'err'); if (r.status === 401 || r.status === 503) $('#seoConnect').hidden = false; return; }
+    seoCfg = r.data.config;
+    $('#seoStatus').textContent = (cfg.published ? '✓ Publicado en el sitio en vivo · ' : 'Guardado (sin publicar) · ') + new Date().toLocaleString();
+    logAudit('settings', 'SEO', '', cfg.published ? 'Publicado' : 'Guardado');
+    toast(cfg.published ? 'Publicado en vivo' : 'Guardado', 'ok');
   });
 
   // ============ AJUSTES ============

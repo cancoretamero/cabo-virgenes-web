@@ -1008,3 +1008,51 @@ code{font-family:var(--mono);font-size:.86em;background:rgba(11,26,44,.06);paddi
 .news-studio-live__frame{position:relative;width:100%;height:600px;background:#eef2f6}
 .news-studio-live__frame iframe{width:100%;height:100%;border:0;display:block}
 @media(max-width:760px){.news-studio-live__frame{height:480px}}
+
+/* ============ SEO / BUSCADOR ============ */
+.seo-gprev{border:1px solid var(--line,#e6eaf0);border-radius:12px;padding:16px 18px;background:#fff;max-width:600px}
+.seo-g-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.seo-g-fav{width:26px;height:26px;border-radius:50%;border:1px solid #e6eaf0;object-fit:contain;background:#fff;flex:0 0 auto}
+.seo-g-site{font-size:14px;color:#202124;line-height:1.1}
+.seo-g-url{font-size:12px;color:#5f6368}
+.seo-g-title{font-family:Arial,sans-serif;font-size:20px;line-height:1.3;color:#1a0dab;margin:2px 0 4px;cursor:pointer}
+.seo-g-title:hover{text-decoration:underline}
+.seo-g-desc{font-family:Arial,sans-serif;font-size:14px;line-height:1.58;color:#4d5156}
+
+.seo-share{border:1px solid var(--line,#e6eaf0);border-radius:12px;overflow:hidden;max-width:520px;background:#fff}
+.seo-share-img{aspect-ratio:1200/630;background:#0b1a2c center/cover no-repeat;background-image:url('/og-image.jpg')}
+.seo-share-body{padding:12px 14px}
+.seo-share-dom{font-size:11px;color:#8a94a6;text-transform:uppercase;letter-spacing:.04em}
+.seo-share-title{font-size:15px;font-weight:600;color:#1d2733;margin:3px 0 4px;line-height:1.25}
+.seo-share-desc{font-size:13px;color:#5a6b7e;line-height:1.45}
+
+.seo-count{font-weight:600;font-size:11px;color:#8a94a6}
+.seo-count.over{color:#d9534f}
+.seo-count.ok{color:#2f9e6e}
+
+.seo-up{display:flex;align-items:center;gap:12px;margin-top:6px}
+.seo-fav-prev{width:44px;height:44px;border-radius:10px;border:1px solid #e6eaf0;object-fit:contain;background:#fff}
+.seo-og-prev{width:128px;aspect-ratio:1200/630;border-radius:8px;border:1px solid #e6eaf0;object-fit:cover;background:#0b1a2c}
+
+.seo-ia-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+.seo-proposals{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.seo-prop-group{border:1px solid var(--line,#e6eaf0);border-radius:12px;padding:12px 14px}
+.seo-prop-group h4{margin:0 0 8px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#7c8aa0}
+.seo-prop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid #f0f3f7}
+.seo-prop:first-of-type{border-top:0}
+.seo-prop__txt{flex:1;font-size:13.5px;line-height:1.45;color:#27313f}
+.seo-prop__txt small{color:#8a94a6;font-weight:600}
+.seo-prop__act{display:flex;gap:6px;flex:0 0 auto}
+.seo-pill-btn{border:1px solid #d6deea;background:#fff;border-radius:8px;padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer;color:#3a4757}
+.seo-pill-btn.ok{border-color:#9fd9c4;color:#1c8a63}
+.seo-pill-btn.ok:hover{background:#eafaf3}
+.seo-pill-btn:hover{background:#f4f7fb}
+
+.seo-faq-list{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.seo-faq{border:1px solid var(--line,#e6eaf0);border-radius:10px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start}
+.seo-faq__body{flex:1;display:flex;flex-direction:column;gap:6px}
+.seo-faq__q{font-weight:600;font-size:13.5px;color:#1d2733;border:0;background:#f6f8fb;border-radius:7px;padding:7px 9px}
+.seo-faq__a{font-size:13px;color:#4d5b6c;border:0;background:#f6f8fb;border-radius:7px;padding:7px 9px;resize:vertical;min-height:48px;line-height:1.45}
+.seo-faq__del{border:0;background:none;color:#c44;cursor:pointer;font-size:18px;line-height:1;padding:4px}
+
+.seo-publish{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}

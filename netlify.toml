@@ -40,6 +40,10 @@
   from = "/api/jobs"
   to = "/.netlify/functions/jobs"
   status = 200
+[[redirects]]
+  from = "/api/seo"
+  to = "/.netlify/functions/seo"
+  status = 200
 
 [[headers]]
   for = "/*"

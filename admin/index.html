@@ -62,6 +62,7 @@
       <span class="side__section">Reclutamiento</span>
       <a href="#/empleo" data-view="empleo" class="side__link"><span class="side__ic" data-ico="briefcase"></span><span class="side__label">Empleo</span><span class="side__badge" id="jobsBadge" hidden>0</span></a>
       <span class="side__section">Sistema</span>
+      <a href="#/seo" data-view="seo" class="side__link"><span class="side__ic" data-ico="search"></span><span class="side__label">SEO / Buscador</span></a>
       <a href="#/ajustes" data-view="ajustes" class="side__link"><span class="side__ic" data-ico="settings"></span><span class="side__label">Ajustes</span></a>
     </nav>
     <div class="side__foot">
@@ -609,6 +610,88 @@
           <button type="button" class="seg seg--sm" data-resolution="" role="tab">Todas <em class="seg__n" data-rcount="all">0</em></button>
         </div>
         <div class="inbox" id="inbox" aria-live="polite"></div>
+      </section>
+
+      <!-- ===== SEO / BUSCADOR ===== -->
+      <section class="view view--wide" id="view-seo" hidden>
+        <div class="view__head"><div>
+          <h2 class="view__h">SEO / Buscador</h2>
+          <p class="view__sub">Controla cómo aparece Cabo Vírgenes en Google y al compartir. Las propuestas las genera la IA y tú decides cuáles aplicar.</p>
+        </div></div>
+
+        <div class="card" id="seoConnect" hidden>
+          <div class="panel-title">Conectar para publicar</div>
+          <p class="panel-sub">Introduce la clave de publicación (te la da IT) para poder guardar los cambios en el sitio en vivo.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
+            <input class="field__input" id="seoKey" type="password" placeholder="Clave de publicación" style="max-width:340px">
+            <button type="button" class="btn btn--solid" id="seoConnectBtn">Conectar</button>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="card">
+            <div class="panel-title">Vista previa en Google</div>
+            <div class="seo-gprev">
+              <div class="seo-g-head">
+                <img id="seoGFav" class="seo-g-fav" src="/favicon-32x32.png" alt="">
+                <div><div class="seo-g-site" id="seoGSite">Cabo Vírgenes</div><div class="seo-g-url">https://cabovirgenes.com</div></div>
+              </div>
+              <div class="seo-g-title" id="seoGTitle">—</div>
+              <div class="seo-g-desc" id="seoGDesc">—</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="panel-title">Vista previa al compartir (WhatsApp / redes)</div>
+            <div class="seo-share">
+              <div class="seo-share-img" id="seoShareImg"></div>
+              <div class="seo-share-body">
+                <div class="seo-share-dom">CABOVIRGENES.COM</div>
+                <div class="seo-share-title" id="seoShareTitle">—</div>
+                <div class="seo-share-desc" id="seoShareDesc">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:18px">
+          <div class="panel-title">Lo que aparece en el buscador</div>
+          <label class="field"><span class="field__label">Título <span class="seo-count" id="seoTitleCount"></span></span><input class="field__input" id="seoTitle" maxlength="70"></label>
+          <label class="field"><span class="field__label">Descripción <span class="seo-count" id="seoDescCount"></span></span><textarea class="field__input" id="seoDesc" rows="3" maxlength="320"></textarea></label>
+          <div class="grid2">
+            <label class="field"><span class="field__label">Nombre del sitio</span><input class="field__input" id="seoSite"></label>
+          </div>
+          <div class="grid2" style="margin-top:8px;align-items:start">
+            <div class="field"><span class="field__label">Favicon (el iconito en Google)</span>
+              <div class="seo-up"><img id="seoFavPrev" class="seo-fav-prev" src="/favicon-32x32.png" alt=""><label class="btn btn--ghost btn--sm">Cambiar<input type="file" id="seoFavFile" accept="image/png,image/svg+xml,image/x-icon" hidden></label><button type="button" class="btn btn--sm" id="seoFavReset">Por defecto</button></div>
+            </div>
+            <div class="field"><span class="field__label">Imagen al compartir (1200×630)</span>
+              <div class="seo-up"><img id="seoOgPrev" class="seo-og-prev" src="/og-image.jpg" alt=""><label class="btn btn--ghost btn--sm">Cambiar<input type="file" id="seoOgFile" accept="image/jpeg,image/png,image/webp" hidden></label><button type="button" class="btn btn--sm" id="seoOgReset">Por defecto</button></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:18px">
+          <div class="seo-ia-head">
+            <div><div class="panel-title">Propuestas con IA</div><p class="panel-sub">La IA propone mejoras a partir del contenido del sitio. Tú decides cuáles aplicar.</p></div>
+            <button type="button" class="btn btn--solid" id="seoGenBtn"><span class="ar" data-ico="sparkles"></span> Generar propuestas</button>
+          </div>
+          <div id="seoProposals" class="seo-proposals"></div>
+        </div>
+
+        <div class="card" style="margin-top:18px">
+          <div class="panel-title">Preguntas frecuentes (resultados enriquecidos)</div>
+          <p class="panel-sub">Las FAQ aprobadas generan el bloque tipo “Más preguntas” en Google.</p>
+          <div id="seoFaqList" class="seo-faq-list"></div>
+          <button type="button" class="btn btn--ghost btn--sm" id="seoAddFaq" style="margin-top:8px">+ Añadir pregunta</button>
+        </div>
+
+        <div class="card" style="margin-top:18px">
+          <div class="seo-publish">
+            <label class="switch"><input type="checkbox" id="seoPublished"><span class="switch__track"></span><span class="switch__text">Publicar estos ajustes en el sitio en vivo</span></label>
+            <button type="button" class="btn btn--solid" id="seoSaveBtn"><span class="ar" data-ico="check"></span> Guardar y aplicar</button>
+          </div>
+          <p class="panel-sub" id="seoStatus" style="margin-top:10px"></p>
+        </div>
       </section>
 
       <!-- ===== AJUSTES ===== -->
