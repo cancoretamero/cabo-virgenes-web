@@ -8,34 +8,68 @@ try {
     const wv = document.querySelector('.wave-video');
     if (wv) { try { wv.pause(); } catch (e) {} wv.removeAttribute('autoplay'); wv.removeAttribute('src'); try { wv.load(); } catch (e) {} wv.remove(); }
 
-    // Descargar de memoria las imágenes muy fuera de pantalla. En una página
-    // tan larga, la suma de imágenes decodificadas agota la memoria de iOS y
-    // crashea. Mantenemos cargadas ~1,5 pantallas en cada dirección.
-    if ('IntersectionObserver' in window) {
-      const freeIO = new IntersectionObserver((entries) => {
-        entries.forEach((e) => {
-          const img = e.target;
-          if (e.isIntersecting) {
-            const f = img.getAttribute('data-frozen');
-            if (f) { img.setAttribute('src', f); img.removeAttribute('data-frozen'); }
-          } else if (img.getAttribute('src') && !img.getAttribute('data-frozen') && img.complete && img.naturalWidth) {
-            if (img.offsetHeight && !img.style.minHeight) img.style.minHeight = img.offsetHeight + 'px';
-            img.setAttribute('data-frozen', img.getAttribute('src'));
-            img.removeAttribute('src');
-          }
-        });
-      }, { rootMargin: '1400px 0px 1400px 0px' });
-      const watchImgs = () => {
-        document.querySelectorAll('img').forEach((img) => {
-          if (img.dataset.freeWatch) return;
-          if (img.closest('.info-modal, .player-modal, .modal, .drawer, .ac-panel, header, .ft-cert-row, .cert-marquee')) return;
-          img.dataset.freeWatch = '1';
-          freeIO.observe(img);
-        });
-      };
-      watchImgs();
-      setTimeout(watchImgs, 2500); // por si se añaden imágenes (noticias)
-    }
+    // VERSIONES MÓVILES de las imágenes (carpeta ./m/, ≤600px). Cada foto
+    // decodifica ~1 MB en vez de ~2,3 MB → la mitad de memoria de imagen.
+    // El escritorio sigue usando las originales (esto sólo corre en táctil).
+    const toMobile = (src) => {
+      if (!src) return src;
+      const m = src.match(/^(?:\.\/)?([\w-]+\.(?:jpe?g|png))(\?.*)?$/i);
+      return m ? './m/' + m[1] + (m[2] || '') : src;
+    };
+    const rewriteImgs = () => {
+      const imgs = document.querySelectorAll('img');
+      for (let i = 0; i < imgs.length; i++) {
+        const img = imgs[i];
+        if (img.dataset.mob) continue;
+        const cur = img.getAttribute('src');
+        const nw = toMobile(cur);
+        if (nw && nw !== cur) { img.dataset.mob = '1'; img.setAttribute('src', nw); }
+        // si está congelada, reescribe también el origen guardado
+        const fz = img.getAttribute('data-frozen');
+        if (fz) { const nf = toMobile(fz); if (nf !== fz) img.setAttribute('data-frozen', nf); }
+      }
+    };
+    rewriteImgs();
+    document.addEventListener('DOMContentLoaded', rewriteImgs);
+    setTimeout(rewriteImgs, 1200);
+    setTimeout(rewriteImgs, 3000); // imágenes inyectadas tarde (noticias/galerías)
+
+    // CAUSA REAL DEL CRASH iOS: en una página tan larga la suma de imágenes
+    // DECODIFICADAS (ancho×alto×4 bytes, sin relación con el peso del .jpg)
+    // supera el límite del proceso WebContent y Safari recarga en bucle.
+    // El IntersectionObserver no liberaba de forma fiable (sus callbacks no
+    // disparan en scroll rápido). Lo sustituimos por un BARRIDO en scroll
+    // (throttle con rAF) que descarga de memoria toda imagen a más de ~0,7
+    // pantallas del viewport y la restaura al acercarse. Mantiene el decode
+    // acotado a ~1,5 pantallas (≈25-35 MB) en lugar de 80-120 MB.
+    const MARGIN = 550;
+    const SKIP = '.info-modal,.player-modal,.modal,.drawer,.ac-panel,header,.ft-cert-row,.cert-marquee,.brand,.side__top';
+    const sweep = () => {
+      const vh = window.innerHeight;
+      const imgs = document.querySelectorAll('img');
+      for (let k = 0; k < imgs.length; k++) {
+        const img = imgs[k];
+        if (img.closest(SKIP)) continue;
+        const r = img.getBoundingClientRect();
+        const near = r.bottom > -MARGIN && r.top < vh + MARGIN;
+        const frozen = img.getAttribute('data-frozen');
+        if (near) {
+          if (frozen) { img.setAttribute('src', frozen); img.removeAttribute('data-frozen'); }
+        } else if (!frozen && img.getAttribute('src') && img.complete && img.naturalWidth) {
+          if (img.offsetHeight && !img.style.minHeight) img.style.minHeight = img.offsetHeight + 'px';
+          if (img.offsetWidth && !img.style.minWidth) img.style.minWidth = '1px';
+          img.setAttribute('data-frozen', img.getAttribute('src'));
+          img.removeAttribute('src');
+        }
+      }
+    };
+    let ticking = false;
+    const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(() => { ticking = false; sweep(); }); } };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    window.addEventListener('load', sweep);
+    setTimeout(sweep, 800);
+    setTimeout(sweep, 2600); // tras cargar imágenes diferidas
   }
 } catch (e) {}
 
