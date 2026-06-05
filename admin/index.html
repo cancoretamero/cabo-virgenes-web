@@ -176,6 +176,26 @@
 
         <!-- Panel: Biblioteca -->
         <div class="npanel" id="npanel-biblioteca">
+          <div class="biblio-toolbar" id="biblioToolbar">
+            <label class="field field--search biblio-search">
+              <span class="ar" data-ico="search"></span>
+              <input type="search" class="field__input" id="biblioSearch" placeholder="Buscar por título, extracto o medio…" aria-label="Buscar noticias" autocomplete="off">
+            </label>
+            <div class="biblio-filters" id="biblioFilters" role="group" aria-label="Filtrar por estado">
+              <button type="button" class="chip is-active" data-bstatus="">Todas <span class="chip__n" data-count="all">0</span></button>
+              <button type="button" class="chip" data-bstatus="published">Publicadas <span class="chip__n" data-count="published">0</span></button>
+              <button type="button" class="chip" data-bstatus="draft">Borradores <span class="chip__n" data-count="draft">0</span></button>
+              <button type="button" class="chip" data-bstatus="archived">Archivadas <span class="chip__n" data-count="archived">0</span></button>
+            </div>
+            <label class="field biblio-sort">
+              <select class="field__select" id="biblioSort" aria-label="Ordenar noticias">
+                <option value="recent">Más recientes</option>
+                <option value="old">Más antiguas</option>
+                <option value="title">Título (A–Z)</option>
+                <option value="status">Estado</option>
+              </select>
+            </label>
+          </div>
           <div class="news-grid" id="newsGrid"></div>
         </div>
 
@@ -200,18 +220,49 @@
 
         <!-- Panel: Medios -->
         <div class="npanel" id="npanel-medios" hidden>
-          <div class="grid-toolbar">
+          <div class="press-toolbar">
+            <label class="field field--search press-search">
+              <span class="ar" data-ico="search"></span>
+              <input type="search" class="field__input" id="outletSearch" placeholder="Buscar medio por nombre, web, ciudad…" aria-label="Buscar medios" autocomplete="off">
+            </label>
+            <div class="press-toolbar__filters">
+              <div class="chip-row" id="outletCountryFilter" role="group" aria-label="Filtrar por país">
+                <button type="button" class="chip is-active" data-ocountry="">Todos los países</button>
+                <button type="button" class="chip" data-ocountry="AR">Argentina</button>
+                <button type="button" class="chip" data-ocountry="ES">España</button>
+              </div>
+            </div>
             <button type="button" class="btn btn--solid" id="outletNew"><span class="ar" data-ico="plus"></span> Nuevo medio</button>
           </div>
+          <div class="chip-row press-typechips" id="outletTypeFilter" role="group" aria-label="Filtrar por tipo"></div>
           <div class="outlet-grid" id="outletGrid" aria-live="polite"></div>
         </div>
 
         <!-- Panel: Redactores -->
         <div class="npanel" id="npanel-redactores" hidden>
-          <div class="grid-toolbar">
+          <div class="press-toolbar">
+            <label class="field field--search press-search">
+              <span class="ar" data-ico="search"></span>
+              <input type="search" class="field__input" id="journoSearch" placeholder="Buscar redactor por nombre, email, beat…" aria-label="Buscar redactores" autocomplete="off">
+            </label>
+            <div class="press-toolbar__filters">
+              <div class="chip-row" id="journoCountryFilter" role="group" aria-label="Filtrar por país">
+                <button type="button" class="chip is-active" data-jcountry="">Todos</button>
+                <button type="button" class="chip" data-jcountry="AR">Argentina</button>
+                <button type="button" class="chip" data-jcountry="ES">España</button>
+              </div>
+              <select class="field__select press-select" id="journoOutletFilter" aria-label="Filtrar por medio">
+                <option value="">Todos los medios</option>
+              </select>
+              <select class="field__select press-select" id="journoStatusFilter" aria-label="Filtrar por estado">
+                <option value="">Todos los estados</option>
+                <option value="active">Activos</option>
+                <option value="inactive">Inactivos</option>
+              </select>
+            </div>
             <button type="button" class="btn btn--solid" id="journalistNew"><span class="ar" data-ico="user-plus"></span> Nuevo redactor</button>
           </div>
-          <div class="journalist-grid" id="journalistGrid" aria-live="polite"></div>
+          <div class="journalist-grid journalist-grid--grouped" id="journalistGrid" aria-live="polite"></div>
         </div>
       </section>
 
@@ -230,10 +281,22 @@
         </div>
         <div class="subs-stats" id="subsStats" hidden></div>
         <div class="subs-toolbar" id="subsToolbar" hidden>
-          <label class="field field--search subs-search">
-            <span class="ar" data-ico="search"></span>
-            <input type="search" class="field__input" id="subsSearch" placeholder="Buscar por nombre, correo o medio…" aria-label="Buscar suscriptores" autocomplete="off">
-          </label>
+          <div class="subs-toolbar__row">
+            <label class="field field--search subs-search">
+              <span class="ar" data-ico="search"></span>
+              <input type="search" class="field__input" id="subsSearch" placeholder="Buscar por nombre, correo, medio, país o teléfono…" aria-label="Buscar suscriptores" autocomplete="off">
+            </label>
+            <label class="field subs-sort">
+              <span class="ar" data-ico="arrow-up-down"></span>
+              <select class="field__select" id="subsSort" aria-label="Ordenar suscriptores">
+                <option value="recent">Más recientes</option>
+                <option value="old">Más antiguos</option>
+                <option value="name">Nombre A–Z</option>
+                <option value="country">País</option>
+              </select>
+            </label>
+          </div>
+          <div class="subs-segment" id="subsSegment" hidden></div>
           <div class="subs-filters" id="subsFilters"></div>
         </div>
         <div class="subs-list" id="subsList" aria-live="polite"></div>
@@ -255,8 +318,23 @@
         <div class="bn-grid">
           <!-- Compositor -->
           <div class="card bn-compose">
-            <div class="panel-title">Componer</div>
-            <p class="panel-sub">Asunto, introducción, noticias y estilo del boletín.</p>
+            <div class="bn-compose__head">
+              <div>
+                <div class="panel-title">Componer</div>
+                <p class="panel-sub">Asunto, introducción, noticias y estilo del boletín.</p>
+              </div>
+              <span class="bn-draft-state" id="bnDraftState" hidden><span class="ar" data-ico="check-circle" data-ico-size="13"></span> Borrador guardado</span>
+            </div>
+
+            <div class="bn-presets">
+              <span class="bn-presets__lbl"><span class="ar" data-ico="layout-template" data-ico-size="13"></span> Plantillas rápidas</span>
+              <div class="bn-presets__row" id="bnPresets" aria-label="Plantillas de contenido">
+                <button type="button" class="bn-preset" data-preset="digest">Digest mensual</button>
+                <button type="button" class="bn-preset" data-preset="anuncio">Anuncio</button>
+                <button type="button" class="bn-preset" data-preset="bienvenida">Bienvenida</button>
+                <button type="button" class="bn-preset" data-preset="carta">Carta breve</button>
+              </div>
+            </div>
 
             <label class="field"><span class="field__label">Asunto</span><input class="field__input" id="bnSubject" placeholder="Novedades de Cabo Vírgenes — temporada 2026"></label>
             <label class="field"><span class="field__label">Introducción</span><textarea class="field__area" id="bnIntro" placeholder="Un saludo breve y el contexto del boletín…"></textarea></label>
@@ -278,14 +356,33 @@
           <!-- Destinatarios + acciones -->
           <div class="bn-side">
             <div class="card bn-aud">
-              <div class="panel-title">Destinatarios</div>
-              <p class="panel-sub">Suscriptores guardados en este navegador.</p>
-              <div class="bn-aud__count"><span class="bn-aud__num" id="bnAudCount">0</span><span class="bn-aud__lbl">suscriptores</span></div>
+              <div class="panel-title">Audiencia</div>
+              <p class="panel-sub">Segmenta a quién va dirigido el boletín.</p>
+
+              <div class="bn-seg">
+                <div class="bn-seg__lbl"><span class="ar" data-ico="users" data-ico-size="13"></span> Segmento</div>
+                <div class="bn-seg__chips" id="bnSegAll">
+                  <button type="button" class="bn-seg-chip is-active" data-seg-mode="all" data-seg-value="">Todos</button>
+                </div>
+                <div class="bn-seg__lbl"><span class="ar" data-ico="tag" data-ico-size="13"></span> Por interés</div>
+                <div class="bn-seg__chips" id="bnSegInterest" aria-live="polite"></div>
+                <div class="bn-seg__lbl"><span class="ar" data-ico="flag" data-ico-size="13"></span> Por país</div>
+                <div class="bn-seg__chips" id="bnSegCountry" aria-live="polite"></div>
+              </div>
+
+              <div class="bn-aud__count"><span class="bn-aud__num" id="bnAudCount">0</span><span class="bn-aud__lbl" id="bnAudLbl">destinatarios</span></div>
               <div class="bn-aud__row">
                 <button type="button" class="btn btn--ghost btn--sm btn--block" id="bnExportDest"><span class="ar" data-ico="download"></span> Descargar destinatarios (CSV)</button>
                 <button type="button" class="btn btn--ghost btn--sm btn--block" id="bnCopyHtml"><span class="ar" data-ico="copy"></span> Copiar HTML del boletín</button>
                 <button type="button" class="btn btn--ghost btn--sm btn--block" id="bnMailto"><span class="ar" data-ico="mail"></span> Abrir en cliente de correo</button>
               </div>
+            </div>
+
+            <div class="card bn-test">
+              <div class="panel-title">Email de prueba</div>
+              <p class="panel-sub">Comprueba cómo se ve antes de registrar el envío.</p>
+              <label class="field" style="margin-bottom:10px"><span class="field__label">Dirección de prueba</span><input class="field__input" id="bnTestEmail" type="email" placeholder="tu@correo.com" autocomplete="email"></label>
+              <button type="button" class="btn btn--ghost btn--sm btn--block" id="bnTestBtn"><span class="ar" data-ico="mail-check"></span> Enviar prueba</button>
             </div>
           </div>
         </div>
@@ -320,6 +417,9 @@
           </div>
         </div>
 
+        <!-- Tira de KPIs de Empleo -->
+        <div class="kpis kpis--emp" id="empKpis" aria-live="polite"></div>
+
         <!-- Sub-pestañas de Empleo -->
         <div class="seg-row" id="empTabs" role="tablist">
           <button type="button" class="seg is-active" data-etab="ofertas" role="tab">Ofertas</button>
@@ -343,6 +443,19 @@
                 <option value="">Todas las ofertas</option>
               </select>
             </label>
+            <label class="field">
+              <span class="field__label">Estado</span>
+              <select class="field__select" id="appStatusFilter" aria-label="Filtrar candidaturas por estado">
+                <option value="">Todos los estados</option>
+                <option value="new">Nueva</option>
+                <option value="reviewing">En revisión</option>
+                <option value="shortlist">Preseleccionada</option>
+                <option value="rejected">Descartada</option>
+                <option value="hired">Contratada</option>
+              </select>
+            </label>
+            <button type="button" class="btn btn--ghost btn--sm app-star-filter" id="appStarFilter" aria-pressed="false" title="Mostrar solo destacadas"><span class="ar" data-ico="star"></span> Destacadas</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="appExport" title="Exportar candidaturas a CSV"><span class="ar" data-ico="download"></span> Exportar CSV</button>
             <span class="apps-filter__count">Candidaturas <span id="appCount">0</span></span>
           </div>
           <div class="apps-list" id="appList" aria-live="polite"></div>
@@ -641,6 +754,31 @@
         </div>
         <label class="field"><span class="field__label">Nombre del medio</span><input class="field__input" id="ofName" placeholder="La Nación, Clarín, El País…" required></label>
         <label class="field"><span class="field__label">Sitio web</span><input class="field__input" type="url" id="ofUrl" placeholder="https://…"></label>
+        <div class="grid2">
+          <label class="field"><span class="field__label">País</span>
+            <select class="field__select" id="ofCountry">
+              <option value="AR">Argentina</option>
+              <option value="ES">España</option>
+              <option value="Otro">Otros</option>
+            </select>
+          </label>
+          <label class="field"><span class="field__label">Ciudad</span><input class="field__input" id="ofCity" placeholder="Buenos Aires, Madrid…"></label>
+        </div>
+        <div class="grid2">
+          <label class="field"><span class="field__label">Tipo / categoría</span><input class="field__input" id="ofType" placeholder="Diario, Revista, Portal, Radio…" list="ofTypeList">
+            <datalist id="ofTypeList">
+              <option value="Diario"></option><option value="Revista"></option><option value="Portal"></option>
+              <option value="Radio"></option><option value="TV"></option><option value="Agencia"></option><option value="Sectorial"></option>
+            </datalist>
+          </label>
+          <label class="field"><span class="field__label">Email editorial</span><input class="field__input" type="email" id="ofEmail" placeholder="redaccion@medio.com"></label>
+        </div>
+        <label class="field"><span class="field__label">Notas internas</span><textarea class="field__area" id="ofNotes" rows="2" placeholder="Contacto, línea editorial, observaciones…"></textarea></label>
+        <label class="switch" style="margin-top:6px">
+          <input type="checkbox" id="ofSubscribed" checked>
+          <span class="switch__track"></span>
+          <span class="switch__text">Suscrito al boletín de prensa</span>
+        </label>
       </form>
     </div>
     <div class="modal__foot">
@@ -678,6 +816,15 @@
         <div class="grid2">
           <label class="field"><span class="field__label">Email</span><input class="field__input" type="email" id="jfEmail" placeholder="redactor@medio.com"></label>
           <label class="field"><span class="field__label">Teléfono</span><input class="field__input" id="jfPhone" placeholder="+54 …"></label>
+        </div>
+        <div class="grid2">
+          <label class="field"><span class="field__label">Beats / temas</span><input class="field__input" id="jfBeats" placeholder="Pesca, Economía, Sostenibilidad…"><span class="field__hint">Separa los temas con comas.</span></label>
+          <label class="field"><span class="field__label">Estado</span>
+            <select class="field__select" id="jfStatus">
+              <option value="active">Activo</option>
+              <option value="inactive">Inactivo</option>
+            </select>
+          </label>
         </div>
       </form>
     </div>
@@ -761,7 +908,18 @@
             </select>
           </label>
         </div>
+        <div class="grid2">
+          <label class="field"><span class="field__label">Prioridad</span>
+            <select class="field__select" id="jbPriority">
+              <option value="alta">Alta</option>
+              <option value="media" selected>Media</option>
+              <option value="baja">Baja</option>
+            </select>
+          </label>
+          <label class="field"><span class="field__label">Etiquetas <span class="field__hint">(separadas por coma)</span></span><input class="field__input" id="jbTags" placeholder="Senior, Remoto, Urgente"></label>
+        </div>
         <label class="field"><span class="field__label">Resumen</span><textarea class="field__area" id="jbSummary" placeholder="Descripción breve que se ve en la tarjeta…"></textarea></label>
+        <label class="field"><span class="field__label">Requisitos <span class="field__hint">(uno por línea)</span></span><textarea class="field__area" id="jbRequirements" placeholder="Título universitario en Ingeniería&#10;5+ años de experiencia&#10;Disponibilidad para viajar"></textarea></label>
         <label class="field"><span class="field__label">Cuerpo de la oferta</span><textarea class="field__area" id="jbBody" placeholder="Responsabilidades, requisitos y detalles del puesto…" style="min-height:140px"></textarea></label>
       </form>
     </div>
@@ -782,11 +940,25 @@
     </div>
     <div class="modal__body">
       <div class="app-detail">
+        <div class="app-detail__bar">
+          <button type="button" class="app-detail__star" id="apStar" aria-pressed="false" title="Destacar candidatura"><span data-ico="star" data-ico-size="16"></span> <span id="apStarTxt">Destacar</span></button>
+          <label class="app-detail__statusfield">
+            <span class="field__label">Estado</span>
+            <select class="field__select" id="apStatus" aria-label="Estado de la candidatura">
+              <option value="new">Nueva</option>
+              <option value="reviewing">En revisión</option>
+              <option value="shortlist">Preseleccionada</option>
+              <option value="rejected">Descartada</option>
+              <option value="hired">Contratada</option>
+            </select>
+          </label>
+        </div>
         <dl class="app-detail__grid">
           <dt>Candidato</dt><dd id="apName">—</dd>
           <dt>Email</dt><dd id="apEmail">—</dd>
           <dt>Teléfono</dt><dd id="apPhone">—</dd>
           <dt>Oferta</dt><dd id="apJob">—</dd>
+          <dt>Fecha</dt><dd id="apDate">—</dd>
         </dl>
         <div class="app-detail__block">
           <div class="field__label">Mensaje</div>
@@ -828,10 +1000,15 @@
   <div class="modal__card">
     <div class="modal__head">
       <h3 class="modal__h" id="bnPreviewTitle">Vista previa del boletín</h3>
+      <div class="bn-dev" id="bnDev" role="group" aria-label="Vista por dispositivo">
+        <button type="button" class="bn-dev__btn is-active" data-dev="desktop" title="Escritorio (600px)"><span data-ico="monitor" data-ico-size="16"></span></button>
+        <button type="button" class="bn-dev__btn" data-dev="tablet" title="Tablet (768px)"><span data-ico="tablet" data-ico-size="16"></span></button>
+        <button type="button" class="bn-dev__btn" data-dev="mobile" title="Móvil (320px)"><span data-ico="smartphone" data-ico-size="16"></span></button>
+      </div>
       <button class="modal__close" data-close-modal aria-label="Cerrar"><span data-ico="x" data-ico-size="18"></span></button>
     </div>
     <div class="modal__body">
-      <div class="bn-preview-stage">
+      <div class="bn-preview-stage" id="bnStage" data-dev="desktop">
         <iframe id="bnPreviewFrame" title="Vista previa del boletín" src="about:blank"></iframe>
       </div>
     </div>

@@ -88,6 +88,76 @@
   const hydrate = () => { if (window.cvIcons) window.cvIcons(); };
   const fileToB64 = (f) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
 
+  // ---------- Helpers de prensa (Noticias › Medios/Redactores) ----------
+  function debounce(fn, wait) { let t = null; return function () { const a = arguments, c = this; clearTimeout(t); t = setTimeout(() => fn.apply(c, a), wait || 180); }; }
+  const COUNTRY_LABELS = { AR: 'Argentina', ES: 'España', Otro: 'Otros' };
+  function countryLabel(c) { return COUNTRY_LABELS[c] || c || 'Otros'; }
+  function outletType(o) { return String((o && (o.type || o.outlet_type || o.tier || o.category)) || 'Otros').trim() || 'Otros'; }
+
+  // Migración compat: añade campos ampliados a outlets/redactores antiguos sin perder datos.
+  function migratePress() {
+    let chg = false;
+    const outs = getOutlets().map(o => {
+      const m = Object.assign({}, o);
+      if (m.country == null) { m.country = 'AR'; chg = true; }
+      if (m.city == null) m.city = '';
+      if (m.type == null) m.type = m.tier || m.category || 'Otros';
+      if (m.editorialEmail == null) m.editorialEmail = m.email || '';
+      if (m.notes == null) m.notes = '';
+      if (m.subscribed == null) m.subscribed = true;
+      return m;
+    });
+    if (chg) setOutlets(outs);
+    let jchg = false;
+    const js = getJournalists().map(j => {
+      const m = Object.assign({}, j);
+      if (!Array.isArray(m.beats)) { m.beats = m.beats ? String(m.beats).split(',').map(s => s.trim()).filter(Boolean) : []; jchg = true; }
+      if (m.status == null) { m.status = 'active'; jchg = true; }
+      return m;
+    });
+    if (jchg) setJournalists(js);
+  }
+
+  // Wiring de búsquedas/filtros de Noticias (una sola vez).
+  let noticiasFiltersBound = false;
+  function bindNoticiasFilters() {
+    if (noticiasFiltersBound) return;
+    noticiasFiltersBound = true;
+    // Biblioteca
+    const bs = $('#biblioSearch');
+    if (bs) bs.addEventListener('input', debounce(() => { biblioSearch = bs.value || ''; renderBiblioteca(); }, 200));
+    const bf = $('#biblioFilters');
+    if (bf) bf.addEventListener('click', e => {
+      const b = e.target.closest('[data-bstatus]'); if (!b) return;
+      $$('#biblioFilters [data-bstatus]').forEach(x => x.classList.toggle('is-active', x === b));
+      biblioStatus = b.dataset.bstatus || ''; renderBiblioteca();
+    });
+    const bsort = $('#biblioSort');
+    if (bsort) bsort.addEventListener('change', () => { biblioSort = bsort.value || 'recent'; renderBiblioteca(); });
+    // Medios
+    const os = $('#outletSearch');
+    if (os) os.addEventListener('input', debounce(() => { outletSearch = os.value || ''; renderOutlets(); }, 200));
+    const ocf = $('#outletCountryFilter');
+    if (ocf) ocf.addEventListener('click', e => {
+      const b = e.target.closest('[data-ocountry]'); if (!b) return;
+      $$('#outletCountryFilter [data-ocountry]').forEach(x => x.classList.toggle('is-active', x === b));
+      outletCountryFilter = b.dataset.ocountry || ''; renderOutlets();
+    });
+    // Redactores
+    const js = $('#journoSearch');
+    if (js) js.addEventListener('input', debounce(() => { journoSearch = js.value || ''; renderJournalists(); }, 200));
+    const jcf = $('#journoCountryFilter');
+    if (jcf) jcf.addEventListener('click', e => {
+      const b = e.target.closest('[data-jcountry]'); if (!b) return;
+      $$('#journoCountryFilter [data-jcountry]').forEach(x => x.classList.toggle('is-active', x === b));
+      journoCountryFilter = b.dataset.jcountry || ''; renderJournalists();
+    });
+    const jof = $('#journoOutletFilter');
+    if (jof) jof.addEventListener('change', () => { journoOutletFilter = jof.value || ''; renderJournalists(); });
+    const jsf = $('#journoStatusFilter');
+    if (jsf) jsf.addEventListener('change', () => { journoStatusFilter = jsf.value || ''; renderJournalists(); });
+  }
+
   // ============ AUTH ============
   const loginEl = $('#login'), appEl = $('#app');
   function isAuthed() { return localStorage.getItem(K.auth) === '1'; }
@@ -154,7 +224,7 @@
   }
 
   // ============ AUDITORÍA (registro de cambios) ============
-  const SECTION_LABELS = { texts: 'Texto', media: 'Imagen', styles: 'Estilo', legal: 'Legal', settings: 'Ajustes', news: 'Noticias', team: 'Equipo' };
+  const SECTION_LABELS = { texts: 'Texto', media: 'Imagen', styles: 'Estilo', legal: 'Legal', settings: 'Ajustes', news: 'Noticias', team: 'Equipo', jobs: 'Empleo', apps: 'Candidatura' };
   function logAudit(section, key, before, after) {
     const list = getAudit();
     list.unshift({ id: uid(), section, key: key || '', before: before == null ? '' : String(before), after: after == null ? '' : String(after), user: $('#whoami') ? $('#whoami').textContent : 'admin', at: new Date().toISOString() });
@@ -255,8 +325,14 @@
 
   // ============ NOTICIAS ============
   let newsTab = 'biblioteca';
+  // Estado de búsqueda/orden/filtros (Biblioteca, Medios, Redactores)
+  let biblioSearch = '', biblioStatus = '', biblioSort = 'recent';
+  let outletSearch = '', outletCountryFilter = '', outletTypeFilter = '';
+  let journoSearch = '', journoCountryFilter = '', journoOutletFilter = '', journoStatusFilter = '';
   function renderNoticias() {
     const s = getSettings();
+    migratePress();
+    bindNoticiasFilters();
     syncNewsToggle(s.newsEnabled);
     showNewsTab(newsTab);
     refreshBadges();
@@ -278,20 +354,51 @@
     const b = e.target.closest('[data-ntab]'); if (!b) return; showNewsTab(b.dataset.ntab);
   });
 
+  // Estado normalizado de una noticia (archivada > borrador > publicada).
+  function newsStatusOf(n) {
+    if (n && n.archived) return 'archived';
+    if (n && n.status === 'draft') return 'draft';
+    return 'published';
+  }
+  const BIB_STATUS_LABEL = { published: 'Publicada', draft: 'Borrador', archived: 'Archivada' };
+  const dateNumNews = (n) => { const t = n && n.date ? Date.parse(n.date) : NaN; return isNaN(t) ? 0 : t; };
+
   function renderBiblioteca() {
-    const news = getNews().slice().sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (a.order ?? 0) - (b.order ?? 0) || (b.date || '').localeCompare(a.date || ''));
-    $('#newsCount').textContent = news.length;
+    const all = getNews().slice();
+    $('#newsCount').textContent = all.length;
+    // Contadores dinámicos por estado.
+    const counts = { all: all.length, published: 0, draft: 0, archived: 0 };
+    all.forEach(n => { counts[newsStatusOf(n)]++; });
+    $$('#biblioFilters [data-count]').forEach(b => { const k = b.dataset.count; if (counts[k] != null) b.textContent = counts[k]; });
+    // Filtrado por búsqueda + estado.
+    const q = biblioSearch.trim().toLowerCase();
+    let news = all.filter(n => {
+      if (biblioStatus && newsStatusOf(n) !== biblioStatus) return false;
+      if (q) { const hay = ((n.title || '') + ' ' + (n.excerpt || '') + ' ' + (n.outletName || '')).toLowerCase(); if (hay.indexOf(q) < 0) return false; }
+      return true;
+    });
+    // Orden.
+    const rank = { published: 0, draft: 1, archived: 2 };
+    if (biblioSort === 'recent') news.sort((a, b) => dateNumNews(b) - dateNumNews(a));
+    else if (biblioSort === 'old') news.sort((a, b) => dateNumNews(a) - dateNumNews(b));
+    else if (biblioSort === 'title') news.sort((a, b) => (a.title || '').localeCompare(b.title || '', 'es'));
+    else if (biblioSort === 'status') news.sort((a, b) => (rank[newsStatusOf(a)] - rank[newsStatusOf(b)]) || (dateNumNews(b) - dateNumNews(a)));
+    else news.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (a.order ?? 0) - (b.order ?? 0) || (b.date || '').localeCompare(a.date || ''));
+
     const grid = $('#newsGrid');
-    if (!news.length) {
+    if (!all.length) {
       grid.innerHTML = `<div class="news-empty"><span data-ico="newspaper" data-ico-size="42"></span><p>Todavía no hay noticias.<br>Crea la primera o añade ejemplos.</p></div>`;
+    } else if (!news.length) {
+      grid.innerHTML = `<div class="news-empty"><span data-ico="search" data-ico-size="42"></span><p>Sin resultados para este filtro.<br>Prueba con otra búsqueda o estado.</p></div>`;
     } else {
-      grid.innerHTML = news.map(n => `
+      grid.innerHTML = news.map(n => {
+        const st = newsStatusOf(n);
+        return `
         <article class="ncard${n.archived ? ' is-archived' : ''}" data-id="${n.id}">
           <div class="ncard__img" style="${n.image ? `background-image:url('${esc(n.image)}')` : ''}">
             <div class="ncard__badges">
-              <span class="ncard__status ${n.status}">${n.status === 'published' ? 'Publicada' : 'Borrador'}</span>
-              ${n.pinned ? '<span class="ncard__status pinned">Destacada</span>' : ''}
-              ${n.archived ? '<span class="ncard__status archived">Archivada</span>' : ''}
+              <span class="ncard__status ${st}"><span class="ncard__dot ncard__dot--${st}"></span>${BIB_STATUS_LABEL[st]}</span>
+              ${n.pinned ? '<span class="ncard__status pinned"><span data-ico="star" data-ico-size="11"></span>Destacada</span>' : ''}
             </div>
             ${n.category ? `<span class="ncard__cat">${esc(n.category)}</span>` : ''}
           </div>
@@ -306,7 +413,8 @@
               <button class="icon-btn danger" data-del="${n.id}" title="Eliminar" style="margin-left:auto"><span data-ico="trash-2"></span></button>
             </div>
           </div>
-        </article>`).join('');
+        </article>`;
+      }).join('');
     }
     hydrate(); refreshBadges();
   }
@@ -365,9 +473,20 @@
 
   // ---- Modal noticia ----
   const newsModal = $('#newsModal');
+  // Select de medio (modal de noticia) agrupado por país.
   function populateNewsOutlet(sel) {
     const s = $('#nfOutlet'); if (!s) return;
-    s.innerHTML = '<option value="">— Sin medio —</option>' + getOutlets().map(o => `<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('');
+    const sorted = getOutlets().slice().sort((a, b) =>
+      String(countryLabel(a.country)).localeCompare(String(countryLabel(b.country)), 'es') ||
+      String(a.name || '').localeCompare(String(b.name || ''), 'es'));
+    let html = '<option value="">— Sin medio —</option>', cur = null;
+    sorted.forEach(o => {
+      const c = countryLabel(o.country);
+      if (c !== cur) { if (cur !== null) html += '</optgroup>'; html += `<optgroup label="${esc(c)}">`; cur = c; }
+      html += `<option value="${esc(o.id)}">${esc(o.name || '')}</option>`;
+    });
+    if (cur !== null) html += '</optgroup>';
+    s.innerHTML = html;
     s.value = sel || '';
   }
   function openNews(id, prefill) {
@@ -585,55 +704,138 @@
   });
 
   // ============ NOTICIAS · MEDIOS (outlets) ============
+  const outletById = (id) => getOutlets().find(o => String(o.id) === String(id)) || null;
+  // Cuenta de redactores por medio: Map<outlet_id, n>.
+  function journoCounts() {
+    const counts = new Map();
+    getJournalists().forEach(j => { const k = String(j.outlet || ''); if (!k) return; counts.set(k, (counts.get(k) || 0) + 1); });
+    return counts;
+  }
+  // Logo con fallback a inicial.
+  function outletLogoHTML(o) {
+    return o.logo
+      ? `<img class="ogrid-card__logo" src="${esc(o.logo)}" alt="${esc(o.name || '')}" loading="lazy">`
+      : `<div class="ogrid-card__logo empty">${esc((o.name || '?').slice(0, 1).toUpperCase())}</div>`;
+  }
+  // Chips de tipo dinámicos según los medios presentes.
+  function renderTypeChips(container, outlets, active, onPick) {
+    if (!container) return;
+    const types = Array.from(new Set((outlets || []).map(outletType))).sort((a, b) => a.localeCompare(b, 'es'));
+    let html = `<button type="button" class="chip${!active ? ' is-active' : ''}" data-type="">Todos los tipos</button>`;
+    types.forEach(t => { html += `<button type="button" class="chip${active === t ? ' is-active' : ''}" data-type="${esc(t)}">${esc(t)}</button>`; });
+    container.innerHTML = html;
+    container.hidden = !types.length;
+    $$('[data-type]', container).forEach(b => b.addEventListener('click', () => onPick(b.dataset.type || '')));
+  }
+  // Tarjeta de medio (logo, nombre, ubicación, badges, web).
+  function outletCardHTML(o, journoCount) {
+    const web = o.url
+      ? `<a class="ogrid-card__web" href="${esc(o.url)}" target="_blank" rel="noopener"><span data-ico="globe" data-ico-size="13"></span>${esc(o.url.replace(/^https?:\/\//, ''))}</a>`
+      : '';
+    const loc = [o.city, countryLabel(o.country)].filter(Boolean).join(', ');
+    const sub = o.subscribed !== false ? '<span class="ogrid-badge ogrid-badge--sub">suscrito</span>' : '';
+    const jc = journoCount != null && journoCount > 0
+      ? `<span class="ogrid-card__journos"><span data-ico="users" data-ico-size="12"></span>${journoCount} redactor${journoCount === 1 ? '' : 'es'}</span>` : '';
+    return `<article class="ogrid-card" data-id="${esc(o.id)}">
+      ${outletLogoHTML(o)}
+      <div class="ogrid-card__body">
+        <h3 class="ogrid-card__name">${esc(o.name || '—')}</h3>
+        ${loc ? `<div class="ogrid-card__meta"><span data-ico="map-pin" data-ico-size="12"></span>${esc(loc)}</div>` : ''}
+        <div class="ogrid-card__tags"><span class="ogrid-badge ogrid-badge--type">${esc(outletType(o))}</span>${sub}${jc}</div>
+        ${web}
+      </div>
+      <div class="ogrid-card__actions">
+        <button class="icon-btn" data-out-edit="${esc(o.id)}" title="Editar"><span data-ico="pencil"></span></button>
+        <button class="icon-btn danger" data-out-del="${esc(o.id)}" title="Eliminar"><span data-ico="trash-2"></span></button>
+      </div>
+    </article>`;
+  }
+  // Grid compartido: filtra y agrupa por País › Tipo.
+  function renderOutletGrid(container, outlets, opts) {
+    opts = opts || {};
+    if (!container) return;
+    let list = (outlets || []).slice();
+    const q = (opts.search || '').trim().toLowerCase();
+    if (q) list = list.filter(o => [o.name, o.url, o.city, countryLabel(o.country)].some(v => String(v || '').toLowerCase().indexOf(q) >= 0));
+    if (opts.country) list = list.filter(o => String(o.country || 'AR') === opts.country);
+    if (opts.type) list = list.filter(o => outletType(o) === opts.type);
+    if (!list.length) {
+      container.innerHTML = `<div class="news-empty"><span data-ico="search" data-ico-size="42"></span><p>Sin medios para este filtro.<br>Prueba con otros filtros o añade uno nuevo.</p></div>`;
+      hydrate(); return;
+    }
+    const counts = opts.counts || null;
+    const byCountry = {};
+    list.forEach(o => { const c = o.country || 'Otro'; (byCountry[c] = byCountry[c] || []).push(o); });
+    let html = '';
+    Object.keys(byCountry).sort().forEach(c => {
+      const items = byCountry[c];
+      html += `<section class="ogrid-group"><header class="ogrid-group__head"><span class="ogrid-group__country">${esc(countryLabel(c))}</span><span class="ogrid-group__count">${items.length}</span></header>`;
+      const byType = {};
+      items.forEach(o => { const t = outletType(o); (byType[t] = byType[t] || []).push(o); });
+      Object.keys(byType).sort().forEach(t => {
+        const group = byType[t].slice().sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'es'));
+        html += `<div class="ogrid-type"><div class="ogrid-type__head">${esc(t)} <span>${group.length}</span></div><div class="ogrid">` +
+          group.map(o => outletCardHTML(o, counts ? (counts.get(String(o.id)) || 0) : null)).join('') + `</div></div>`;
+      });
+      html += '</section>';
+    });
+    container.innerHTML = html;
+    hydrate();
+  }
   function renderOutlets() {
     const outlets = getOutlets(), grid = $('#outletGrid');
     if (!outlets.length) {
+      const chips = $('#outletTypeFilter'); if (chips) chips.hidden = true;
       grid.innerHTML = `<div class="news-empty"><span data-ico="building-2" data-ico-size="42"></span><p>No hay medios todavía.<br>Añade los medios de prensa con los que trabajas.</p></div>`;
-    } else {
-      grid.innerHTML = outlets.map(o => `
-        <article class="outlet-card" data-id="${o.id}">
-          <div class="outlet-card__logo">${o.logo ? `<img src="${esc(o.logo)}" alt="${esc(o.name)}">` : `<span class="outlet-card__init">${esc((o.name || '?').charAt(0).toUpperCase())}</span>`}</div>
-          <div class="outlet-card__b">
-            <span class="outlet-card__name">${esc(o.name)}</span>
-            ${o.url ? `<a href="${esc(o.url)}" target="_blank" rel="noopener" class="outlet-card__url">${esc(o.url.replace(/^https?:\/\//, ''))}</a>` : '<span class="outlet-card__url muted">Sin sitio web</span>'}
-          </div>
-          <div class="outlet-card__foot">
-            <button class="icon-btn" data-out-edit="${o.id}" title="Editar"><span data-ico="pencil"></span></button>
-            <button class="icon-btn danger" data-out-del="${o.id}" title="Eliminar"><span data-ico="trash-2"></span></button>
-          </div>
-        </article>`).join('');
+      hydrate(); return;
     }
-    hydrate();
+    renderTypeChips($('#outletTypeFilter'), outlets, outletTypeFilter, (t) => { outletTypeFilter = t; renderOutlets(); });
+    renderOutletGrid(grid, outlets, { search: outletSearch, country: outletCountryFilter, type: outletTypeFilter, counts: journoCounts() });
   }
   let outletLogoData = '';
   function openOutlet(id) {
-    const o = id ? getOutlets().find(x => x.id === id) : null;
+    const o = id ? outletById(id) : null;
     $('#outletModalTitle').textContent = o ? 'Editar medio' : 'Nuevo medio';
     $('#ofId').value = o ? o.id : '';
     $('#ofName').value = o ? o.name : '';
     $('#ofUrl').value = o ? (o.url || '') : '';
+    $('#ofCountry').value = o ? (o.country || 'AR') : 'AR';
+    $('#ofCity').value = o ? (o.city || '') : '';
+    $('#ofType').value = o ? (o.type || o.tier || o.category || '') : '';
+    $('#ofEmail').value = o ? (o.editorialEmail || o.email || '') : '';
+    $('#ofNotes').value = o ? (o.notes || '') : '';
+    $('#ofSubscribed').checked = o ? o.subscribed !== false : true;
     outletLogoData = o ? (o.logo || '') : '';
     const prev = $('#ofLogoPrev'), hint = $('#ofLogo').querySelector('.logo-drop__hint');
     if (outletLogoData) { prev.src = outletLogoData; prev.hidden = false; if (hint) hint.hidden = true; }
     else { prev.hidden = true; if (hint) hint.hidden = false; }
     const m = $('#outletModal'); m.classList.add('open'); m.setAttribute('aria-hidden', 'false'); hydrate();
+    setTimeout(() => $('#ofName').focus(), 60);
   }
   $('#outletNew') && $('#outletNew').addEventListener('click', () => openOutlet(null));
   $('#ofLogo') && $('#ofLogo').addEventListener('click', () => $('#ofLogoFile').click());
   $('#ofLogoFile') && $('#ofLogoFile').addEventListener('change', async e => {
     const f = e.target.files[0]; if (!f) return;
+    if (f.size > 8 * 1024 * 1024) { toast('La imagen supera 8 MB', 'err'); return; }
     outletLogoData = await fileToB64(f);
     const prev = $('#ofLogoPrev'), hint = $('#ofLogo').querySelector('.logo-drop__hint');
     prev.src = outletLogoData; prev.hidden = false; if (hint) hint.hidden = true;
   });
   $('#outletSave') && $('#outletSave').addEventListener('click', () => {
     const name = $('#ofName').value.trim();
-    if (!name) { toast('Pon el nombre del medio', 'err'); return; }
+    if (!name) { toast('Pon el nombre del medio', 'err'); $('#ofName').focus(); return; }
     const outlets = getOutlets(); const id = $('#ofId').value;
-    const data = { name, url: $('#ofUrl').value.trim(), logo: outletLogoData || '' };
-    if (id) { const i = outlets.findIndex(x => x.id === id); if (i >= 0) outlets[i] = Object.assign(outlets[i], data); }
-    else { data.id = uid(); outlets.push(data); }
-    setOutlets(outlets); closeModal($('#outletModal')); renderOutlets(); toast('Medio guardado', 'ok');
+    const data = {
+      name, url: $('#ofUrl').value.trim(), logo: outletLogoData || '',
+      country: $('#ofCountry').value || 'AR', city: $('#ofCity').value.trim(),
+      type: $('#ofType').value.trim() || 'Otros', editorialEmail: $('#ofEmail').value.trim(),
+      notes: $('#ofNotes').value.trim(), subscribed: $('#ofSubscribed').checked,
+    };
+    if (id) { const i = outlets.findIndex(x => x.id === id); if (i >= 0) outlets[i] = Object.assign(outlets[i], data); logAudit('news', 'medio: ' + name, 'Existía', 'Actualizado'); }
+    else { data.id = uid(); outlets.push(data); logAudit('news', 'medio: ' + name, '∅', 'Creado'); }
+    setOutlets(outlets); closeModal($('#outletModal'));
+    populateNewsOutlet($('#nfOutlet') ? $('#nfOutlet').value : '');
+    renderOutlets(); toast('Medio guardado', 'ok');
   });
   $('#outletGrid') && $('#outletGrid').addEventListener('click', async e => {
     const ed = e.target.closest('[data-out-edit]'); if (ed) return openOutlet(ed.dataset.outEdit);
@@ -646,33 +848,97 @@
   });
 
   // ============ NOTICIAS · REDACTORES (journalists) ============
+  // Select de medio en el modal de redactor.
   function populateOutletSelect() {
     const sel = $('#jfOutlet'); if (!sel) return;
     const cur = sel.value;
-    sel.innerHTML = '<option value="">— Medio —</option>' + getOutlets().map(o => `<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('');
-    sel.value = cur;
+    const sorted = getOutlets().slice().sort((a, b) =>
+      String(countryLabel(a.country)).localeCompare(String(countryLabel(b.country)), 'es') ||
+      String(a.name || '').localeCompare(String(b.name || ''), 'es'));
+    let html = '<option value="">— Medio —</option>', cur2 = null;
+    sorted.forEach(o => {
+      const c = countryLabel(o.country);
+      if (c !== cur2) { if (cur2 !== null) html += '</optgroup>'; html += `<optgroup label="${esc(c)}">`; cur2 = c; }
+      html += `<option value="${esc(o.id)}">${esc(o.name || '')}</option>`;
+    });
+    if (cur2 !== null) html += '</optgroup>';
+    sel.innerHTML = html; sel.value = cur;
   }
-  function outletNameById(id) { const o = getOutlets().find(x => x.id === id); return o ? o.name : ''; }
+  function outletNameById(id) { const o = outletById(id); return o ? o.name : ''; }
+  // País de un redactor = país de su medio.
+  function journoCountry(j) { const o = outletById(j.outlet); return (o && o.country) || 'Otro'; }
+  // Select de filtro por medio: solo medios que tienen redactores.
+  function populateJournoOutletFilter() {
+    const sel = $('#journoOutletFilter'); if (!sel) return;
+    const ids = new Set(getJournalists().map(j => String(j.outlet || '')));
+    const opts = getOutlets().filter(o => ids.has(String(o.id))).slice().sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'es'));
+    let html = '<option value="">Todos los medios</option>';
+    opts.forEach(o => { html += `<option value="${esc(o.id)}"${String(o.id) === journoOutletFilter ? ' selected' : ''}>${esc(o.name || '—')}</option>`; });
+    sel.innerHTML = html; sel.value = journoOutletFilter;
+  }
+  // Tarjeta de redactor (foto/inicial, nombre+estado, rol, medio con logo, beats).
+  function journoRowHTML(j) {
+    const photo = j.photo
+      ? `<img class="jcard__photo" src="${esc(j.photo)}" alt="${esc(j.name || '')}" loading="lazy">`
+      : `<div class="jcard__photo empty">${esc((j.name || '?').slice(0, 1).toUpperCase())}</div>`;
+    const o = outletById(j.outlet);
+    const outletLogo = o && o.logo ? `<img class="jcard__outlet-logo" src="${esc(o.logo)}" alt="" loading="lazy">` : '';
+    const outletName = (o && o.name) || j.outletName || 'Sin medio';
+    const role = j.role ? `<div class="jcard__role">${esc(j.role)}</div>` : '';
+    const st = j.status || 'active';
+    const stLabel = st === 'inactive' ? 'inactivo' : 'activo';
+    const beats = (Array.isArray(j.beats) ? j.beats : []).slice(0, 4).map(b => `<span class="jcard__beat">${esc(b)}</span>`).join('');
+    const beatsRow = beats ? `<div class="jcard__beats">${beats}</div>` : '';
+    const email = j.email ? `<a class="jcard__email" href="mailto:${esc(j.email)}"><span data-ico="mail" data-ico-size="12"></span>${esc(j.email)}</a>` : '';
+    return `<article class="jcard" data-id="${esc(j.id)}">
+      ${photo}
+      <div class="jcard__body">
+        <div class="jcard__top">
+          <h3 class="jcard__name">${esc(j.name || '—')}</h3>
+          <span class="jcard__status jcard__status--${esc(st)}">${esc(stLabel)}</span>
+        </div>
+        ${role}
+        <div class="jcard__outlet">${outletLogo}<span>${esc(outletName)}</span></div>
+        ${email}
+        ${beatsRow}
+      </div>
+      <div class="jcard__actions">
+        <button class="icon-btn" data-jour-edit="${esc(j.id)}" title="Editar"><span data-ico="pencil"></span></button>
+        <button class="icon-btn danger" data-jour-del="${esc(j.id)}" title="Eliminar"><span data-ico="trash-2"></span></button>
+      </div>
+    </article>`;
+  }
   function renderJournalists() {
-    const js = getJournalists(), grid = $('#journalistGrid');
-    if (!js.length) {
+    const all = getJournalists(), grid = $('#journalistGrid');
+    populateJournoOutletFilter();
+    if (!all.length) {
       grid.innerHTML = `<div class="news-empty"><span data-ico="users" data-ico-size="42"></span><p>No hay redactores todavía.<br>Añade los contactos de prensa.</p></div>`;
-    } else {
-      grid.innerHTML = js.map(j => `
-        <article class="journalist-card" data-id="${j.id}">
-          <div class="journalist-card__photo">${j.photo ? `<img src="${esc(j.photo)}" alt="${esc(j.name)}">` : `<span class="journalist-card__init">${esc((j.name || '?').charAt(0).toUpperCase())}</span>`}</div>
-          <div class="journalist-card__b">
-            <span class="journalist-card__name">${esc(j.name)}</span>
-            <span class="journalist-card__role">${esc([j.role, outletNameById(j.outlet) || j.outletName].filter(Boolean).join(' · '))}</span>
-            ${j.email ? `<a href="mailto:${esc(j.email)}" class="journalist-card__email">${esc(j.email)}</a>` : ''}
-            ${j.phone ? `<span class="journalist-card__phone">${esc(j.phone)}</span>` : ''}
-          </div>
-          <div class="journalist-card__foot">
-            <button class="icon-btn" data-jour-edit="${j.id}" title="Editar"><span data-ico="pencil"></span></button>
-            <button class="icon-btn danger" data-jour-del="${j.id}" title="Eliminar"><span data-ico="trash-2"></span></button>
-          </div>
-        </article>`).join('');
+      hydrate(); return;
     }
+    let list = all.slice();
+    const q = journoSearch.trim().toLowerCase();
+    if (q) list = list.filter(j => {
+      const o = outletById(j.outlet);
+      const hay = [j.name, j.email, j.role, (Array.isArray(j.beats) ? j.beats.join(' ') : ''), o && o.name, j.outletName]
+        .map(v => String(v || '').toLowerCase()).join(' ');
+      return hay.indexOf(q) >= 0;
+    });
+    if (journoCountryFilter) list = list.filter(j => journoCountry(j) === journoCountryFilter);
+    if (journoOutletFilter) list = list.filter(j => String(j.outlet || '') === journoOutletFilter);
+    if (journoStatusFilter) list = list.filter(j => (j.status || 'active') === journoStatusFilter);
+    if (!list.length) {
+      grid.innerHTML = `<div class="news-empty"><span data-ico="search" data-ico-size="42"></span><p>Sin redactores para este filtro.<br>Prueba con otros filtros.</p></div>`;
+      hydrate(); return;
+    }
+    const byCountry = {};
+    list.forEach(j => { const c = journoCountry(j); (byCountry[c] = byCountry[c] || []).push(j); });
+    let html = '';
+    Object.keys(byCountry).sort().forEach(c => {
+      const items = byCountry[c].slice().sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'es'));
+      html += `<section class="jgrid-group"><header class="jgrid-group__head"><span>${esc(countryLabel(c))}</span><span class="jgrid-group__count">${items.length}</span></header>` +
+        `<div class="jgrid">${items.map(journoRowHTML).join('')}</div></section>`;
+    });
+    grid.innerHTML = html;
     hydrate();
   }
   let journalistPhotoData = '';
@@ -686,32 +952,38 @@
     $('#jfOutlet').value = j ? (j.outlet || '') : '';
     $('#jfEmail').value = j ? (j.email || '') : '';
     $('#jfPhone').value = j ? (j.phone || '') : '';
+    $('#jfBeats').value = j ? (Array.isArray(j.beats) ? j.beats.join(', ') : (j.beats || '')) : '';
+    $('#jfStatus').value = j ? (j.status || 'active') : 'active';
     journalistPhotoData = j ? (j.photo || '') : '';
     const prev = $('#jfPhotoPrev'), hint = $('#jfPhoto').querySelector('.img-drop__hint');
     if (journalistPhotoData) { prev.src = journalistPhotoData; prev.hidden = false; if (hint) hint.hidden = true; }
     else { prev.hidden = true; if (hint) hint.hidden = false; }
     const m = $('#journalistModal'); m.classList.add('open'); m.setAttribute('aria-hidden', 'false'); hydrate();
+    setTimeout(() => $('#jfName').focus(), 60);
   }
   $('#journalistNew') && $('#journalistNew').addEventListener('click', () => openJournalist(null));
   $('#jfPhoto') && $('#jfPhoto').addEventListener('click', () => $('#jfPhotoFile').click());
   $('#jfPhotoFile') && $('#jfPhotoFile').addEventListener('change', async e => {
     const f = e.target.files[0]; if (!f) return;
+    if (f.size > 8 * 1024 * 1024) { toast('La imagen supera 8 MB', 'err'); return; }
     journalistPhotoData = await fileToB64(f);
     const prev = $('#jfPhotoPrev'), hint = $('#jfPhoto').querySelector('.img-drop__hint');
     prev.src = journalistPhotoData; prev.hidden = false; if (hint) hint.hidden = true;
   });
   $('#journalistSave') && $('#journalistSave').addEventListener('click', () => {
     const name = $('#jfName').value.trim();
-    if (!name) { toast('Pon el nombre del redactor', 'err'); return; }
+    if (!name) { toast('Pon el nombre del redactor', 'err'); $('#jfName').focus(); return; }
     const js = getJournalists(); const id = $('#jfId').value;
     const data = {
       name, role: $('#jfRole').value.trim(), outlet: $('#jfOutlet').value,
       outletName: outletNameById($('#jfOutlet').value), email: $('#jfEmail').value.trim(),
       phone: $('#jfPhone').value.trim(), photo: journalistPhotoData || '',
+      beats: $('#jfBeats').value.split(',').map(s => s.trim()).filter(Boolean),
+      status: $('#jfStatus').value || 'active',
     };
     if (id) { const i = js.findIndex(x => x.id === id); if (i >= 0) js[i] = Object.assign(js[i], data); }
     else { data.id = uid(); js.push(data); }
-    setJournalists(js); closeModal($('#journalistModal')); renderJournalists(); toast('Redactor guardado', 'ok');
+    setJournalists(js); closeModal($('#journalistModal')); renderJournalists(); renderOutlets(); toast('Redactor guardado', 'ok');
   });
   $('#journalistGrid') && $('#journalistGrid').addEventListener('click', async e => {
     const ed = e.target.closest('[data-jour-edit]'); if (ed) return openJournalist(ed.dataset.jourEdit);
@@ -965,16 +1237,21 @@
   // ============ SUSCRIPTORES ============
   // Filtros activos (espejo cliente del backend de Aisa)
   let subsFilters = { interest: '', country: '', q: '' };
+  let subsSort = 'recent';      // recent | old | name | country
   let subsStats = null;
   const subModal = $('#subModal');
-  // Normaliza al esquema completo (compatible con altas antiguas {id,email,name,date,source})
+  const SUB_TAG_MAX_LEN = 50, SUB_TAG_MAX_COUNT = 20;
+  // Normaliza al esquema completo (compatible con altas antiguas {id,email,name,date,source}
+  // y con el esquema de Aisa {createdAt,updatedAt}). `date` y `createdAt` quedan sincronizados.
   function subNorm(s) {
     s = s || {};
+    const createdAt = s.createdAt || s.date || '';
     return Object.assign({}, s, {
       id: s.id, email: s.email || '', name: s.name || '', country: s.country || '',
       interests: Array.isArray(s.interests) ? s.interests : [], outlet: s.outlet || '',
       web: s.web || '', phone: s.phone || '', tags: Array.isArray(s.tags) ? s.tags : [],
-      notes: s.notes || '', date: s.date || '', source: s.source || 'web',
+      notes: s.notes || '', date: createdAt, createdAt, updatedAt: s.updatedAt || '',
+      source: s.source || 'web',
     });
   }
   function calcSubsStats(all) {
@@ -988,10 +1265,18 @@
     return { total: all.length, byCountry: facet(byCountry), byInterest: facet(byInterest), byOutlet: facet(byOutlet) };
   }
   function subsHasFilter() { return !!(subsFilters.interest || subsFilters.country || subsFilters.q); }
-  function subsFacetList(label, arr) {
+  // Segmento implícito derivado del filtro activo (para badge + columna CSV + boletines futuros).
+  function getActiveSegment() {
+    if (subsFilters.country) return { kind: 'País', value: countryLabel(subsFilters.country) };
+    if (subsFilters.interest) return { kind: 'Interés', value: subsFilters.interest };
+    if (subsFilters.q) return { kind: 'Búsqueda', value: subsFilters.q };
+    return null;
+  }
+  function subsFacetList(label, arr, ico) {
     arr = arr || []; if (!arr.length) return '';
     const items = arr.slice(0, 8).map(f => `<li><span class="subs-facet__v">${esc(f.value || '—')}</span><span class="subs-facet__n">${f.count}</span></li>`).join('');
-    return `<div class="subs-facet"><h4 class="subs-facet__h">${esc(label)}</h4><ul>${items}</ul></div>`;
+    const head = `<span class="ar" data-ico="${esc(ico || 'tag')}"></span>${esc(label)}`;
+    return `<div class="subs-facet"><h4 class="subs-facet__h">${head}</h4><ul>${items}</ul></div>`;
   }
   function renderSubsStats() {
     const box = $('#subsStats'); if (!box) return;
@@ -999,7 +1284,16 @@
     box.hidden = false;
     box.innerHTML =
       `<div class="subs-stats__total"><span class="subs-stats__num">${subsStats.total}</span><span class="subs-stats__lbl">Suscriptores</span></div>` +
-      `<div class="subs-stats__facets">${subsFacetList('Países', subsStats.byCountry)}${subsFacetList('Intereses', subsStats.byInterest)}${subsFacetList('Medios', subsStats.byOutlet)}</div>`;
+      `<div class="subs-stats__facets">${subsFacetList('Países', subsStats.byCountry, 'map-pin')}${subsFacetList('Intereses', subsStats.byInterest, 'tag')}${subsFacetList('Medios', subsStats.byOutlet, 'building-2')}</div>`;
+    hydrate();
+  }
+  function renderSubsSegment() {
+    const box = $('#subsSegment'); if (!box) return;
+    const seg = getActiveSegment();
+    if (!seg) { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    box.innerHTML = `<span class="ar" data-ico="filter"></span>Segmento: ${esc(seg.kind)} · ${esc(seg.value)}`;
+    hydrate();
   }
   function renderSubsFilters() {
     const box = $('#subsFilters'), tb = $('#subsToolbar'); if (!box) return;
@@ -1037,13 +1331,17 @@
     if (s.country) rows.push(`<span class="sub__meta"><b>País:</b> ${esc(s.country)}</span>`);
     if (s.phone) rows.push(`<span class="sub__meta"><b>Tel:</b> ${esc(s.phone)}</span>`);
     rows.push(`<span class="sub__meta"><b>Origen:</b> ${esc(s.source || 'web')}</span>`);
+    const created = s.createdAt || s.date;
+    const dateBits = [];
+    if (created) dateBits.push(`<span class="sub__date-bit"><span class="ar" data-ico="clock"></span>Alta ${esc(fmtTime(created))}</span>`);
+    if (s.updatedAt) dateBits.push(`<span class="sub__date-bit"><span class="ar" data-ico="refresh-cw"></span>Act. ${esc(fmtTime(s.updatedAt))}</span>`);
     return `
       <article class="msg sub" data-id="${esc(s.id)}">
         <div class="msg__main">
           <div class="msg__top">
             <span class="msg__from">${esc(s.name || 'Anónimo')}</span>
             ${s.email ? `<a class="msg__email" href="mailto:${esc(s.email)}">${esc(s.email)}</a>` : ''}
-            <span class="msg__date">${esc(s.date ? fmtTime(s.date) : '')}</span>
+            <span class="msg__date sub__dates">${dateBits.join('')}</span>
           </div>
           ${rows.length ? `<div class="sub__rows">${rows.join('')}</div>` : ''}
           ${interests ? `<div class="sub__tags">${interests}</div>` : ''}
@@ -1080,16 +1378,28 @@
         tagsBox.querySelectorAll('[data-act="untag"]').forEach(b => b.addEventListener('click', () => { tags = tags.filter(t => t !== b.dataset.tag); paintTags(); }));
       }
       function addTag() {
-        const v = (tagInput.value || '').trim(); if (!v) return;
-        if (!tags.includes(v)) tags.push(v);
+        let v = (tagInput.value || '').trim().slice(0, SUB_TAG_MAX_LEN);
+        if (!v) return;
+        if (tags.length >= SUB_TAG_MAX_COUNT) { toast(`Máximo ${SUB_TAG_MAX_COUNT} etiquetas por suscriptor`, 'info'); return; }
+        if (tags.some(t => t.toLowerCase() === v.toLowerCase())) { tagInput.value = ''; return; }
+        tags.push(v);
         tagInput.value = ''; paintTags(); tagInput.focus();
       }
       bindUntag();
       node.querySelector('[data-act="addtag"]').addEventListener('click', addTag);
       tagInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } });
-      node.querySelector('[data-act="savecrm"]').addEventListener('click', () => {
+      node.querySelector('[data-act="savecrm"]').addEventListener('click', (e) => {
+        const btn = e.currentTarget; btn.classList.add('is-busy');
         const subs = getSubs(); const idx = subs.findIndex(x => String(x.id) === String(id));
-        if (idx >= 0) { subs[idx].tags = tags.slice(); subs[idx].notes = notesEl.value; setSubs(subs); toast('Suscriptor actualizado', 'ok'); }
+        if (idx >= 0) {
+          subs[idx].tags = tags.slice(); subs[idx].notes = notesEl.value;
+          subs[idx].updatedAt = new Date().toISOString();
+          setSubs(subs);
+          logAudit('apps', rec.email || rec.name || id, 'CRM', 'Etiquetas/notas actualizadas');
+          toast('Suscriptor actualizado', 'ok');
+        }
+        // Re-render para reflejar la nueva fecha de actualización en la tarjeta.
+        setTimeout(() => { btn.classList.remove('is-busy'); renderSuscriptores(); }, 120);
       });
       node.querySelector('[data-act="edit"]').addEventListener('click', () => openSub(id));
       node.querySelector('[data-act="del"]').addEventListener('click', async () => {
@@ -1098,18 +1408,28 @@
       });
     });
   }
+  // Ordena la lista según subsSort (recent | old | name | country).
+  function subsApplySort(arr) {
+    const byDate = (a, b) => (b.createdAt || b.date || '').localeCompare(a.createdAt || a.date || '');
+    if (subsSort === 'old') return arr.sort((a, b) => -byDate(a, b));
+    if (subsSort === 'name') return arr.sort((a, b) => String(a.name || a.email || '').localeCompare(String(b.name || b.email || ''), 'es') || byDate(a, b));
+    if (subsSort === 'country') return arr.sort((a, b) => String(countryLabel(a.country)).localeCompare(String(countryLabel(b.country)), 'es') || byDate(a, b));
+    return arr.sort(byDate); // recent
+  }
   function renderSuscriptores() {
-    const all = getSubs().map(subNorm).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const all = subsApplySort(getSubs().map(subNorm));
     subsStats = calcSubsStats(all);
     $('#subsCount').textContent = all.length;
+    const sortSel = $('#subsSort'); if (sortSel && sortSel.value !== subsSort) sortSel.value = subsSort;
     let filtered = all.slice();
     if (subsFilters.country) filtered = filtered.filter(s => s.country === subsFilters.country);
     if (subsFilters.interest) filtered = filtered.filter(s => (s.interests || []).includes(subsFilters.interest));
     if (subsFilters.q) {
       const q = subsFilters.q.trim().toLowerCase();
-      filtered = filtered.filter(s => [s.name, s.email, s.outlet, s.country, s.source].filter(Boolean).some(t => String(t).toLowerCase().includes(q)));
+      // Full-text: nombre, correo, medio, país, teléfono, web e intereses.
+      filtered = filtered.filter(s => [s.name, s.email, s.outlet, countryLabel(s.country), s.country, s.phone, s.web, (s.interests || []).join(' ')].filter(Boolean).some(t => String(t).toLowerCase().includes(q)));
     }
-    renderSubsStats(); renderSubsFilters();
+    renderSubsStats(); renderSubsFilters(); renderSubsSegment();
     const box = $('#subsList');
     if (!filtered.length) {
       box.innerHTML = `<div class="news-empty"><span data-ico="at-sign" data-ico-size="42"></span><p>${subsHasFilter() && all.length ? 'Sin resultados para este filtro.' : 'No hay suscriptores todavía.<br>Se añaden desde el formulario de la web o manualmente.'}</p></div>`;
@@ -1119,23 +1439,35 @@
     }
     refreshBadges(); hydrate();
   }
-  // Alta sin duplicar por correo (devuelve true si era nuevo)
+  // Combina dos suscriptores SIN perder datos: rellena campos vacíos del existente
+  // con los del nuevo y une intereses/etiquetas; conserva createdAt, refresca updatedAt.
+  function mergeSubInto(dst, rec) {
+    ['name', 'country', 'outlet', 'web', 'phone', 'source'].forEach(k => { if (rec[k] && !dst[k]) dst[k] = rec[k]; });
+    if (rec.notes) dst.notes = dst.notes ? (dst.notes + '\n' + rec.notes) : rec.notes;
+    dst.interests = Array.from(new Set([...(dst.interests || []), ...(rec.interests || [])].filter(Boolean)));
+    dst.tags = Array.from(new Set([...(dst.tags || []), ...(rec.tags || [])].filter(Boolean)));
+    dst.updatedAt = new Date().toISOString();
+    return dst;
+  }
+  // Localiza un duplicado por correo (excluye el propio registro en edición).
+  function findSubByEmail(email, exceptId) {
+    const e = String(email || '').trim().toLowerCase(); if (!e) return -1;
+    return getSubs().findIndex(s => String(s.email || '').trim().toLowerCase() === e && (!exceptId || String(s.id) !== String(exceptId)));
+  }
+  // Alta/edición sin duplicar por correo. Devuelve true si era nuevo.
+  // opts.merge=true combina con el duplicado en vez de rechazar.
   function upsertSub(rec, opts) {
     opts = opts || {};
-    const email = String(rec.email || '').trim().toLowerCase();
     const subs = getSubs();
-    const i = subs.findIndex(s => String(s.email || '').trim().toLowerCase() === email && (!rec.id || String(s.id) !== String(rec.id)));
+    const now = new Date().toISOString();
     const editIdx = rec.id ? subs.findIndex(s => String(s.id) === String(rec.id)) : -1;
-    if (editIdx >= 0) { subs[editIdx] = Object.assign({}, subs[editIdx], rec); setSubs(subs); return false; }
+    if (editIdx >= 0) { subs[editIdx] = Object.assign({}, subs[editIdx], rec, { updatedAt: now }); setSubs(subs); return false; }
+    const i = findSubByEmail(rec.email, rec.id);
     if (i >= 0) {
-      if (opts.merge) {
-        ['name', 'country', 'outlet', 'web', 'phone'].forEach(k => { if (rec[k] && !subs[i][k]) subs[i][k] = rec[k]; });
-        const set = new Set([...(subs[i].interests || []), ...(rec.interests || [])].filter(Boolean));
-        subs[i].interests = Array.from(set); setSubs(subs);
-      }
+      if (opts.merge) { mergeSubInto(subs[i], rec); setSubs(subs); }
       return false;
     }
-    subs.push(Object.assign({ id: uid(), date: new Date().toISOString(), interests: [], tags: [], notes: '' }, rec, { email: String(rec.email || '').trim() }));
+    subs.push(Object.assign({ id: uid(), createdAt: now, date: now, updatedAt: '', interests: [], tags: [], notes: '' }, rec, { email: String(rec.email || '').trim() }));
     setSubs(subs); return true;
   }
   function openSub(id) {
@@ -1153,7 +1485,7 @@
     subModal.classList.add('open'); subModal.setAttribute('aria-hidden', 'false'); hydrate();
     setTimeout(() => $('#sfEmail').focus(), 60);
   }
-  $('#subSave') && $('#subSave').addEventListener('click', () => {
+  $('#subSave') && $('#subSave').addEventListener('click', async () => {
     const email = $('#sfEmail').value.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('Correo no válido', 'err'); $('#sfEmail').focus(); return; }
     const id = $('#sfId').value;
@@ -1163,11 +1495,19 @@
       outlet: $('#sfOutlet').value.trim(), phone: $('#sfPhone').value.trim(), web: $('#sfWeb').value.trim(),
       interests, source: $('#sfSource').value || 'manual',
     };
+    // Dedup: si es alta nueva y el correo ya existe, ofrecer combinar (merge) o cancelar.
+    if (!id && findSubByEmail(email) >= 0) {
+      const dup = getSubs().map(subNorm)[findSubByEmail(email)];
+      const ok = await confirmDialog('Correo ya registrado', `Ya existe un suscriptor con «${email}»${dup && dup.name ? ' (' + dup.name + ')' : ''}. ¿Combinar los datos nuevos con el contacto existente sin perder información?`);
+      if (!ok) { $('#sfEmail').focus(); return; }
+      upsertSub(data, { merge: true });
+      closeModal(subModal); renderSuscriptores(); toast('Contacto combinado', 'ok'); return;
+    }
     const wasNew = upsertSub(data);
-    if (!wasNew && !id) { toast('Ya existe un suscriptor con ese correo', 'err'); return; }
-    closeModal(subModal); renderSuscriptores(); toast(id ? 'Suscriptor actualizado' : 'Suscriptor añadido', 'ok');
+    closeModal(subModal); renderSuscriptores(); toast(id ? 'Suscriptor actualizado' : (wasNew ? 'Suscriptor añadido' : 'Contacto actualizado'), 'ok');
   });
-  $('#subsSearch') && $('#subsSearch').addEventListener('input', e => { subsFilters.q = e.target.value; renderSuscriptores(); });
+  $('#subsSearch') && $('#subsSearch').addEventListener('input', debounce(function () { subsFilters.q = this.value || ''; renderSuscriptores(); }, 220));
+  $('#subsSort') && $('#subsSort').addEventListener('change', e => { subsSort = e.target.value || 'recent'; renderSuscriptores(); });
   $('#subsRefresh') && $('#subsRefresh').addEventListener('click', () => { renderSuscriptores(); toast('Base actualizada', 'ok'); });
   $('#subsAdd') && $('#subsAdd').addEventListener('click', () => openSub(null));
   $('#subsDemo') && $('#subsDemo').addEventListener('click', () => {
@@ -1181,25 +1521,68 @@
     renderSuscriptores(); toast(wasNew ? 'Alta simulada añadida' : 'Ese contacto ya existía', wasNew ? 'ok' : 'info');
   });
   $('#subsExport') && $('#subsExport').addEventListener('click', () => {
-    const subs = getSubs().map(subNorm);
+    // Exporta la base completa, o solo el segmento filtrado (si hay filtro/búsqueda activos).
+    let subs = getSubs().map(subNorm);
     if (!subs.length) { toast('No hay suscriptores que exportar', 'err'); return; }
-    const head = ['Correo', 'Nombre', 'País', 'Medio', 'Web', 'Teléfono', 'Intereses', 'Etiquetas', 'Notas', 'Fecha', 'Origen'];
+    const seg = getActiveSegment();
+    const segLabel = seg ? (seg.kind + ': ' + seg.value) : '';
+    if (subsFilters.country) subs = subs.filter(s => s.country === subsFilters.country);
+    if (subsFilters.interest) subs = subs.filter(s => (s.interests || []).includes(subsFilters.interest));
+    if (subsFilters.q) {
+      const q = subsFilters.q.trim().toLowerCase();
+      subs = subs.filter(s => [s.name, s.email, s.outlet, countryLabel(s.country), s.country, s.phone, s.web, (s.interests || []).join(' ')].filter(Boolean).some(t => String(t).toLowerCase().includes(q)));
+    }
+    if (!subs.length) { toast('El filtro actual no tiene suscriptores', 'err'); return; }
+    subs = subsApplySort(subs);
+    const head = ['Nombre', 'Correo', 'Medio', 'Web', 'País', 'Teléfono', 'Intereses', 'Etiquetas', 'Notas', 'Origen', 'Segmento', 'Creado', 'Actualizado'];
     const escCsv = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-    const rows = subs.map(s => [s.email, s.name, s.country, s.outlet, s.web, s.phone, (s.interests || []).join(' · '), (s.tags || []).join(' · '), s.notes, s.date, s.source].map(escCsv).join(','));
+    const rows = subs.map(s => [
+      s.name, s.email, s.outlet, s.web, s.country, s.phone,
+      (s.interests || []).join(' · '), (s.tags || []).join(' · '), s.notes, s.source,
+      segLabel, (s.createdAt || s.date || ''), (s.updatedAt || ''),
+    ].map(escCsv).join(','));
     const csv = head.map(escCsv).join(',') + '\r\n' + rows.join('\r\n');
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    a.download = 'cabo-virgenes-suscriptores-' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.download = 'cabo-virgenes-suscriptores-' + (seg ? 'segmento-' : '') + new Date().toISOString().slice(0, 10) + '.csv';
     document.body.appendChild(a); a.click(); a.remove();
-    toast('CSV exportado', 'ok');
+    URL.revokeObjectURL(a.href);
+    toast(seg ? `CSV del segmento exportado (${subs.length})` : 'CSV exportado', 'ok');
   });
 
   // ============ EMPLEO ============
   let empTab = 'ofertas';
   let appFilterJob = '';
+  let appFilterStatus = '';   // '', new, reviewing, shortlist, rejected, hired
+  let appFilterStarred = false;
+  // Etiquetas de estado/prioridad (claves ↔ español).
+  const APP_STATUS = { new: 'Nueva', reviewing: 'En revisión', shortlist: 'Preseleccionada', rejected: 'Descartada', hired: 'Contratada' };
+  const APP_STATUS_ORDER = ['new', 'reviewing', 'shortlist', 'rejected', 'hired'];
+  const JOB_PRIORITY = { alta: 'Alta', media: 'Media', baja: 'Baja' };
+
+  // Tira de KPIs de Empleo (ofertas publicadas/total, candidaturas, nuevas).
+  function renderEmpKpis() {
+    const wrap = $('#empKpis'); if (!wrap) return;
+    const jobs = getJobs(), apps = getApps();
+    const offTotal = jobs.length;
+    const offPub = jobs.filter(j => (j.status || 'open') === 'open').length;
+    const appTotal = apps.length;
+    const appNew = apps.filter(a => !a.read).length;
+    const cards = [
+      ['briefcase', offPub + ' / ' + offTotal, 'Vacantes publicadas'],
+      ['users', String(appTotal), 'Candidaturas'],
+      ['sparkles', String(appNew), 'Nuevas'],
+    ];
+    wrap.innerHTML = cards.map(([ic, n, l]) =>
+      `<div class="kpi"><span class="kpi__ic" data-ico="${ic}"></span><div class="kpi__n">${esc(n)}</div><div class="kpi__l">${esc(l)}</div></div>`
+    ).join('');
+    hydrate();
+  }
+
   function renderEmpleo() {
     const s = getSettings();
     $('#jobsEnabled').checked = !!s.jobsEnabled;
+    renderEmpKpis();
     showEmpTab(empTab);
     refreshBadges();
     hydrate();
@@ -1229,9 +1612,17 @@
     if (!jobs.length) {
       grid.innerHTML = `<div class="news-empty"><span data-ico="briefcase" data-ico-size="42"></span><p>No hay ofertas todavía.<br>Crea la primera vacante.</p></div>`;
     } else {
-      grid.innerHTML = jobs.map(j => `
+      const appsByJob = {};
+      getApps().forEach(a => { const k = String(a.jobId || ''); if (k) appsByJob[k] = (appsByJob[k] || 0) + 1; });
+      grid.innerHTML = jobs.map(j => {
+        const prio = JOB_PRIORITY[j.priority] ? j.priority : 'media';
+        const reqs = Array.isArray(j.requirements) ? j.requirements.filter(Boolean) : [];
+        const tags = Array.isArray(j.tags) ? j.tags.filter(Boolean) : [];
+        const nApps = appsByJob[String(j.id)] || 0;
+        return `
         <article class="job-card ${j.status}" data-id="${j.id}">
           <div class="job-card__head">
+            <span class="job-prio job-prio--${prio}" title="Prioridad: ${esc(JOB_PRIORITY[prio])}" aria-label="Prioridad ${esc(JOB_PRIORITY[prio])}"></span>
             <span class="job-card__status ${j.status}">${j.status === 'open' ? 'Abierta' : 'Cerrada'}</span>
             ${j.type ? `<span class="job-card__type">${esc(JOB_TYPES[j.type] || j.type)}</span>` : ''}
           </div>
@@ -1241,12 +1632,16 @@
             ${j.location ? `<span><span data-ico="home" data-ico-size="14"></span> ${esc(j.location)}</span>` : ''}
           </div>
           <p class="job-card__summary">${esc(j.summary || '')}</p>
+          ${reqs.length ? `<ul class="job-card__reqs">${reqs.slice(0, 5).map(r => `<li>${esc(r)}</li>`).join('')}${reqs.length > 5 ? `<li class="job-card__reqs-more">+${reqs.length - 5} más…</li>` : ''}</ul>` : ''}
+          ${tags.length ? `<div class="job-card__tags">${tags.map(t => `<span class="chip">${esc(t)}</span>`).join('')}</div>` : ''}
           <div class="job-card__foot">
+            ${nApps ? `<span class="job-card__apps" title="Candidaturas recibidas"><span data-ico="users" data-ico-size="12"></span> ${nApps}</span>` : ''}
             <button class="icon-btn" data-job-edit="${j.id}" title="Editar"><span data-ico="pencil"></span></button>
             <button class="icon-btn" data-job-toggle="${j.id}" title="${j.status === 'open' ? 'Cerrar oferta' : 'Reabrir oferta'}"><span data-ico="${j.status === 'open' ? 'eye-off' : 'eye'}"></span></button>
             <button class="icon-btn danger" data-job-del="${j.id}" title="Eliminar" style="margin-left:auto"><span data-ico="trash-2"></span></button>
           </div>
-        </article>`).join('');
+        </article>`;
+      }).join('');
     }
     hydrate();
   }
@@ -1259,6 +1654,9 @@
     $('#jbLocation').value = j ? (j.location || '') : '';
     $('#jbType').value = j ? (j.type || 'full-time') : 'full-time';
     $('#jbStatus').value = j ? (j.status || 'open') : 'open';
+    $('#jbPriority').value = (j && JOB_PRIORITY[j.priority]) ? j.priority : 'media';
+    $('#jbTags').value = j && Array.isArray(j.tags) ? j.tags.join(', ') : '';
+    $('#jbRequirements').value = j && Array.isArray(j.requirements) ? j.requirements.join('\n') : '';
     $('#jbSummary').value = j ? (j.summary || '') : '';
     $('#jbBody').value = j ? (j.body || '') : '';
     const m = $('#jobModal'); m.classList.add('open'); m.setAttribute('aria-hidden', 'false'); hydrate();
@@ -1271,25 +1669,35 @@
     const data = {
       title, area: $('#jbArea').value.trim(), location: $('#jbLocation').value.trim(),
       type: $('#jbType').value, status: $('#jbStatus').value,
+      priority: JOB_PRIORITY[$('#jbPriority').value] ? $('#jbPriority').value : 'media',
+      tags: $('#jbTags').value.split(',').map(s => s.trim()).filter(Boolean),
+      requirements: $('#jbRequirements').value.split('\n').map(s => s.trim()).filter(Boolean),
       summary: $('#jbSummary').value.trim(), body: $('#jbBody').value.trim(),
     };
-    if (id) { const i = jobs.findIndex(x => x.id === id); if (i >= 0) jobs[i] = Object.assign(jobs[i], data); }
-    else { data.id = uid(); data.date = new Date().toISOString(); jobs.push(data); }
-    setJobs(jobs); closeModal($('#jobModal')); renderJobs(); toast('Oferta guardada', 'ok');
+    if (id) {
+      const i = jobs.findIndex(x => x.id === id);
+      if (i >= 0) { logAudit('jobs', title, jobs[i].title || '∅', 'Editada'); jobs[i] = Object.assign(jobs[i], data); }
+    } else {
+      data.id = uid(); data.date = new Date().toISOString(); jobs.push(data);
+      logAudit('jobs', title, '∅', 'Creada');
+    }
+    setJobs(jobs); closeModal($('#jobModal')); renderEmpKpis(); renderJobs(); toast('Oferta guardada', 'ok');
   });
   $('#jobGrid') && $('#jobGrid').addEventListener('click', async e => {
     const ed = e.target.closest('[data-job-edit]'); if (ed) return openJob(ed.dataset.jobEdit);
     const tg = e.target.closest('[data-job-toggle]');
     if (tg) {
       const jobs = getJobs(); const j = jobs.find(x => x.id === tg.dataset.jobToggle);
-      if (j) { j.status = j.status === 'open' ? 'closed' : 'open'; setJobs(jobs); renderJobs(); toast(j.status === 'open' ? 'Oferta reabierta' : 'Oferta cerrada'); }
+      if (j) { const was = j.status; j.status = j.status === 'open' ? 'closed' : 'open'; setJobs(jobs); logAudit('jobs', j.title, was === 'open' ? 'Abierta' : 'Cerrada', j.status === 'open' ? 'Abierta' : 'Cerrada'); renderEmpKpis(); renderJobs(); toast(j.status === 'open' ? 'Oferta reabierta' : 'Oferta cerrada'); }
       return;
     }
     const dl = e.target.closest('[data-job-del]');
     if (dl) {
       if (!await confirmDialog('Eliminar oferta', '¿Eliminar esta oferta de empleo?')) return;
+      const j = getJobs().find(x => x.id === dl.dataset.jobDel);
       setJobs(getJobs().filter(x => x.id !== dl.dataset.jobDel));
-      renderJobs(); toast('Oferta eliminada');
+      if (j) logAudit('jobs', j.title, 'Existía', 'Eliminada');
+      renderEmpKpis(); renderJobs(); toast('Oferta eliminada');
     }
   });
 
@@ -1301,59 +1709,167 @@
     sel.innerHTML = '<option value="">Todas las ofertas</option>' + getJobs().map(j => `<option value="${esc(j.id)}">${esc(j.title)}</option>`).join('');
     sel.value = cur;
   }
+  // Estado normalizado de una candidatura (compat: sin status = 'new').
+  function appStatusOf(a) { return APP_STATUS[a && a.status] ? a.status : 'new'; }
+  // Aplica filtros (oferta/estado/destacadas) y ordena: destacadas primero, luego por fecha.
+  function filteredApps() {
+    let list = getApps().slice();
+    if (appFilterJob) list = list.filter(a => String(a.jobId || '') === String(appFilterJob));
+    if (appFilterStatus) list = list.filter(a => appStatusOf(a) === appFilterStatus);
+    if (appFilterStarred) list = list.filter(a => !!a.starred);
+    list.sort((a, b) => {
+      if (!!b.starred !== !!a.starred) return b.starred ? 1 : -1;
+      return (b.date || '').localeCompare(a.date || '');
+    });
+    return list;
+  }
+  // Persiste un cambio puntual en una candidatura (estado/destacar) + auditoría.
+  function appUpdate(id, patch, auditLabel) {
+    const apps = getApps(); const i = apps.findIndex(x => x.id === id); if (i < 0) return null;
+    const before = auditLabel ? auditLabel.before(apps[i]) : null;
+    apps[i] = Object.assign({}, apps[i], patch);
+    setApps(apps);
+    if (auditLabel) logAudit('apps', apps[i].name || apps[i].email || id, before, auditLabel.after(apps[i]));
+    return apps[i];
+  }
   function renderApps() {
     populateAppFilter();
-    const all = getApps().slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-    const apps = appFilterJob ? all.filter(a => a.jobId === appFilterJob) : all;
+    const apps = filteredApps();
     $('#appCount').textContent = apps.length;
     const ac = $('#appsCount');
     const newCount = getApps().filter(a => !a.read).length;
     if (ac) { ac.hidden = newCount === 0; ac.textContent = newCount; }
+    const sf = $('#appStatusFilter'); if (sf && sf.value !== appFilterStatus) sf.value = appFilterStatus;
+    const stf = $('#appStarFilter'); if (stf) { stf.classList.toggle('is-active', appFilterStarred); stf.setAttribute('aria-pressed', appFilterStarred ? 'true' : 'false'); }
     const box = $('#appList');
-    if (!apps.length) {
+    if (!getApps().length) {
       box.innerHTML = `<div class="news-empty"><span data-ico="inbox" data-ico-size="42"></span><p>No hay candidaturas todavía.</p></div>`;
+    } else if (!apps.length) {
+      box.innerHTML = `<div class="news-empty"><span data-ico="filter" data-ico-size="42"></span><p>Ninguna candidatura coincide con el filtro.</p></div>`;
     } else {
-      box.innerHTML = apps.map(a => `
-        <div class="app-row ${a.read ? '' : 'is-unread'}" data-id="${a.id}">
+      box.innerHTML = apps.map(a => {
+        const st = appStatusOf(a);
+        return `
+        <div class="app-row ${a.read ? '' : 'is-unread'}${a.starred ? ' is-starred' : ''}" data-id="${a.id}">
+          <button class="app-row__star${a.starred ? ' is-on' : ''}" data-app-star="${a.id}" title="${a.starred ? 'Quitar destacado' : 'Destacar'}" aria-pressed="${a.starred ? 'true' : 'false'}"><span data-ico="star" data-ico-size="15"></span></button>
           <div class="app-row__av">${esc((a.name || '?').charAt(0).toUpperCase())}</div>
           <div class="app-row__main">
             <div class="app-row__top">
               <span class="app-row__name">${esc(a.name || 'Candidato')}</span>
               <span class="app-row__job">${esc(jobTitleById(a.jobId))}</span>
+              <span class="app-status app-status--${st}">${esc(APP_STATUS[st])}</span>
               <span class="app-row__date">${esc(a.date ? new Date(a.date).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }) : '')}</span>
             </div>
             <span class="app-row__email">${esc(a.email || '')}</span>
           </div>
           <button class="icon-btn app-row__open" data-app-open="${a.id}" title="Ver candidatura"><span data-ico="external-link"></span></button>
-        </div>`).join('');
+        </div>`;
+      }).join('');
     }
     refreshBadges();
     hydrate();
   }
   $('#appFilter') && $('#appFilter').addEventListener('change', e => { appFilterJob = e.target.value; renderApps(); });
+  $('#appStatusFilter') && $('#appStatusFilter').addEventListener('change', e => { appFilterStatus = e.target.value; renderApps(); });
+  $('#appStarFilter') && $('#appStarFilter').addEventListener('click', () => { appFilterStarred = !appFilterStarred; renderApps(); });
+  // Exportar candidaturas (filtradas) a CSV.
+  $('#appExport') && $('#appExport').addEventListener('click', () => {
+    const apps = filteredApps();
+    if (!apps.length) { toast('No hay candidaturas que exportar', 'err'); return; }
+    const head = ['Nombre', 'Email', 'Teléfono', 'Puesto', 'Estado', 'Destacada', 'Mensaje', 'Fecha'];
+    const escCsv = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const rows = apps.map(a => [
+      a.name, a.email, a.phone, jobTitleById(a.jobId),
+      APP_STATUS[appStatusOf(a)], a.starred ? 'Sí' : 'No',
+      a.message, a.date ? fmtTime(a.date) : '',
+    ].map(escCsv).join(','));
+    const csv = head.map(escCsv).join(',') + '\r\n' + rows.join('\r\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
+    link.download = 'cabo-virgenes-candidaturas-' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(link); link.click(); link.remove();
+    toast('CSV exportado', 'ok');
+  });
+  let appCurrentId = '';
+  function syncAppStarBtn(starred) {
+    const b = $('#apStar'); if (!b) return;
+    b.classList.toggle('is-on', !!starred);
+    b.setAttribute('aria-pressed', starred ? 'true' : 'false');
+    const t = $('#apStarTxt'); if (t) t.textContent = starred ? 'Destacada' : 'Destacar';
+  }
   function openApplication(id) {
     const apps = getApps(); const a = apps.find(x => x.id === id); if (!a) return;
+    appCurrentId = id;
     if (!a.read) { a.read = true; setApps(apps); }
     $('#apName').textContent = a.name || '—';
     $('#apEmail').textContent = a.email || '—';
     $('#apPhone').textContent = a.phone || '—';
     $('#apJob').textContent = jobTitleById(a.jobId);
+    const dt = $('#apDate'); if (dt) dt.textContent = a.date ? fmtTime(a.date) : '—';
     $('#apMessage').textContent = a.message || '—';
+    const sel = $('#apStatus'); if (sel) sel.value = appStatusOf(a);
+    syncAppStarBtn(a.starred);
     const wrap = $('#apCvWrap'), cv = $('#apCv');
-    if (a.cv) { wrap.hidden = false; cv.innerHTML = `<a href="${esc(a.cv)}" target="_blank" rel="noopener" class="btn btn--ghost btn--sm"><span class="ar" data-ico="file-text"></span> Ver / descargar CV</a>`; }
-    else { wrap.hidden = true; cv.innerHTML = '—'; }
+    // El público guarda cvData (base64) + cv (nombre de archivo).
+    const cvData = a.cvData || (typeof a.cv === 'string' && a.cv.indexOf('data:') === 0 ? a.cv : '');
+    const cvName = (a.cv && a.cv.indexOf('data:') !== 0) ? a.cv : 'cv-' + (a.name || 'candidato').replace(/\s+/g, '-').toLowerCase();
+    if (cvData) {
+      wrap.hidden = false;
+      cv.innerHTML = `<button type="button" class="btn btn--ghost btn--sm" id="apCvDownload"><span class="ar" data-ico="download"></span> Descargar CV${a.cv ? ' (' + esc(a.cv) + ')' : ''}</button>`;
+      const btn = $('#apCvDownload');
+      btn && btn.addEventListener('click', () => downloadCv(cvData, cvName));
+    } else if (a.cv) {
+      // Compat: sólo nombre, sin datos (candidatura antigua).
+      wrap.hidden = false;
+      cv.innerHTML = `<span class="app-cv__name"><span class="ar" data-ico="file-text"></span> ${esc(a.cv)} <em>(sin archivo adjunto)</em></span>`;
+    } else { wrap.hidden = true; cv.innerHTML = '—'; }
     $('#appDelete').dataset.id = id;
     const m = $('#applicationModal'); m.classList.add('open'); m.setAttribute('aria-hidden', 'false');
-    renderApps(); hydrate();
+    renderApps(); renderEmpKpis(); hydrate();
   }
+  // Descarga el CV (dataURL base64) como blob con el nombre original.
+  function downloadCv(dataUrl, fname) {
+    try {
+      const link = document.createElement('a');
+      link.href = dataUrl; link.download = fname || 'cv';
+      document.body.appendChild(link); link.click(); link.remove();
+      toast('Descargando CV…', 'ok');
+    } catch (_) { toast('No se pudo descargar el CV', 'err'); }
+  }
+  // Cambio de estado dentro del modal (persistente + auditoría).
+  $('#apStatus') && $('#apStatus').addEventListener('change', e => {
+    if (!appCurrentId) return;
+    appUpdate(appCurrentId, { status: e.target.value }, { before: a => APP_STATUS[appStatusOf(a)], after: a => APP_STATUS[appStatusOf(a)] });
+    renderApps(); toast('Estado actualizado', 'ok');
+  });
+  // Destacar/quitar destacado desde el modal.
+  $('#apStar') && $('#apStar').addEventListener('click', () => {
+    if (!appCurrentId) return;
+    const a = getApps().find(x => x.id === appCurrentId); if (!a) return;
+    const next = !a.starred;
+    appUpdate(appCurrentId, { starred: next }, { before: () => a.starred ? 'Destacada' : 'Normal', after: () => next ? 'Destacada' : 'Normal' });
+    syncAppStarBtn(next); renderApps();
+  });
   $('#appList') && $('#appList').addEventListener('click', e => {
+    const star = e.target.closest('[data-app-star]');
+    if (star) {
+      e.stopPropagation();
+      const id = star.dataset.appStar; const a = getApps().find(x => x.id === id); if (!a) return;
+      const next = !a.starred;
+      appUpdate(id, { starred: next }, { before: () => a.starred ? 'Destacada' : 'Normal', after: () => next ? 'Destacada' : 'Normal' });
+      if (appCurrentId === id) syncAppStarBtn(next);
+      renderApps(); return;
+    }
     const op = e.target.closest('[data-app-open]'); if (op) return openApplication(op.dataset.appOpen);
     const row = e.target.closest('.app-row'); if (row) return openApplication(row.dataset.id);
   });
   $('#appDelete') && $('#appDelete').addEventListener('click', async e => {
     const id = e.currentTarget.dataset.id; if (!id) return;
     if (!await confirmDialog('Eliminar candidatura', '¿Eliminar esta candidatura definitivamente?')) return;
-    setApps(getApps().filter(x => x.id !== id)); closeModal($('#applicationModal')); renderApps(); toast('Candidatura eliminada');
+    const a = getApps().find(x => x.id === id);
+    setApps(getApps().filter(x => x.id !== id));
+    if (a) logAudit('apps', a.name || a.email || id, 'Existía', 'Eliminada');
+    appCurrentId = ''; closeModal($('#applicationModal')); renderEmpKpis(); renderApps(); toast('Candidatura eliminada');
   });
 
   // ============ AJUSTES ============
@@ -1770,9 +2286,92 @@
     costa:   { label: 'Costa — teal sobre papel', bg: '#e9f3f3', paper: '#ffffff', ink: '#0b1a2c', accent: '#1cb5b0', soft: '#0fa6a0' },
     sobrio:  { label: 'Sobrio — minimalista', bg: '#f4f5f6', paper: '#ffffff', ink: '#1a1a1a', accent: '#6b7a8a', soft: '#22303f' },
   };
+  // Presets de contenido (rellenan el compositor; heurística local, sin IA/backend).
+  // {fill} recibe el estado y devuelve {subject, intro, template, autoItems}.
+  const BN_PRESETS = {
+    digest: {
+      label: 'Digest mensual',
+      build() {
+        const mes = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+        return {
+          subject: 'Novedades de Cabo Vírgenes — ' + mes.charAt(0).toUpperCase() + mes.slice(1),
+          intro: 'Hola,\n\nEste es el resumen de novedades de Cabo Vírgenes. Repasamos lo más destacado del mes en la operación pesquera, la flota y nuestra estructura binacional Argentina–España.',
+          template: 'clasico', autoItems: 4,
+        };
+      },
+    },
+    anuncio: {
+      label: 'Anuncio',
+      build() {
+        return {
+          subject: 'Anuncio importante de Cabo Vírgenes',
+          intro: 'Hola,\n\nQueremos compartir contigo una novedad importante. A continuación encontrarás todos los detalles.',
+          template: 'costa', autoItems: 1,
+        };
+      },
+    },
+    bienvenida: {
+      label: 'Bienvenida',
+      build() {
+        return {
+          subject: 'Bienvenido/a al boletín de Cabo Vírgenes',
+          intro: 'Hola,\n\n¡Gracias por suscribirte! A partir de ahora recibirás nuestras novedades sobre la pesca del langostino austral, la flota y nuestra plataforma en Argentina y España.\n\nUn saludo,\nEquipo de Cabo Vírgenes',
+          template: 'costa', autoItems: 0,
+        };
+      },
+    },
+    carta: {
+      label: 'Carta breve',
+      build() {
+        return {
+          subject: 'Una nota breve de Cabo Vírgenes',
+          intro: 'Hola,\n\nTe escribimos con una breve actualización. Gracias por tu interés y tu confianza en Cabo Vírgenes.\n\nUn cordial saludo.',
+          template: 'sobrio', autoItems: 0,
+        };
+      },
+    },
+  };
+  // Etiquetas legibles de segmento (interés ya es libre; país usa countryLabel).
+  function bnAudLabel(a) {
+    a = a || { mode: 'all' };
+    if (a.mode === 'interest') return 'Interés: ' + (a.value || '—');
+    if (a.mode === 'country') return 'País: ' + countryLabel(a.value);
+    return 'Todos';
+  }
+  // Suscriptores que coinciden con un segmento {mode, value}.
+  function bnAudienceList(a) {
+    a = a || { mode: 'all' };
+    const subs = getSubs().map(subNorm);
+    if (a.mode === 'interest') return subs.filter(s => (s.interests || []).includes(a.value));
+    if (a.mode === 'country') return subs.filter(s => String(s.country || '') === String(a.value));
+    return subs;
+  }
   // Estado del compositor (en memoria; el historial vive en cv_newsletters)
-  let bnDraft = { subject: '', intro: '', template: 'clasico', items: [] };
+  let bnDraft = { subject: '', intro: '', template: 'clasico', items: [], audience: { mode: 'all', value: '' } };
   let bnBound = false;
+  let bnDevice = 'desktop';
+  const BN_DRAFT_KEY = 'cv_newsletter_draft';
+  let bnDraftStateT = null;
+  // ---- Persistencia de borrador (localStorage, no perder cambios) ----
+  function bnLoadDraft() {
+    const d = read(BN_DRAFT_KEY, null);
+    if (d && typeof d === 'object') {
+      bnDraft = {
+        subject: d.subject || '', intro: d.intro || '',
+        template: BN_TEMPLATES[d.template] ? d.template : 'clasico',
+        items: Array.isArray(d.items) ? d.items : [],
+        audience: (d.audience && d.audience.mode) ? d.audience : { mode: 'all', value: '' },
+      };
+    }
+  }
+  function bnSaveDraft() {
+    bnStashDraft();
+    write(BN_DRAFT_KEY, bnDraft);
+    const el = $('#bnDraftState');
+    if (el) { el.hidden = false; el.classList.add('is-shown'); clearTimeout(bnDraftStateT); bnDraftStateT = setTimeout(() => el.classList.remove('is-shown'), 1600); }
+  }
+  const bnSaveDraftDebounced = debounce(bnSaveDraft, 500);
+  function bnClearDraft() { try { localStorage.removeItem(BN_DRAFT_KEY); } catch (_) {} }
 
   function bnPublishedNews() {
     return getNews()
@@ -1781,18 +2380,57 @@
       .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   }
 
+  let bnDraftLoaded = false;
   function renderBoletines() {
+    if (!bnDraftLoaded) { bnLoadDraft(); bnDraftLoaded = true; }
     bindBoletines();
     // limpia ids de noticias que ya no existan / no estén publicadas
     const valid = new Set(bnPublishedNews().map(n => n.id));
     bnDraft.items = (bnDraft.items || []).filter(id => valid.has(id));
+    if (!bnDraft.audience || !bnDraft.audience.mode) bnDraft.audience = { mode: 'all', value: '' };
     if ($('#bnSubject')) $('#bnSubject').value = bnDraft.subject || '';
     if ($('#bnIntro')) $('#bnIntro').value = bnDraft.intro || '';
     if ($('#bnTemplate')) $('#bnTemplate').value = bnDraft.template || 'clasico';
     renderBnNewsPick();
+    renderBnSegments();
     renderBnAudience();
     renderBnHistory();
     hydrate();
+  }
+
+  // ---- Segmentación de audiencia: chips por interés / país / todos ----
+  function renderBnSegments() {
+    const subs = getSubs().map(subNorm);
+    const stats = calcSubsStats(subs);
+    const a = bnDraft.audience || { mode: 'all', value: '' };
+    // "Todos"
+    const allBox = $('#bnSegAll');
+    if (allBox) {
+      allBox.innerHTML = `<button type="button" class="bn-seg-chip${a.mode === 'all' ? ' is-active' : ''}" data-seg-mode="all" data-seg-value="">Todos <span class="bn-seg-chip__n">${subs.length}</span></button>`;
+    }
+    // Por interés
+    const iBox = $('#bnSegInterest');
+    if (iBox) {
+      const list = (stats.byInterest || []);
+      iBox.innerHTML = list.length
+        ? list.map(f => `<button type="button" class="bn-seg-chip${a.mode === 'interest' && a.value === f.value ? ' is-active' : ''}" data-seg-mode="interest" data-seg-value="${esc(f.value)}">${esc(f.value)} <span class="bn-seg-chip__n">${f.count}</span></button>`).join('')
+        : `<span class="bn-seg__empty">Sin intereses registrados.</span>`;
+    }
+    // Por país
+    const cBox = $('#bnSegCountry');
+    if (cBox) {
+      const list = (stats.byCountry || []);
+      cBox.innerHTML = list.length
+        ? list.map(f => `<button type="button" class="bn-seg-chip${a.mode === 'country' && a.value === f.value ? ' is-active' : ''}" data-seg-mode="country" data-seg-value="${esc(f.value)}">${esc(countryLabel(f.value))} <span class="bn-seg-chip__n">${f.count}</span></button>`).join('')
+        : `<span class="bn-seg__empty">Sin países registrados.</span>`;
+    }
+    hydrate();
+  }
+  function bnSetAudience(mode, value) {
+    bnDraft.audience = { mode: mode || 'all', value: mode === 'all' ? '' : (value || '') };
+    renderBnSegments();
+    renderBnAudience();
+    bnSaveDraft();
   }
 
   function renderBnNewsPick() {
@@ -1818,8 +2456,11 @@
   }
 
   function renderBnAudience() {
-    const subs = getSubs().map(subNorm);
-    const el = $('#bnAudCount'); if (el) el.textContent = subs.length;
+    const a = bnDraft.audience || { mode: 'all', value: '' };
+    const n = bnAudienceList(a).length;
+    const el = $('#bnAudCount'); if (el) el.textContent = n;
+    const lbl = $('#bnAudLbl');
+    if (lbl) lbl.textContent = a.mode === 'all' ? 'destinatarios' : ('destinatarios · ' + bnAudLabel(a));
   }
 
   function bnSelectedNews() {
@@ -1905,8 +2546,50 @@
     const html = bnRenderHTML();
     const frame = $('#bnPreviewFrame');
     if (frame) frame.srcdoc = html;
+    bnSetDevice(bnDevice);
     const m = $('#bnPreviewModal'); if (m) { m.classList.add('open'); m.setAttribute('aria-hidden', 'false'); }
     hydrate();
+  }
+
+  // ---- Preview por dispositivo (desktop 600 / tablet 768 / mobile 320) ----
+  function bnSetDevice(dev) {
+    bnDevice = (['desktop', 'tablet', 'mobile'].indexOf(dev) >= 0) ? dev : 'desktop';
+    const stage = $('#bnStage'); if (stage) stage.dataset.dev = bnDevice;
+    $$('#bnDev [data-dev]').forEach(b => b.classList.toggle('is-active', b.dataset.dev === bnDevice));
+  }
+
+  // ---- Aplicar plantilla / preset al compositor ----
+  function bnApplyPreset(key) {
+    const p = BN_PRESETS[key]; if (!p) return;
+    const data = p.build();
+    bnStashDraft();
+    bnDraft.subject = data.subject || bnDraft.subject;
+    bnDraft.intro = data.intro || bnDraft.intro;
+    bnDraft.template = BN_TEMPLATES[data.template] ? data.template : bnDraft.template;
+    // Autoselección de las N noticias publicadas más recientes (si el preset lo pide).
+    if (typeof data.autoItems === 'number') {
+      bnDraft.items = bnPublishedNews().slice(0, data.autoItems).map(n => n.id);
+    }
+    if ($('#bnSubject')) $('#bnSubject').value = bnDraft.subject;
+    if ($('#bnIntro')) $('#bnIntro').value = bnDraft.intro;
+    if ($('#bnTemplate')) $('#bnTemplate').value = bnDraft.template;
+    renderBnNewsPick();
+    bnSaveDraft();
+    $$('#bnPresets [data-preset]').forEach(b => b.classList.toggle('is-active', b.dataset.preset === key));
+    toast('Plantilla «' + p.label + '» aplicada. Revisa y ajusta el contenido.', 'ok');
+  }
+
+  // ---- Email de prueba (sin backend: confirma y registra el "envío de prueba") ----
+  async function bnTest() {
+    bnStashDraft();
+    const inp = $('#bnTestEmail'); const to = inp ? inp.value.trim() : '';
+    if (!to || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) { toast('Escribe un email de prueba válido', 'err'); if (inp) inp.focus(); return; }
+    const subject = (bnDraft.subject || '').trim() || 'Boletín de Cabo Vírgenes';
+    const ok = await confirmDialog('Enviar prueba', `Este sitio es estático y no envía correo real. Se preparará una prueba de «${subject}» para ${to}: copia el HTML del boletín y envíalo desde tu plataforma de correo, o usa «Abrir en cliente de correo». ¿Copiar el HTML al portapapeles ahora?`);
+    if (!ok) return;
+    bnCopyHtml();
+    logAudit('settings', 'boletín', '∅', 'Prueba preparada para ' + to);
+    toast('Prueba lista: HTML copiado para enviar a ' + to, 'ok');
   }
 
   // ---- Copiar HTML al portapapeles ----
@@ -1927,8 +2610,8 @@
 
   // ---- Exportar destinatarios (CSV) ----
   function bnExportDest() {
-    const subs = getSubs().map(subNorm);
-    if (!subs.length) { toast('No hay suscriptores que exportar', 'err'); return; }
+    const subs = bnAudienceList(bnDraft.audience);
+    if (!subs.length) { toast('No hay destinatarios en este segmento', 'err'); return; }
     const head = ['Correo', 'Nombre', 'País', 'Intereses'];
     const escCsv = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
     const rows = subs.map(s => [s.email, s.name, s.country, (s.interests || []).join(' · ')].map(escCsv).join(','));
@@ -1944,7 +2627,7 @@
   // ---- Abrir cliente de correo (mailto, destinatarios en BCC) ----
   function bnMailto() {
     bnStashDraft();
-    const subs = getSubs().map(subNorm).map(s => s.email).filter(Boolean);
+    const subs = bnAudienceList(bnDraft.audience).map(s => s.email).filter(Boolean);
     const subject = bnDraft.subject || 'Boletín de Cabo Vírgenes';
     const body = (bnDraft.intro || '') + '\n\n[Pega aquí el contenido del boletín o usa «Copiar HTML».]\n';
     const bcc = subs.slice(0, 50).join(',');
@@ -1958,12 +2641,13 @@
     bnStashDraft();
     const subject = (bnDraft.subject || '').trim();
     if (!subject) { toast('Pon un asunto para el boletín', 'err'); if ($('#bnSubject')) $('#bnSubject').focus(); return; }
-    const subs = getSubs().map(subNorm);
+    const aud = bnDraft.audience || { mode: 'all', value: '' };
+    const subs = bnAudienceList(aud);
     if (!subs.length) {
-      if (!await confirmDialog('Sin suscriptores', 'No hay suscriptores en la base. ¿Registrar el envío de todos modos (0 destinatarios)?')) return;
+      if (!await confirmDialog('Sin destinatarios', 'No hay destinatarios en este segmento. ¿Registrar el envío de todos modos (0 destinatarios)?')) return;
     }
     const news = bnSelectedNews();
-    if (!await confirmDialog('Registrar envío', `Se registrará el boletín «${subject}» para ${subs.length} destinatario(s). No se envía correo real: descarga el CSV de destinatarios o copia el HTML para enviarlo desde tu plataforma. ¿Continuar?`)) return;
+    if (!await confirmDialog('Registrar envío', `Se registrará el boletín «${subject}» para ${subs.length} destinatario(s) (${bnAudLabel(aud)}). No se envía correo real: descarga el CSV de destinatarios o copia el HTML para enviarlo desde tu plataforma. ¿Continuar?`)) return;
     const rec = {
       id: uid(),
       subject,
@@ -1971,16 +2655,20 @@
       template: bnDraft.template || 'clasico',
       date: new Date().toISOString(),
       recipientCount: subs.length,
+      audience: { mode: aud.mode, value: aud.value || '' },
       items: news.map(n => ({ id: n.id, title: n.title })),
       html: bnRenderHTML(),
     };
     const list = getNewsletters(); list.unshift(rec); setNewsletters(list);
-    logAudit('settings', 'boletín', '∅', 'Enviado: ' + subject);
-    // limpia el compositor tras registrar
-    bnDraft = { subject: '', intro: '', template: bnDraft.template, items: [] };
+    logAudit('settings', 'boletín', '∅', 'Enviado: ' + subject + ' · ' + bnAudLabel(aud));
+    // limpia el compositor tras registrar (incluido el borrador persistido)
+    bnDraft = { subject: '', intro: '', template: bnDraft.template, items: [], audience: { mode: 'all', value: '' } };
+    bnClearDraft();
     if ($('#bnSubject')) $('#bnSubject').value = '';
     if ($('#bnIntro')) $('#bnIntro').value = '';
     renderBnNewsPick();
+    renderBnSegments();
+    renderBnAudience();
     renderBnHistory();
     toast('Boletín registrado. Exporta los destinatarios o copia el HTML para enviarlo.', 'ok');
   }
@@ -1997,11 +2685,13 @@
     box.innerHTML = list.map(b => {
       const items = (b.items || []).length;
       const tmpl = (BN_TEMPLATES[b.template] || {}).label || b.template || '';
+      const aud = bnAudLabel(b.audience);
       return `<article class="bn-hrow" data-id="${esc(b.id)}">
         <span class="bn-hrow__ic" data-ico="send" data-ico-size="18"></span>
         <div class="bn-hrow__b">
           <span class="bn-hrow__subj">${esc(b.subject || 'Sin asunto')}</span>
           <span class="bn-hrow__meta">${esc(fmtTime(b.date))} · ${b.recipientCount || 0} destinatario(s) · ${items} noticia(s)${tmpl ? ' · ' + esc(tmpl) : ''}</span>
+          <span class="bn-hrow__tags"><span class="bn-hrow__aud"><span data-ico="users" data-ico-size="11"></span>${esc(aud)}</span></span>
         </div>
         <div class="bn-hrow__act">
           <button type="button" class="icon-btn" data-bn-view="${esc(b.id)}" title="Ver HTML"><span data-ico="eye"></span></button>
@@ -2033,9 +2723,9 @@
   // ---- Bindings (una sola vez) ----
   function bindBoletines() {
     if (bnBound) return; bnBound = true;
-    const subj = $('#bnSubject'); if (subj) subj.addEventListener('input', () => { bnDraft.subject = subj.value; });
-    const intro = $('#bnIntro'); if (intro) intro.addEventListener('input', () => { bnDraft.intro = intro.value; });
-    const tpl = $('#bnTemplate'); if (tpl) tpl.addEventListener('change', () => { bnDraft.template = tpl.value; });
+    const subj = $('#bnSubject'); if (subj) subj.addEventListener('input', () => { bnDraft.subject = subj.value; bnSaveDraftDebounced(); });
+    const intro = $('#bnIntro'); if (intro) intro.addEventListener('input', () => { bnDraft.intro = intro.value; bnSaveDraftDebounced(); });
+    const tpl = $('#bnTemplate'); if (tpl) tpl.addEventListener('change', () => { bnDraft.template = tpl.value; bnSaveDraft(); });
 
     const pick = $('#bnNewsPick');
     if (pick) pick.addEventListener('change', e => {
@@ -2046,7 +2736,31 @@
       bnDraft.items = Array.from(set);
       const row = cb.closest('.bn-pick'); if (row) row.classList.toggle('is-on', cb.checked);
       const cnt = $('#bnPickCount'); if (cnt) cnt.textContent = bnDraft.items.length;
+      bnSaveDraft();
     });
+
+    // Plantillas rápidas (presets)
+    const presets = $('#bnPresets');
+    if (presets) presets.addEventListener('click', e => {
+      const b = e.target.closest('[data-preset]'); if (!b) return; bnApplyPreset(b.dataset.preset);
+    });
+
+    // Segmentación de audiencia (chips: todos / interés / país)
+    ['#bnSegAll', '#bnSegInterest', '#bnSegCountry'].forEach(sel => {
+      const box = $(sel);
+      if (box) box.addEventListener('click', e => {
+        const b = e.target.closest('[data-seg-mode]'); if (!b) return;
+        bnSetAudience(b.dataset.segMode, b.dataset.segValue || '');
+      });
+    });
+
+    // Email de prueba
+    const tb = $('#bnTestBtn'); if (tb) tb.addEventListener('click', bnTest);
+    const te = $('#bnTestEmail'); if (te) te.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); bnTest(); } });
+
+    // Preview por dispositivo
+    const dev = $('#bnDev');
+    if (dev) dev.addEventListener('click', e => { const b = e.target.closest('[data-dev]'); if (b) bnSetDevice(b.dataset.dev); });
 
     const pv = $('#bnPreviewBtn'); if (pv) pv.addEventListener('click', bnOpenPreview);
     const send = $('#bnSendBtn'); if (send) send.addEventListener('click', bnSend);
