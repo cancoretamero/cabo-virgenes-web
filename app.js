@@ -836,8 +836,10 @@ document.querySelectorAll('.pm-gallery .pm-thumbs img').forEach(thumb => {
   });
 })();
 
-// ============ AI CHATBOT (LLM real Qwen2 + KB fallback) ============
-const AI_CHAT_ENDPOINT = 'https://rendering-totally-production-looksmart.trycloudflare.com/chat';
+// ============ AI CHATBOT (Claude vía Netlify Function + KB fallback) ============
+// /api/chatbot → netlify/functions/chatbot.mjs (necesita ANTHROPIC_API_KEY en
+// Netlify). Si no responde (no configurado / local sin functions), cae a la KB.
+const AI_CHAT_ENDPOINT = '/api/chatbot';
 const aiChatBtn = document.getElementById('aiChatBtn');
 const aiChat = document.getElementById('aiChat');
 const aiChatClose = document.getElementById('aiChatClose');

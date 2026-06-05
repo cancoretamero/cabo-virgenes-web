@@ -1,13 +1,45 @@
 [build]
   publish = "."
   command = "echo 'No build step - static site'"
+  functions = "netlify/functions"
   ignore = "/bin/false"
 
-# Skip dependency installation: site is 100% static HTML/CSS/JS
 [build.environment]
   NETLIFY_USE_YARN = "false"
-  NPM_FLAGS = "--production=true --ignore-scripts"
   NODE_VERSION = "20"
+
+[functions]
+  node_bundler = "esbuild"
+
+# ── Endpoints bonitos /api/* → Netlify Functions ──────────────────────────
+[[redirects]]
+  from = "/api/chatbot"
+  to = "/.netlify/functions/chatbot"
+  status = 200
+[[redirects]]
+  from = "/api/ai"
+  to = "/.netlify/functions/ai"
+  status = 200
+[[redirects]]
+  from = "/api/auth"
+  to = "/.netlify/functions/auth"
+  status = 200
+[[redirects]]
+  from = "/api/subscribers"
+  to = "/.netlify/functions/subscribers"
+  status = 200
+[[redirects]]
+  from = "/api/consultas"
+  to = "/.netlify/functions/consultas"
+  status = 200
+[[redirects]]
+  from = "/api/newsletters"
+  to = "/.netlify/functions/newsletters"
+  status = 200
+[[redirects]]
+  from = "/api/jobs"
+  to = "/.netlify/functions/jobs"
+  status = 200
 
 [[headers]]
   for = "/*"
@@ -30,3 +62,8 @@
   for = "/logos/*"
   [headers.values]
     Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"

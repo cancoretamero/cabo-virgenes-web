@@ -1,3 +1,9 @@
+# Secrets / entorno (NUNCA subir)
+.env
+.env.*
+!.env.example
+.netlify/
+
 # Dependencies
 node_modules/
 package-lock.json
