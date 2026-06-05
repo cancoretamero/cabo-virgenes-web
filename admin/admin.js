@@ -38,7 +38,7 @@
 
   const getNews = () => read(K.news, []);
   const setNews = (v) => write(K.news, v);
-  const getSettings = () => Object.assign({ newsEnabled: false, jobsEnabled: false, email: 'comercial@cabovirgenes.com', phone: '+54 280 4495000' }, read(K.settings, {}));
+  const getSettings = () => Object.assign({ newsEnabled: false, jobsEnabled: false, whatsappEnabled: false, email: 'info@cabovirgenes.com', phone: '+54 280 4495000' }, read(K.settings, {}));
   const setSettings = (v) => write(K.settings, v);
   const normMember = (m) => ({
     id: m.id || m.key || ('m' + Math.abs(Date.now() % 1e7).toString(36) + Math.floor(Math.random() * 1e4).toString(36)),
@@ -2136,10 +2136,16 @@
   function renderAjustes() {
     const s = getSettings();
     $('#newsEnabled2').checked = s.newsEnabled;
+    if ($('#whatsappEnabled')) $('#whatsappEnabled').checked = !!s.whatsappEnabled;
     $('#setEmail').value = s.email || ''; $('#setPhone').value = s.phone || '';
     hydrate();
   }
   $('#newsEnabled2').addEventListener('change', e => { setNewsEnabled(e.target.checked); });
+  if ($('#whatsappEnabled')) $('#whatsappEnabled').addEventListener('change', e => {
+    const s = getSettings(); const prev = !!s.whatsappEnabled; s.whatsappEnabled = e.target.checked; setSettings(s);
+    if (prev !== e.target.checked) logAudit('settings', 'whatsappEnabled', prev ? 'Visible' : 'Oculto', e.target.checked ? 'Visible' : 'Oculto');
+    toast(e.target.checked ? 'WhatsApp activado (recuerda republicar)' : 'WhatsApp oculto', 'ok');
+  });
   $('#setEmail').addEventListener('change', e => { const s = getSettings(); s.email = e.target.value; setSettings(s); });
   $('#setPhone').addEventListener('change', e => { const s = getSettings(); s.phone = e.target.value; setSettings(s); });
   $('#exportBtn').addEventListener('click', () => {

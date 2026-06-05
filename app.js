@@ -836,6 +836,48 @@ document.querySelectorAll('.pm-gallery .pm-thumbs img').forEach(thumb => {
 // /api/chatbot → netlify/functions/chatbot.mjs (necesita ANTHROPIC_API_KEY en
 // Netlify). Si no responde (no configurado / local sin functions), cae a la KB.
 const AI_CHAT_ENDPOINT = '/api/chatbot';
+
+// ============ WHATSAPP (desactivado temporalmente — gestionable desde el admin) ============
+// El markup de WhatsApp se conserva en la página; aquí sólo se MUESTRA u OCULTA.
+// Estado por defecto del sitio publicado: OFF. Para reactivarlo de forma global:
+//   pon CV_WHATSAPP_DEFAULT = true y vuelve a publicar.
+// También se puede activar desde el panel admin (Ajustes → "Mostrar WhatsApp"),
+// que escribe cv_settings.whatsappEnabled (efectivo en ese navegador / vista previa).
+const CV_WHATSAPP_DEFAULT = false;
+function cvWhatsappEnabled(){
+  try {
+    const s = JSON.parse(localStorage.getItem('cv_settings') || '{}');
+    if (typeof s.whatsappEnabled === 'boolean') return s.whatsappEnabled;
+  } catch(_) {}
+  return CV_WHATSAPP_DEFAULT;
+}
+function applyWhatsappVisibility(){
+  const on = cvWhatsappEnabled();
+  const setVis = (el) => {
+    // !important para vencer reglas CSS con !important sobre .btn-action
+    if (on) el.style.removeProperty('display');
+    else el.style.setProperty('display', 'none', 'important');
+  };
+  document.querySelectorAll('a[href*="wa.me"], .btn-action-wa, .ac-wa').forEach(el => {
+    setVis(el);
+    if (el.classList.contains('btn-action-wa')) {
+      const div = el.previousElementSibling;
+      if (div && div.classList.contains('form-divider')) setVis(div);
+    }
+  });
+}
+applyWhatsappVisibility();
+document.addEventListener('DOMContentLoaded', applyWhatsappVisibility);
+window.addEventListener('storage', applyWhatsappVisibility);
+// Quita enlaces de WhatsApp de un fragmento HTML (respuestas de la KB) si está OFF
+function cvStripWA(html){
+  if (cvWhatsappEnabled()) return html;
+  return String(html)
+    .replace(/<li>[^<]*<a [^>]*wa\.me[^>]*>[\s\S]*?<\/a>[^<]*<\/li>/gi, '')
+    .replace(/\s*(?:o|·)?\s*<a [^>]*wa\.me[^>]*>[\s\S]*?<\/a>/gi, '')
+    .replace(/💬/g, '');
+}
+
 const aiChatBtn = document.getElementById('aiChatBtn');
 const aiChat = document.getElementById('aiChat');
 const aiChatClose = document.getElementById('aiChatClose');
@@ -944,7 +986,7 @@ async function askBot(q){
 
   // Fallback a knowledge base local
   rmTyping();
-  const ans = findAnswer(q);
+  const ans = cvStripWA(findAnswer(q));
   addMsg(ans, 'bot');
   chatHistory.push({ role:'assistant', content: ans.replace(/<[^>]+>/g,'') });
 }
