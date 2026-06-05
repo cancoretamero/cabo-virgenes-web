@@ -324,7 +324,7 @@
   }
 
   // ============ NOTICIAS ============
-  let newsTab = 'biblioteca';
+  let newsTab = 'pagina';
   // Estado de búsqueda/orden/filtros (Biblioteca, Medios, Redactores)
   let biblioSearch = '', biblioStatus = '', biblioSort = 'recent';
   let outletSearch = '', outletCountryFilter = '', outletTypeFilter = '';
