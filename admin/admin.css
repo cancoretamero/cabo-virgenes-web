@@ -213,6 +213,26 @@ code{font-family:var(--mono);font-size:.86em;background:rgba(11,26,44,.06);paddi
 .tmember__role{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--teal-d)}
 .tmember__name{font-family:var(--serif);font-size:17px;color:var(--ink)}
 
+/* ---------- Equipo (CRUD con tarjetas arrastrables) ---------- */
+.team-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.tm-card{background:var(--card);border:1px solid var(--line);border-radius:15px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 1px 2px rgba(11,26,44,.04);transition:box-shadow .18s var(--ease),transform .18s var(--ease),opacity .18s}
+.tm-card:hover{box-shadow:0 14px 32px -18px rgba(11,26,44,.4)}
+.tm-card.is-dragging{opacity:.5}
+.tm-card.is-hidden{opacity:.62}
+.tm-card__media{position:relative;height:176px;background:var(--ink) center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:var(--gray-400)}
+.tm-card__ph{color:var(--gray-300)}
+.tm-card__grip{position:absolute;top:8px;left:8px;width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(6,18,40,.55);color:#fff;cursor:grab;opacity:0;transition:opacity .16s}
+.tm-card:hover .tm-card__grip{opacity:1}
+.tm-card__act{position:absolute;top:8px;right:8px;display:flex;gap:6px;opacity:0;transition:opacity .16s}
+.tm-card:hover .tm-card__act{opacity:1}
+.tm-card__act .icon-btn{background:rgba(6,18,40,.62);color:#fff;border-color:rgba(255,255,255,.22)}
+.tm-card__act .icon-btn:hover{background:var(--teal-d)}
+.tm-card__act .icon-btn.danger:hover{background:var(--danger)}
+.tm-card__body{padding:13px 15px 15px;display:flex;flex-direction:column;gap:5px}
+.tm-card__role{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--teal-d)}
+.tm-card__name{font-family:var(--serif);font-size:17px;line-height:1.15;color:var(--ink)}
+.tm-card__hid{font-family:var(--sans);font-style:normal;font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--gray-400);background:var(--paper-2);padding:2px 6px;border-radius:6px;margin-left:6px;vertical-align:middle}
+
 /* ---------- Consultas ---------- */
 .inbox{display:flex;flex-direction:column;gap:10px}
 .msg{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:15px 17px;display:flex;gap:14px;align-items:flex-start}
@@ -551,3 +571,15 @@ code{font-family:var(--mono);font-size:.86em;background:rgba(11,26,44,.06);paddi
 .news-preview__ex{font-size:15px;color:var(--gray-700);line-height:1.6;font-style:italic;margin-bottom:14px}
 .news-preview__body{font-size:14px;color:var(--gray-700);line-height:1.7;white-space:pre-wrap}
 .news-preview__body p{margin-bottom:12px}
+
+/* ---------- Modal de noticia: importar + flags ---------- */
+.nf-import{display:flex;gap:8px;align-items:center;background:var(--teal-soft);border:1px solid rgba(28,181,176,.28);border-radius:12px;padding:8px 8px 8px 12px;margin-bottom:14px}
+.nf-import__ic{color:var(--teal-d);flex:none;display:flex}
+.nf-import input{flex:1;border:none;background:transparent;padding:6px 0;font-size:13.5px;color:var(--ink)}
+.nf-import input:focus{outline:none}
+.nf-import__btn{flex:none}
+.nf-import__btn.is-busy{opacity:.6;pointer-events:none}
+.nf-flags{display:flex;flex-wrap:wrap;gap:16px 22px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.ncard__status.pinned{background:var(--teal);color:#fff}
+.ncard__status.archived{background:var(--gray-400);color:#fff}
+.ncard.is-archived{opacity:.6}

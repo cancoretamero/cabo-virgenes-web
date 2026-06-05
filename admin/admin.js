@@ -22,12 +22,12 @@
   const write = (k, v) => localStorage.setItem(k, JSON.stringify(v));
 
   const DEFAULT_TEAM = [
-    { key: 'basavilbaso', name: 'Juan Pablo Basavilbaso', role: 'Gerente General', img: '../team-1.jpg', bio: 'Contador Público con más de 20 años en la industria pesquera argentina. Conduce la estrategia y la operación de Cabo Vírgenes.' },
-    { key: 'regueiro', name: 'Matías Regueiro', role: 'Gerente de Operaciones', img: '../team-2.jpg', bio: 'Responsable de la operación pesquera e industrial: flota, plantas y cadena de frío, de la captura al producto terminado.' },
-    { key: 'abizeid', name: 'Diego Abizeid', role: 'Gerente de Administración y Finanzas', img: '../team-3.jpg', bio: 'Conduce la administración, las finanzas y el control de gestión que sostienen la inversión en flota y plantas.' },
-    { key: 'tamagnini', name: 'Romina Tamagnini', role: 'Gerente de Recursos Humanos', img: '../team-4.jpg', bio: 'Lidera la gestión de personas: talento, seguridad y cultura de trabajo en Argentina y España.' },
-    { key: 'ortiz', name: 'Gastón Ortiz', role: 'Gerente Comercial', img: '../team-5.jpg', bio: 'Dirige la estrategia comercial y la exportación del langostino austral a más de 40 países.' },
-    { key: 'iglesias', name: 'Antonio Iglesias', role: 'Gerente España', img: '../team-6.jpg', bio: 'Responsable de la plataforma de España (Palencia): valor agregado, logística y distribución.' },
+    { id: 'basavilbaso', key: 'basavilbaso', name: 'Juan Pablo Basavilbaso', role: 'Gerente General', area: 'Estrategia · Operación', photo: '../team-1.jpg', bio: 'Contador Público con más de 20 años en la industria pesquera argentina. Conduce la estrategia y la operación de Cabo Vírgenes.' },
+    { id: 'regueiro', key: 'regueiro', name: 'Matías Regueiro', role: 'Gerente de Operaciones', area: 'Flota · Plantas', photo: '../team-2.jpg', bio: 'Responsable de la operación pesquera e industrial: flota, plantas y cadena de frío, de la captura al producto terminado.' },
+    { id: 'abizeid', key: 'abizeid', name: 'Diego Abizeid', role: 'Gerente de Administración y Finanzas', area: 'Finanzas · Control', photo: '../team-3.jpg', bio: 'Conduce la administración, las finanzas y el control de gestión que sostienen la inversión en flota y plantas.' },
+    { id: 'tamagnini', key: 'tamagnini', name: 'Romina Tamagnini', role: 'Gerente de Recursos Humanos', area: 'Personas · Cultura', photo: '../team-4.jpg', bio: 'Lidera la gestión de personas: talento, seguridad y cultura de trabajo en Argentina y España.' },
+    { id: 'ortiz', key: 'ortiz', name: 'Gastón Ortiz', role: 'Gerente Comercial', area: 'Comercial · Exportación', photo: '../team-5.jpg', bio: 'Dirige la estrategia comercial y la exportación del langostino austral a más de 40 países.' },
+    { id: 'iglesias', key: 'iglesias', name: 'Antonio Iglesias', role: 'Gerente España', area: 'Valor agregado · Logística', photo: '../team-6.jpg', bio: 'Responsable de la plataforma de España (Palencia): valor agregado, logística y distribución.' },
   ];
   const SAMPLE_NEWS = [
     { title: 'Cabo Vírgenes se incorpora a AISA Group', excerpt: 'La pesquera refuerza su posicionamiento internacional al integrarse al holding AISA Group, consolidando su estructura binacional Argentina–España.', category: 'Corporativo', date: '2025-01-15', status: 'published', image: '../esp-1.jpg' },
@@ -39,7 +39,19 @@
   const setNews = (v) => write(K.news, v);
   const getSettings = () => Object.assign({ newsEnabled: false, jobsEnabled: false, email: 'comercial@cabovirgenes.com', phone: '+54 280 4495000' }, read(K.settings, {}));
   const setSettings = (v) => write(K.settings, v);
-  const getTeam = () => { const ov = read(K.team, {}); return DEFAULT_TEAM.map(m => Object.assign({}, m, ov[m.key] || {})); };
+  const normMember = (m) => ({
+    id: m.id || m.key || ('m' + Math.abs(Date.now() % 1e7).toString(36) + Math.floor(Math.random() * 1e4).toString(36)),
+    key: m.key || '', name: m.name || '', role: m.role || '', area: m.area || '',
+    bio: m.bio || '', photo: m.photo || m.img || '', hidden: !!m.hidden,
+  });
+  // cv_team: ARRAY de miembros (CRUD completo). Migra el formato antiguo (overrides por key).
+  function getTeam() {
+    const raw = read(K.team, null);
+    if (Array.isArray(raw)) return raw.map(normMember);
+    const ov = (raw && typeof raw === 'object') ? raw : {};
+    return DEFAULT_TEAM.map(m => normMember(Object.assign({}, m, ov[m.key] || {})));
+  }
+  const setTeam = (arr) => write(K.team, arr);
   const getMsgs = () => read(K.msgs, []);
   const setMsgs = (v) => write(K.msgs, v);
   const uid = () => 'n' + Math.abs(Date.now() % 1e9).toString(36) + Math.floor(performance.now()).toString(36);
@@ -263,20 +275,24 @@
   });
 
   function renderBiblioteca() {
-    const news = getNews().slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || (b.date || '').localeCompare(a.date || ''));
+    const news = getNews().slice().sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (a.order ?? 0) - (b.order ?? 0) || (b.date || '').localeCompare(a.date || ''));
     $('#newsCount').textContent = news.length;
     const grid = $('#newsGrid');
     if (!news.length) {
       grid.innerHTML = `<div class="news-empty"><span data-ico="newspaper" data-ico-size="42"></span><p>Todavía no hay noticias.<br>Crea la primera o añade ejemplos.</p></div>`;
     } else {
       grid.innerHTML = news.map(n => `
-        <article class="ncard" data-id="${n.id}">
+        <article class="ncard${n.archived ? ' is-archived' : ''}" data-id="${n.id}">
           <div class="ncard__img" style="${n.image ? `background-image:url('${esc(n.image)}')` : ''}">
-            <div class="ncard__badges"><span class="ncard__status ${n.status}">${n.status === 'published' ? 'Publicada' : 'Borrador'}</span></div>
+            <div class="ncard__badges">
+              <span class="ncard__status ${n.status}">${n.status === 'published' ? 'Publicada' : 'Borrador'}</span>
+              ${n.pinned ? '<span class="ncard__status pinned">Destacada</span>' : ''}
+              ${n.archived ? '<span class="ncard__status archived">Archivada</span>' : ''}
+            </div>
             ${n.category ? `<span class="ncard__cat">${esc(n.category)}</span>` : ''}
           </div>
           <div class="ncard__body">
-            <span class="ncard__date">${fmtDate(n.date)}</span>
+            <span class="ncard__date">${fmtDate(n.date)}${n.outletName ? ' · ' + esc(n.outletName) : ''}</span>
             <h3 class="ncard__title">${esc(n.title)}</h3>
             <p class="ncard__ex">${esc(n.excerpt || '')}</p>
             <div class="ncard__foot">
@@ -311,43 +327,68 @@
     setNews(news); renderBiblioteca(); toast('Noticias de ejemplo añadidas', 'ok');
   });
 
-  // ---- Importar desde enlace (heurística) ----
+  // ---- Importar desde enlace: abre el modal y enfoca el campo de enlace ----
   $('#newsImport') && $('#newsImport').addEventListener('click', () => {
-    const url = prompt('Pega el enlace de la noticia que quieres importar:');
-    if (!url) return;
-    let title = 'Noticia importada';
+    openNews(null);
+    setTimeout(() => { const u = $('#nfImportUrl'); if (u) u.focus(); }, 80);
+  });
+  // Heurística de importación (sin backend): deriva título/medio/fuente del enlace.
+  function newsImportFromLink() {
+    const url = $('#nfImportUrl').value.trim();
+    if (!url) { toast('Pega el enlace de la noticia.', 'info'); $('#nfImportUrl').focus(); return; }
+    const btn = $('#nfImportBtn'); btn && btn.classList.add('is-busy');
     try {
       const u = new URL(url.includes('://') ? url : 'https://' + url);
+      const host = u.hostname.replace(/^www\./, '');
       const segs = u.pathname.split('/').filter(Boolean);
       const last = segs.length ? segs[segs.length - 1] : '';
-      const slug = (last || u.hostname.replace(/^www\./, '')).replace(/\.\w+$/, '');
-      const words = slug.replace(/[-_]+/g, ' ').replace(/[^\w\sáéíóúñü]/gi, ' ').trim();
-      if (words) title = words.charAt(0).toUpperCase() + words.slice(1);
-      else title = u.hostname.replace(/^www\./, '');
-    } catch (_) { /* deja el título por defecto */ }
-    openNews(null, { title, excerpt: 'Completar manualmente', body: 'Fuente: ' + url });
-    toast('Enlace importado. Completa los datos antes de guardar.');
-  });
+      const slug = (last || host).replace(/\.\w+$/, '');
+      const words = slug.replace(/[-_]+/g, ' ').replace(/[^\w\sáéíóúñü]/gi, ' ').replace(/\s+/g, ' ').trim();
+      if (words && !$('#nfTitle').value) $('#nfTitle').value = words.charAt(0).toUpperCase() + words.slice(1);
+      if (!$('#nfSource').value) $('#nfSource').value = url;
+      if (!$('#nfCat').value || $('#nfCat').value === 'Corporativo') $('#nfCat').value = 'Prensa';
+      // Detectar el medio por dominio
+      const match = getOutlets().find(o => {
+        const w = String(o.url || '').replace(/^https?:\/\//, '').replace(/^www\./, '').toLowerCase();
+        return w && (w.indexOf(host.toLowerCase()) >= 0 || host.toLowerCase().indexOf(w.split('/')[0]) >= 0);
+      });
+      if (match && $('#nfOutlet')) { $('#nfOutlet').value = String(match.id); toast('Medio detectado: ' + match.name + '.', 'ok'); }
+      else toast('Enlace importado. Revisa y completa los datos.', 'ok');
+    } catch (_) { toast('Enlace no válido.', 'err'); }
+    btn && btn.classList.remove('is-busy');
+  }
+  $('#nfImportBtn') && $('#nfImportBtn').addEventListener('click', newsImportFromLink);
 
   // ---- Modal noticia ----
   const newsModal = $('#newsModal');
+  function populateNewsOutlet(sel) {
+    const s = $('#nfOutlet'); if (!s) return;
+    s.innerHTML = '<option value="">— Sin medio —</option>' + getOutlets().map(o => `<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('');
+    s.value = sel || '';
+  }
   function openNews(id, prefill) {
     const n = id ? getNews().find(x => x.id === id) : null;
     $('#newsModalTitle').textContent = n ? 'Editar noticia' : 'Nueva noticia';
     $('#nfId').value = n ? n.id : '';
+    $('#nfImportUrl').value = '';
     $('#nfTitle').value = n ? n.title : (prefill ? prefill.title || '' : '');
     $('#nfExcerpt').value = n ? (n.excerpt || '') : (prefill ? prefill.excerpt || '' : '');
     $('#nfBody').value = n ? (n.body || '') : (prefill ? prefill.body || '' : '');
     $('#nfCat').value = n ? (n.category || 'Corporativo') : 'Corporativo';
     $('#nfStatus').value = n ? n.status : 'published';
     $('#nfDate').value = n ? (n.date || '') : new Date().toISOString().slice(0, 10);
+    $('#nfSource').value = n ? (n.sourceUrl || n.source || '') : '';
+    populateNewsOutlet(n ? (n.outletId || '') : '');
+    $('#nfPinned').checked = !!(n && n.pinned);
+    $('#nfShowHome').checked = !!(n && n.showHome);
+    $('#nfArchived').checked = !!(n && n.archived);
     setImgPrev(n ? n.image : '');
     newsModal.classList.add('open'); newsModal.setAttribute('aria-hidden', 'false');
     hydrate();
   }
   function setImgPrev(src) {
-    const prev = $('#nfImgPrev'), hint = $('#nfImgHint');
-    if (src) { prev.src = src; prev.hidden = false; hint.hidden = true; prev.dataset.src = src; }
+    const prev = $('#nfImgPrev'), hint = $('#nfImgHint'), url = $('#nfImage');
+    if (src) { prev.src = src; prev.hidden = false; hint.hidden = true; prev.dataset.src = src; if (url && /^(https?:|\.\.?\/|data:)/.test(src)) url.value = src; }
     else { prev.hidden = true; hint.hidden = false; prev.dataset.src = ''; }
   }
   function closeModal(m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
@@ -360,22 +401,28 @@
   $('#nfImgDrop').addEventListener('click', () => $('#nfImgFile').click());
   $('#nfImgFile').addEventListener('change', e => {
     const f = e.target.files[0]; if (!f) return;
+    if (f.size > 8 * 1024 * 1024) { toast('La imagen supera 8 MB', 'err'); return; }
     const r = new FileReader(); r.onload = () => setImgPrev(r.result); r.readAsDataURL(f);
   });
+  $('#nfImage') && $('#nfImage').addEventListener('input', e => setImgPrev(e.target.value.trim()));
   $('#newsSave').addEventListener('click', () => {
     const title = $('#nfTitle').value.trim();
     if (!title) { toast('Pon un título', 'err'); return; }
     const news = getNews();
     const id = $('#nfId').value;
+    const outletId = $('#nfOutlet') ? $('#nfOutlet').value : '';
     const data = {
       title, excerpt: $('#nfExcerpt').value.trim(), body: $('#nfBody').value.trim(),
       category: $('#nfCat').value, status: $('#nfStatus').value, date: $('#nfDate').value,
-      image: $('#nfImgPrev').dataset.src || '',
+      image: $('#nfImage').value.trim() || $('#nfImgPrev').dataset.src || '',
+      sourceUrl: $('#nfSource').value.trim(),
+      outletId: outletId, outletName: outletId ? outletNameById(outletId) : '',
+      pinned: $('#nfPinned').checked, showHome: $('#nfShowHome').checked, archived: $('#nfArchived').checked,
     };
     if (id) {
       const i = news.findIndex(x => x.id === id);
       if (i >= 0) { logAudit('news', title, news[i].title, title); news[i] = Object.assign(news[i], data); }
-    } else { data.id = uid(); data.order = news.length; news.push(data); logAudit('news', title, '', 'Creada'); }
+    } else { data.id = uid(); data.order = news.length; news.unshift(data); logAudit('news', title, '∅', 'Creada'); }
     setNews(news); closeModal(newsModal); renderBiblioteca(); toast('Noticia guardada', 'ok');
   });
   // delegación en el grid
@@ -672,33 +719,117 @@
     }
   });
 
-  // ============ EQUIPO ============
+  // ============ EQUIPO (CRUD completo: alta, edición, foto, oculto, orden) ============
+  const teamModal = $('#teamModal');
+  let teamPhotoBuf = '';      // foto pendiente (URL o dataURL)
+  let teamDragId = null;
+  const teamById = (id) => getTeam().find(m => String(m.id) === String(id));
+
   function renderEquipo() {
-    $('#teamAdmin').innerHTML = getTeam().map(m => `
-      <div class="tmember" data-key="${m.key}">
-        <div class="tmember__img" style="background-image:url('${esc(m.img)}')"></div>
-        <div class="tmember__b">
-          <span class="tmember__role">${esc(m.role)}</span>
-          <span class="tmember__name">${esc(m.name)}</span>
-          <button class="btn btn--ghost btn--sm" data-edit-team="${m.key}" style="margin-top:4px"><span class="ar" data-ico="pencil"></span> Editar</button>
+    const team = getTeam();
+    const list = $('#teamList');
+    const cnt = $('#teamCount'); if (cnt) cnt.textContent = team.length;
+    if (!list) return;
+    if (!team.length) {
+      list.innerHTML = `<div class="news-empty"><span data-ico="users" data-ico-size="42"></span><p>Aún no hay miembros del equipo.<br>Añade el primero o restaura los originales.</p></div>`;
+      hydrate(); return;
+    }
+    list.innerHTML = team.map(m => `
+      <article class="tm-card${m.hidden ? ' is-hidden' : ''}" draggable="true" data-id="${esc(m.id)}">
+        <div class="tm-card__media"${m.photo ? ` style="background-image:url('${esc(m.photo)}')"` : ''}>
+          ${m.photo ? '' : `<span class="tm-card__ph" data-ico="users" data-ico-size="26"></span>`}
+          <span class="tm-card__grip" data-ico="grip-vertical" data-ico-size="16"></span>
+          <span class="tm-card__act">
+            <button class="icon-btn" data-tm-edit="${esc(m.id)}" title="Editar"><span data-ico="pencil"></span></button>
+            <button class="icon-btn danger" data-tm-del="${esc(m.id)}" title="Eliminar"><span data-ico="trash-2"></span></button>
+          </span>
         </div>
-      </div>`).join('');
+        <div class="tm-card__body">
+          <span class="tm-card__role">${esc(m.role || '')}${m.area ? ' · ' + esc(m.area) : ''}</span>
+          <span class="tm-card__name">${esc(m.name || '(sin nombre)')}${m.hidden ? ' <em class="tm-card__hid">oculto</em>' : ''}</span>
+        </div>
+      </article>`).join('');
     hydrate();
   }
-  const teamModal = $('#teamModal');
-  $('#teamAdmin').addEventListener('click', e => {
-    const b = e.target.closest('[data-edit-team]'); if (!b) return;
-    const m = getTeam().find(x => x.key === b.dataset.editTeam);
-    $('#tfKey').value = m.key; $('#tfName').value = m.name; $('#tfRole').value = m.role; $('#tfBio').value = m.bio || '';
-    teamModal.classList.add('open'); teamModal.setAttribute('aria-hidden', 'false'); hydrate();
+
+  function setTeamPhoto(src) {
+    teamPhotoBuf = src || '';
+    const prev = $('#tfPhotoPrev'), hint = $('#tfPhotoHint'), url = $('#tfPhoto');
+    if (src) { prev.src = src; prev.hidden = false; hint.hidden = true; } else { prev.hidden = true; hint.hidden = false; }
+    if (url && /^(https?:|\.\.?\/|data:)/.test(src || '')) url.value = src;
+  }
+  function openTeamModal(id) {
+    const m = id != null ? teamById(id) : null;
+    $('#teamModalTitle').textContent = m ? 'Editar miembro' : 'Nuevo miembro';
+    $('#tfId').value = m ? m.id : '';
+    $('#tfName').value = m ? m.name : '';
+    $('#tfRole').value = m ? m.role : '';
+    $('#tfArea').value = m ? (m.area || '') : '';
+    $('#tfBio').value = m ? (m.bio || '') : '';
+    $('#tfPhoto').value = m ? (m.photo || '') : '';
+    $('#tfHidden').checked = !!(m && m.hidden);
+    $('#teamDelete').hidden = !m;
+    setTeamPhoto(m ? m.photo : '');
+    teamModal.classList.add('open'); teamModal.setAttribute('aria-hidden', 'false');
+    hydrate(); setTimeout(() => $('#tfName').focus(), 60);
+  }
+  $('#teamNew').addEventListener('click', () => openTeamModal(null));
+  $('#tfPhotoDrop').addEventListener('click', () => $('#tfPhotoFile').click());
+  $('#tfPhotoFile').addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    if (f.size > 8 * 1024 * 1024) { toast('La imagen supera 8 MB', 'err'); return; }
+    const r = new FileReader(); r.onload = () => setTeamPhoto(r.result); r.readAsDataURL(f);
   });
+  $('#tfPhoto').addEventListener('input', e => setTeamPhoto(e.target.value.trim()));
   $('#teamSave').addEventListener('click', () => {
-    const ov = read(K.team, {}); const key = $('#tfKey').value;
-    const prev = (getTeam().find(x => x.key === key) || {});
-    ov[key] = { name: $('#tfName').value.trim(), role: $('#tfRole').value.trim(), bio: $('#tfBio').value.trim() };
-    write(K.team, ov);
-    logAudit('team', ov[key].name, prev.role || '', ov[key].role || '');
-    closeModal(teamModal); renderEquipo(); toast('Directivo actualizado', 'ok');
+    const name = $('#tfName').value.trim();
+    if (!name) { toast('El nombre es obligatorio', 'err'); $('#tfName').focus(); return; }
+    const team = getTeam();
+    const id = $('#tfId').value;
+    const data = {
+      name, role: $('#tfRole').value.trim(), area: $('#tfArea').value.trim(),
+      bio: $('#tfBio').value.trim(), photo: (teamPhotoBuf || $('#tfPhoto').value.trim()),
+      hidden: $('#tfHidden').checked,
+    };
+    const i = id ? team.findIndex(x => String(x.id) === String(id)) : -1;
+    if (i >= 0) { const prev = team[i]; team[i] = Object.assign({}, prev, data); logAudit('team', name, prev.role || '', data.role || ''); }
+    else { team.push(normMember(Object.assign({ id: uid() }, data))); logAudit('team', name, '∅', 'nuevo miembro'); }
+    setTeam(team); closeModal(teamModal); renderEquipo();
+    toast(i >= 0 ? 'Miembro actualizado' : 'Miembro añadido', 'ok');
+  });
+  $('#teamDelete').addEventListener('click', async () => {
+    const id = $('#tfId').value; const m = teamById(id); if (!m) return;
+    if (!await confirmDialog('Eliminar miembro', `¿Eliminar a «${m.name}» del equipo?`)) return;
+    setTeam(getTeam().filter(x => String(x.id) !== String(id)));
+    logAudit('team', m.name, m.role || '', 'eliminado');
+    closeModal(teamModal); renderEquipo(); toast('Miembro eliminado');
+  });
+  $('#teamRestore').addEventListener('click', async () => {
+    if (!await confirmDialog('Restaurar equipo', '¿Restaurar el equipo a los 6 directivos originales? Se perderán los cambios y los miembros añadidos.')) return;
+    localStorage.removeItem(K.team); renderEquipo(); toast('Equipo restaurado');
+  });
+  // interacción de la lista (editar/eliminar) + drag para reordenar
+  $('#teamList').addEventListener('click', async e => {
+    const ed = e.target.closest('[data-tm-edit]'); if (ed) return openTeamModal(ed.dataset.tmEdit);
+    const dl = e.target.closest('[data-tm-del]');
+    if (dl) { const m = teamById(dl.dataset.tmDel); if (m && await confirmDialog('Eliminar miembro', `¿Eliminar a «${m.name}»?`)) { setTeam(getTeam().filter(x => String(x.id) !== String(dl.dataset.tmDel))); logAudit('team', m.name, m.role || '', 'eliminado'); renderEquipo(); toast('Miembro eliminado'); } }
+  });
+  $('#teamList').addEventListener('dragstart', e => { const c = e.target.closest && e.target.closest('.tm-card'); if (c) { teamDragId = c.dataset.id; c.classList.add('is-dragging'); try { e.dataTransfer.effectAllowed = 'move'; } catch (_) {} } });
+  $('#teamList').addEventListener('dragend', e => { const c = e.target.closest && e.target.closest('.tm-card'); if (c) c.classList.remove('is-dragging'); teamDragId = null; });
+  $('#teamList').addEventListener('dragover', e => {
+    if (teamDragId == null) return; e.preventDefault();
+    const dragged = $$('#teamList .tm-card').find(c => c.dataset.id === String(teamDragId));
+    const after = $$('#teamList .tm-card').filter(c => c.dataset.id !== String(teamDragId)).find(c => {
+      const r = c.getBoundingClientRect(); return e.clientY < r.top + r.height / 2 && e.clientX < r.right;
+    });
+    if (dragged) $('#teamList').insertBefore(dragged, after || null);
+  });
+  $('#teamList').addEventListener('drop', e => {
+    if (teamDragId == null) return; e.preventDefault();
+    const order = $$('#teamList .tm-card').map(c => c.dataset.id);
+    const cur = getTeam();
+    setTeam(order.map(id => cur.find(m => String(m.id) === String(id))).filter(Boolean));
+    renderEquipo(); toast('Orden actualizado');
   });
 
   // ============ CONSULTAS ============
@@ -973,7 +1104,7 @@
   $('#setPhone').addEventListener('change', e => { const s = getSettings(); s.phone = e.target.value; setSettings(s); });
   $('#exportBtn').addEventListener('click', () => {
     const data = {
-      news: getNews(), settings: getSettings(), team: read(K.team, {}),
+      news: getNews(), settings: getSettings(), team: getTeam(),
       legal: read(K.legal, {}), msgs: getMsgs(),
       outlets: getOutlets(), journalists: getJournalists(), jobs: getJobs(),
       apps: getApps(), subs: getSubs(), pages: getPages(), audit: getAudit(),
