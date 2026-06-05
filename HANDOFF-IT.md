@@ -22,34 +22,37 @@
 
 ---
 
-## 1. Dominio y DNS  ← *lo más importante*
+## 1. Dominio y DNS  ← *lo único que hay que tocar en el registrador*
 
-Objetivo: servir la web en **cabovirgenes.com** (apex + www) con HTTPS.
+**El lado de Netlify ya está hecho:** el dominio `cabovirgenes.com` y `www.cabovirgenes.com`
+ya están añadidos al sitio `cabo-virgenes-web`. El certificado SSL (Let's Encrypt) se
+emite **automáticamente** en cuanto el DNS apunte a Netlify. No hay que hacer nada más en Netlify.
 
-**En Netlify** (Site → Domain management → Add a domain): añadir `cabovirgenes.com`.
-Netlify emite el certificado SSL (Let's Encrypt) automáticamente.
+**Contexto actual del dominio** (verificado):
+- Registrador / DNS: **Dattatec (Donweb)** · nameservers `ns3.hostmar.com` / `ns4.hostmar.com`.
+- La web actual apunta a `200.58.112.250` (hosting viejo) — se reemplazará por Netlify.
+- **Correo: Microsoft 365** (MX → `cabovirgenes-com.mail.protection.outlook.com`).
 
-**En el registrador del dominio** — dos opciones:
+**Qué hacer en el panel DNS de Dattatec** (mantener el DNS donde está, **NO** cambiar
+nameservers): editar **solo** estos dos registros:
 
-- **Opción A (recomendada, más simple): usar Netlify DNS.**
-  Cambiar los *nameservers* del dominio por los que indique Netlify
-  (tipo `dns1.p0X.nsone.net`…). Netlify gestiona todo (apex, www, SSL).
+| Tipo | Nombre | Valor actual | Valor NUEVO |
+|---|---|---|---|
+| A | `@` (cabovirgenes.com) | `200.58.112.250` | **`75.2.60.5`** |
+| CNAME | `www` | `200.58.112.250` (A) | **`cabo-virgenes-web.netlify.app`** |
 
-- **Opción B: mantener el DNS actual y añadir registros:**
-  | Tipo | Nombre | Valor |
-  |---|---|---|
-  | A | `@` (apex) | `75.2.60.5` |
-  | CNAME | `www` | `cabo-virgenes-web.netlify.app` |
-  *(Si el registrador soporta ALIAS/ANAME en el apex, usar `apex-loadbalancer.netlify.com` en vez del registro A.)*
+> 🔴 **NO TOCAR**: los registros **MX** (Outlook/Microsoft 365) ni los **TXT**
+> (SPF/DKIM/DMARC del correo). Cambiar A/CNAME **no** afecta al email.
+> Si el panel no deja poner un CNAME en `www`, poner `www` como **A → `75.2.60.5`**.
 
-> ⚠️ **No tocar los registros `MX`** si ya existe correo `@cabovirgenes.com`
-> (cambiar A/CNAME no afecta a la recepción de email; los MX sí).
+La propagación tarda de minutos a unas horas; el HTTPS aparece solo cuando el DNS ya resuelve a Netlify.
 
 ---
 
 ## 2. Buzones de correo
 
-La web enlaza estas direcciones con `mailto:`. Deben **existir** (o redirigir a un buzón real):
+El correo está en **Microsoft 365** (Outlook). La web enlaza estas direcciones con
+`mailto:` — deben **existir como buzón o alias** en M365 (no requieren cambios de DNS):
 
 | Dirección | Uso en la web | Estado |
 |---|---|---|
