@@ -330,6 +330,16 @@ const pipBtn = document.getElementById('pipBtn');
 const minimizeBtn = document.getElementById('minimizeBtn');
 const fullscreenBtn = document.getElementById('fullscreenBtn');
 
+// En móvil/táctil usamos los controles NATIVOS del vídeo: la barra custom con
+// ~10 botones se aprieta y deforma en pantallas estrechas. Los nativos son
+// limpios, familiares y nunca se estiran.
+const _playerTouch = window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+if (_playerTouch && modalVideo) {
+  modalVideo.setAttribute('controls', '');
+  modalVideo.setAttribute('controlsList', 'nodownload noplaybackrate');
+  if (playerModal) playerModal.classList.add('native-controls');
+}
+
 const fmt = (s) => {
   if (!isFinite(s) || s < 0) return '0:00';
   const m = Math.floor(s / 60), sec = Math.floor(s % 60);

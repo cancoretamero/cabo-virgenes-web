@@ -2602,6 +2602,14 @@ strong{font-weight:600;color:inherit}
 }
 .player-close:hover{transform:rotate(90deg);background:rgba(28,181,176,.9) !important}
 
+/* Móvil: controles NATIVOS → ocultar la barra custom (se deformaba) y el póster.
+   El vídeo nativo muestra su propio play/controles, limpios y sin estirarse. */
+.player-modal.native-controls .player-controls,
+.player-modal.native-controls .player-poster{ display:none !important; }
+.player-modal.native-controls .player-shell{ width:min(680px,100%) }
+.player-modal.native-controls .player-stage{ aspect-ratio:16/9 }
+.player-modal.native-controls .player-stage video{ width:100%;height:100%;object-fit:contain;background:#000 }
+
 /* Barra de controles SÓLIDA (sin cristal translúcido), a tono con el modal oscuro.
    La clase .glass se fuerza a blanco en móvil (!important) por la optimización
    anti-crash; por eso fijamos el fondo oscuro con doble clase + !important. */
