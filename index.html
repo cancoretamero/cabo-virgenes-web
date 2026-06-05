@@ -2667,5 +2667,7 @@
 <script defer src="./app.js"></script>
 <script defer src="./site-news.js"></script>
 <script defer src="./editor.js"></script>
+<!-- Editor visual de SEO: solo se carga en modo ?seo=1 -->
+<script>if(new URLSearchParams(location.search).get('seo')==='1'){var s=document.createElement('script');s.src='./seo-studio.js';s.defer=true;document.head.appendChild(s);}</script>
 </body>
 </html>

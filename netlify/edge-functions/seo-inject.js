@@ -6,6 +6,7 @@ import { getStore } from '@netlify/blobs';
 
 const escHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const escAttr = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const escRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 export default async (request, context) => {
   const res = await context.next();
@@ -46,6 +47,25 @@ export default async (request, context) => {
   if (ogTitle) { setMetaProp('og:title', ogTitle); setMetaName('twitter:title', ogTitle); }
   if (ogDesc) { setMetaProp('og:description', ogDesc); setMetaName('twitter:description', ogDesc); }
   if (cfg.ogImage) { setMetaProp('og:image', absUrl(cfg.ogImage, url)); setMetaName('twitter:image', absUrl(cfg.ogImage, url)); }
+
+  // --- ALT de imágenes (del Editor Visual SEO) ---
+  if (cfg.altOverrides && typeof cfg.altOverrides === 'object') {
+    for (const [src, alt] of Object.entries(cfg.altOverrides)) {
+      if (!src || !alt) continue;
+      const re = new RegExp(`<img\\b[^>]*\\bsrc=["']${escRe(src)}["'][^>]*>`, 'i');
+      html = html.replace(re, (tag) => /\balt=/i.test(tag)
+        ? tag.replace(/\balt=("|')[^"']*\1/i, `alt="${escAttr(alt)}"`)
+        : tag.replace(/<img\b/i, `<img alt="${escAttr(alt)}"`));
+    }
+  }
+  // --- Textos visibles (encabezados/leads) del Editor Visual SEO ---
+  if (Array.isArray(cfg.textOverrides)) {
+    for (const o of cfg.textOverrides) {
+      if (o && o.find && o.replace && html.includes(o.find)) {
+        html = html.replace(o.find, () => escHtml(o.replace));
+      }
+    }
+  }
 
   // --- favicon (data-url o ruta) → inyecta un <link rel="icon"> que gana ---
   if (cfg.favicon) {

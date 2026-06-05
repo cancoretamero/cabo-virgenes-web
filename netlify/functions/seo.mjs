@@ -19,6 +19,8 @@ const DEFAULTS = {
   ogImage: '/og-image.jpg',
   favicon: '',            // vacío = usa el favicon por defecto del repo
   faq: [],                // [{q,a}] aprobadas → FAQPage
+  altOverrides: {},       // { src|altActual: nuevoAlt }
+  textOverrides: [],      // [{ find, replace }] textos visibles
   updatedAt: null,
 };
 
@@ -62,6 +64,13 @@ export default async (req) => {
       ogImage: safe(inc.ogImage ?? cur.ogImage, 300000),     // permite data-url
       favicon: safe(inc.favicon ?? cur.favicon, 300000),     // permite data-url
       faq: Array.isArray(inc.faq) ? inc.faq.slice(0, 20).map(f => ({ q: safe(f.q, 200), a: safe(f.a, 1200) })) : cur.faq,
+      // Overrides del Editor Visual de SEO (aplicados por la edge function):
+      altOverrides: (inc.altOverrides && typeof inc.altOverrides === 'object')
+        ? Object.fromEntries(Object.entries(inc.altOverrides).slice(0, 80).map(([k, v]) => [safe(k, 200), safe(v, 300)]))
+        : (cur.altOverrides || {}),
+      textOverrides: Array.isArray(inc.textOverrides)
+        ? inc.textOverrides.slice(0, 60).map(o => ({ find: safe(o.find, 600), replace: safe(o.replace, 600) })).filter(o => o.find && o.replace)
+        : (cur.textOverrides || []),
       updatedAt: new Date().toISOString(),
     };
     try { await store(STORE).setJSON(KEY, next); }
@@ -69,11 +78,47 @@ export default async (req) => {
     return json({ ok: true, config: next });
   }
 
-  // ---- POST: generar propuestas con IA (requiere admin) ----
+  // ---- POST: IA (generate | audit) ----
   if (req.method === 'POST') {
     const auth = await requireAdmin(req); if (auth) return auth;
     let body; try { body = await req.json(); } catch { body = {}; }
-    if (String(body.action) !== 'generate') return json({ error: 'action' }, 400);
+    const action = String(body.action || '');
+
+    // ---- AUDIT: analiza toda la página y propone mejoras (antes/después) ----
+    if (action === 'audit') {
+      const pg = body.page || {};
+      const compact = {
+        title: safe(pg.title, 200),
+        description: safe(pg.description, 400),
+        h1: safe(pg.h1, 200),
+        headings: Array.isArray(pg.headings) ? pg.headings.slice(0, 30).map(s => safe(s, 160)) : [],
+        alts: Array.isArray(pg.alts) ? pg.alts.slice(0, 60).map(a => ({ src: safe(a.src, 200), alt: safe(a.alt, 200) })) : [],
+        leads: Array.isArray(pg.leads) ? pg.leads.slice(0, 12).map(s => safe(s, 400)) : [],
+      };
+      const r = await callClaude({
+        system: `Eres auditor SEO senior. ${BRAND_FACTS}
+Analizas el contenido REAL de una página y propones mejoras de SEO concretas, SIN inventar datos (usa solo los hechos dados; corrige imprecisiones del producto si las ves, p.ej. HOSO es CON cabeza).
+Cubre TODO: meta título, meta descripción, H1, encabezados, textos ALT de imágenes (clave para SEO de imágenes y accesibilidad) y textos lead. Para cada elemento que MEJORARÍAS, crea un hallazgo. No propongas cambios cosméticos sin valor SEO.
+Devuelve SOLO JSON: {"findings":[{"type": "title|description|h1|heading|alt|content", "src": "(solo para alt: el src exacto de la imagen)", "current": "texto/alt actual exacto", "proposed": "versión mejorada", "reason": "por qué mejora el SEO (breve)", "severity": "alta|media|baja"}]}.
+Reglas: título <=60 car, descripción 140-155 car, ALT descriptivos con keyword (5-12 palabras), naturales. Máx 18 hallazgos, ordénalos por severidad (alta primero). Español de España.`,
+        messages: [{ role: 'user', content: `Audita esta página de Cabo Vírgenes (JSON):\n${JSON.stringify(compact)}` }],
+        maxTokens: 3000, temperature: 0.4,
+      });
+      if (!r.ok) return json({ error: 'ai', message: r.message }, r.status || 502);
+      const data = extractJson(r.text);
+      if (!data || !Array.isArray(data.findings)) return json({ error: 'parse', message: 'La IA no devolvió hallazgos válidos.' }, 502);
+      const findings = data.findings.slice(0, 24).map(f => ({
+        type: safe(f.type, 20),
+        src: safe(f.src, 200),
+        current: safe(f.current, 600),
+        proposed: safe(f.proposed, 600),
+        reason: safe(f.reason, 300),
+        severity: ['alta', 'media', 'baja'].includes(f.severity) ? f.severity : 'media',
+      })).filter(f => f.proposed && f.type);
+      return json({ ok: true, findings });
+    }
+
+    if (action !== 'generate') return json({ error: 'action' }, 400);
     const focus = safe(body.focus, 200);
 
     const r = await callClaude({
