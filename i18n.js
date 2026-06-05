@@ -686,6 +686,16 @@ const dict = {
   es: {}, // ES = original, no map needed
 };
 
+// Merge del diccionario completo pre-generado con IA (cv-dict.js → window.CV_DICT_EXTRA).
+// Garantiza que TODO el sitio esté traducido al instante, sin depender de APIs en runtime.
+try {
+  if (typeof window !== 'undefined' && window.CV_DICT_EXTRA) {
+    for (const l in window.CV_DICT_EXTRA) {
+      dict[l] = Object.assign(dict[l] || {}, window.CV_DICT_EXTRA[l]);
+    }
+  }
+} catch (_) {}
+
 // ----- Identificador de UNIDADES traducibles -----
 // Una "unidad" = elemento con sólo texto + inline tags simples (br/strong/em/span).
 // Se traduce el textContent completo como bloque (preserva contexto = mejor traducción)
@@ -693,6 +703,9 @@ const PURE_SYMBOLS = /^[0-9°·%+×/\-\s.,()'":;!?ºª&·×÷±–—•…]+$/;
 const INLINE_TAGS = new Set(['BR','STRONG','EM','B','I','SPAN','SUP','SUB','U','MARK','SMALL','CODE']);
 const SKIP_TAGS = new Set(['SCRIPT','STYLE','NOSCRIPT','TEXTAREA','INPUT','SELECT','SVG','OPTION']);
 const SKIP_SELECTORS = '#worldMap,.leaflet-container,.fab-stack,.cert-marquee,.skip-translate,.cv-marker-hq,.cv-marker-mkt,.solar-viz,.cf-lines,.cf-ring,.lang-flag,.cf-emoji,.bc-illus';
+// Contenedores cuyo texto NO se traduce como bloque: se desciende para traducir
+// etiqueta y valor por separado (preserva el estilo span/strong de las fichas).
+const SPLIT_SELECTORS = '.spec-tx,.tm-meta li,.fmt-modal-grid div';
 
 function isUntranslatable(text){
   if (!text || text.trim().length < 2) return true;
@@ -719,6 +732,8 @@ function collectUnits(){
   function isUnit(el){
     if (!el || SKIP_TAGS.has(el.tagName)) return false;
     if (el.closest(SKIP_SELECTORS)) return false;
+    // Contenedor a dividir → no es unidad, se desciende
+    if (el.children.length && el.matches && el.matches(SPLIT_SELECTORS)) return false;
     // Sin hijos elemento → es text leaf
     if (el.children.length === 0) return el.textContent.trim().length > 0;
     // Tiene hijos: pero TODOS son inline simples (BR/STRONG/EM/SPAN sin nested complex)
@@ -748,6 +763,8 @@ function collectUnits(){
     for (const child of el.children) walk(child);
   }
   walk(root);
+  // También los modales y el drawer (están fuera de <main>)
+  document.querySelectorAll('.info-modal, .drawer, .ac-panel').forEach(walk);
 }
 function snapshotTextNodes(){ collectUnits(); }
 function snapshot(){ collectUnits(); }
@@ -778,37 +795,33 @@ async function aiTranslateMyMemory(text, lang){
   } catch(e){ return text; }
 }
 
-// Translate single text — primero RunPod, luego MyMemory fallback
+// Traducción automática (Google MT como motor principal; MyMemory de respaldo).
+// El diccionario manual ya cubre TODO el sitio estático de forma instantánea;
+// esto sólo se usa para contenido dinámico (p. ej. noticias creadas en el panel).
+async function aiTranslateGoogle(text, lang){
+  const map = { en:'en', fr:'fr', pt:'pt', zh:'zh-CN', de:'de', it:'it' };
+  const tl = map[lang]; if (!tl) return text;
+  try {
+    const u = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=es&tl=${tl}&dt=t&q=${encodeURIComponent(text)}`;
+    const r = await fetch(u); if (!r.ok) return text;
+    const d = await r.json();
+    const out = (d && Array.isArray(d[0])) ? d[0].map(s => (s && s[0]) || '').join('') : '';
+    return out || text;
+  } catch(e){ return text; }
+}
+
 async function aiTranslate(text, lang){
   if (lang === 'es') return text;
   const key = lang + '||' + text;
   if (aiCache[key]) return aiCache[key];
-  // Intentar batch RunPod primero
-  try {
-    const r = await fetch(AI_ENDPOINT, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ texts:[text], target_lang: lang, source_lang:'es' }),
-    });
-    if (r.ok) {
-      const data = await r.json();
-      const out = data?.translations?.[0];
-      if (out && out !== text) {
-        aiCache[key] = out; saveCache();
-        return out;
-      }
-    }
-  } catch(e){ /* fallthrough a MyMemory */ }
-  // Fallback MyMemory
-  const out = await aiTranslateMyMemory(text, lang);
+  let out = await aiTranslateGoogle(text, lang);
+  if (!out || out === text) out = await aiTranslateMyMemory(text, lang);
   if (out && out !== text) { aiCache[key] = out; saveCache(); }
   return out;
 }
 
-// Batch translate — más eficiente: 1 sola llamada al RunPod por N textos
 async function aiTranslateBatch(texts, lang){
   if (lang === 'es' || !texts.length) return texts;
-  // Usa cache para los ya conocidos
   const out = new Array(texts.length);
   const todo = []; const todoIdx = [];
   texts.forEach((t, i) => {
@@ -817,35 +830,13 @@ async function aiTranslateBatch(texts, lang){
     else { todo.push(t); todoIdx.push(i); }
   });
   if (!todo.length) return out;
-  try {
-    const r = await fetch(AI_ENDPOINT, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ texts: todo, target_lang: lang, source_lang:'es' }),
-    });
-    if (r.ok) {
-      const data = await r.json();
-      const trs = data?.translations || [];
-      trs.forEach((tr, j) => {
-        const idx = todoIdx[j];
-        if (tr && tr !== todo[j]) {
-          aiCache[lang + '||' + todo[j]] = tr;
-          out[idx] = tr;
-        } else {
-          out[idx] = todo[j];
-        }
-      });
-      saveCache();
-      return out;
-    }
-  } catch(e){ /* fallthrough */ }
-  // Fallback uno por uno con MyMemory
-  for (let j = 0; j < todo.length; j++) {
-    const tr = await aiTranslateMyMemory(todo[j], lang);
-    out[todoIdx[j]] = tr;
-    if (tr && tr !== todo[j]) aiCache[lang + '||' + todo[j]] = tr;
+  // En paralelo (limitado) — el grueso ya viene del diccionario, esto es residual
+  const LIMIT = 6;
+  for (let i = 0; i < todo.length; i += LIMIT) {
+    const slice = todo.slice(i, i + LIMIT);
+    const res = await Promise.all(slice.map(t => aiTranslate(t, lang)));
+    res.forEach((tr, j) => { out[todoIdx[i + j]] = tr; });
   }
-  saveCache();
   return out;
 }
 
