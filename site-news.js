@@ -86,7 +86,24 @@
 
   const ARROW = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>';
 
-  const EDITOR = new URLSearchParams(location.search).has('editor');
+  const _qs = new URLSearchParams(location.search);
+  const EDITOR = _qs.has('editor');
+  // Modo ESTUDIO: el admin embebe la sección de noticias real en un iframe para
+  // editarla visualmente. Mostramos SOLO la sección de noticias (ocultando el
+  // resto de la página y el chrome) y la dejamos siempre visible y editable.
+  const STUDIO = _qs.get('studio') === 'news';
+  function focusNewsStudio() {
+    const sec = document.getElementById('noticias'); if (!sec) return;
+    document.documentElement.classList.add('cv-news-studio');
+    sec.hidden = false;
+    // Oculta todo lo demás de la página y el chrome.
+    document.querySelectorAll('main.stage > section, main.stage > footer, .footer, header.header, .fab-stack, .drawer, .side-rail, .num-rail').forEach(el => {
+      if (el !== sec && !sec.contains(el)) el.style.display = 'none';
+    });
+    sec.style.display = '';
+    sec.querySelectorAll('[data-reveal]').forEach(el => el.classList.add('in'));
+    try { window.scrollTo(0, 0); } catch (_) {}
+  }
   const SAMPLE = [
     { title: 'Título de ejemplo de noticia', excerpt: 'Así se verá una noticia. Crea las tuyas desde el panel → Noticias.', category: 'Corporativo', date: new Date().toISOString().slice(0, 10), status: 'published', image: '../esp-1.jpg' },
   ];
@@ -96,8 +113,8 @@
     const sec = document.getElementById('noticias'); if (!sec) return;
     let items = getNews().filter(n => n.status === 'published' && !n.archived).sort(sortFn);
     let on = settings().newsEnabled && items.length > 0;
-    if (EDITOR) {
-      // En el editor visual se muestra siempre (incluye borradores; ejemplos si está vacío)
+    if (EDITOR || STUDIO) {
+      // En el editor visual / estudio se muestra siempre (incluye borradores; ejemplos si está vacío)
       const all = getNews().filter(n => !n.archived).slice().sort(sortFn);
       items = all.length ? all : SAMPLE; on = true;
     }
@@ -205,7 +222,7 @@
     } catch (_) {}
   }, true);
 
-  function run() { try { applyTeam(); } catch (_) {} try { renderNews(); } catch (_) {} }
+  function run() { try { applyTeam(); } catch (_) {} try { renderNews(); } catch (_) {} if (STUDIO) { try { focusNewsStudio(); } catch (_) {} } }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
   window.addEventListener('storage', (e) => { if (['cv_settings', 'cv_news', 'cv_team'].includes(e.key)) run(); });
 })();

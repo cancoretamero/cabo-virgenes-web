@@ -199,12 +199,45 @@
           <div class="news-grid" id="newsGrid"></div>
         </div>
 
-        <!-- Panel: Página (editor drag & drop) -->
+        <!-- Panel: Página (Estudio in-place · drag & drop + biblioteca) -->
         <div class="npanel" id="npanel-pagina" hidden>
+          <!-- Barra del estudio: deshacer / rehacer / previsualizar / publicar -->
+          <div class="studio-bar" id="pageStudioBar">
+            <div class="studio-bar__group">
+              <button type="button" class="btn btn--ghost btn--sm" id="pageUndo" disabled title="Deshacer (⌘Z)"><span class="ar" data-ico="undo-2"></span> Deshacer</button>
+              <button type="button" class="btn btn--ghost btn--sm" id="pageRedo" disabled title="Rehacer (⌘⇧Z)"><span class="ar" data-ico="redo-2"></span> Rehacer</button>
+            </div>
+            <div class="studio-bar__spacer"></div>
+            <div class="studio-bar__group">
+              <button type="button" class="btn btn--ghost btn--sm" id="pageNewsNew" title="Crear una noticia desde el estudio"><span class="ar" data-ico="plus"></span> Crear noticia</button>
+              <button type="button" class="btn btn--ghost btn--sm" id="pagePreview" title="Ver cómo queda la sección pública"><span class="ar" data-ico="eye"></span> Previsualizar</button>
+              <button type="button" class="btn btn--solid btn--sm" id="pagePublish" title="Guardar y publicar el orden de la página"><span class="ar" data-ico="check-circle"></span> Publicar</button>
+            </div>
+          </div>
+
+          <!-- Vista REAL de la sección de noticias (como se ve en la web), editable inline -->
+          <div class="news-studio-live">
+            <div class="news-studio-live__head">
+              <span class="over">Sección de noticias en la web — vista en vivo</span>
+              <span class="news-studio-live__hint">Clic en los textos para editarlos · las tarjetas reflejan las noticias publicadas</span>
+            </div>
+            <div class="news-studio-live__frame">
+              <iframe id="newsStudioFrame" title="Sección de noticias (editable)" src="about:blank" loading="lazy"></iframe>
+            </div>
+          </div>
+
           <div class="page-editor">
-            <aside class="page-pool" id="pagePool" aria-label="Noticias publicadas">
-              <div class="page-pool__head over">Noticias publicadas</div>
+            <aside class="page-pool" id="pagePool" aria-label="Biblioteca de noticias">
+              <div class="page-pool__head over">Biblioteca de noticias</div>
+              <!-- Pestañas de estado con contadores (filtran el pool) -->
+              <div class="page-lib__tabs" id="pageLibTabs" role="tablist" aria-label="Filtrar la biblioteca">
+                <button type="button" class="page-lib__tab is-active" data-libtab="all" role="tab">Todas <em data-libc="all">0</em></button>
+                <button type="button" class="page-lib__tab" data-libtab="published" role="tab">Publicadas <em data-libc="published">0</em></button>
+                <button type="button" class="page-lib__tab" data-libtab="draft" role="tab">Borradores <em data-libc="draft">0</em></button>
+                <button type="button" class="page-lib__tab" data-libtab="archived" role="tab">Archivadas <em data-libc="archived">0</em></button>
+              </div>
               <div class="page-pool__list" id="pagePoolList" aria-live="polite"></div>
+              <p class="page-pool__hint over">Arrastra una tarjeta al lienzo para publicarla y colocarla. Suéltala fuera para quitarla.</p>
             </aside>
             <section class="page-canvas" id="pageCanvas" aria-label="Página pública">
               <div class="page-canvas__head over">Página pública</div>

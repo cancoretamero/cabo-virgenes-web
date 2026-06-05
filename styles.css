@@ -3279,3 +3279,20 @@ html.fit-scale body{
     box-shadow:0 6px 18px -10px rgba(11,26,44,.25) !important;
   }
 }
+
+/* ===== MODO ESTUDIO: sección de noticias embebida en el editor del admin ===== */
+html.cv-news-studio, html.cv-news-studio body{
+  background:#eef2f6 !important; height:auto !important; min-height:100% !important;
+  overflow:auto !important; zoom:1 !important;
+}
+html.cv-news-studio main.stage{
+  display:block !important; width:100% !important; max-width:none !important;
+  margin:0 !important; padding:0 !important; transform:none !important; border-radius:0 !important;
+}
+html.cv-news-studio #noticias{
+  display:block !important; visibility:visible !important; opacity:1 !important;
+  margin:0 !important; padding:48px clamp(20px,5vw,56px) !important; min-height:100vh;
+  content-visibility:visible !important;
+}
+html.cv-news-studio .bg-blobs, html.cv-news-studio .lang-flag,
+html.cv-news-studio .cf-lines, html.cv-news-studio .num-rail{ display:none !important; }

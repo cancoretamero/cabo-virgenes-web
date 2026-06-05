@@ -345,7 +345,7 @@
       const p = $('#npanel-' + t); if (p) p.hidden = t !== tab;
     });
     if (tab === 'biblioteca') renderBiblioteca();
-    else if (tab === 'pagina') renderPagina();
+    else if (tab === 'pagina') { renderPagina(); if (!pageHistInited) pageResetHistory(); loadNewsStudioFrame(); }
     else if (tab === 'medios') renderOutlets();
     else if (tab === 'redactores') renderJournalists();
     hydrate();
@@ -546,7 +546,9 @@
       const i = news.findIndex(x => x.id === id);
       if (i >= 0) { logAudit('news', title, news[i].title, title); news[i] = Object.assign(news[i], data); }
     } else { data.id = uid(); data.order = news.length; news.unshift(data); logAudit('news', title, '∅', 'Creada'); }
-    setNews(news); closeModal(newsModal); renderBiblioteca(); toast('Noticia guardada', 'ok');
+    setNews(news); closeModal(newsModal); renderBiblioteca();
+    if (newsTab === 'pagina') { renderPagina(); pageRecord(); }   // refresca el estudio si está activo
+    toast('Noticia guardada', 'ok');
   });
   // delegación en el grid
   $('#newsGrid').addEventListener('click', async e => {
@@ -572,48 +574,109 @@
     const m = $('#newsPreviewModal'); m.classList.add('open'); m.setAttribute('aria-hidden', 'false'); hydrate();
   }
 
-  // ============ NOTICIAS · PÁGINA (drag & drop) ============
-  function pageOutletName(n) { return n.outlet || n.category || 'Prensa'; }
+  // ============ NOTICIAS · PÁGINA — ESTUDIO in-place (drag & drop + biblioteca) ============
+  // El estudio opera directamente sobre cv_news (estados) y cv_pages.noticias (layout
+  // {hero, items:[ids]}). Reescribe `order`/`pinned` en cv_news para que el sitio
+  // público (site-news.js, que ordena por pinned→order→fecha y excluye archivadas)
+  // refleje EXACTAMENTE el lienzo. Sin backend, sin iframe: todo en el panel.
+  let pageLibTab = 'all';            // pestaña activa de la biblioteca (all|published|draft|archived)
+  let pagePreviewing = false;        // modo previsualización (oculta el chrome de edición)
+
+  function pageOutletName(n) { return n.outletName || n.outlet || n.category || 'Prensa'; }
+
+  // Ribbon/badges de estado para una tarjeta del estudio.
+  function pageRibbonHtml(n) {
+    const st = newsStatusOf(n);
+    let bits = `<span class="st-chip st-chip--${st}">${BIB_STATUS_LABEL[st]}</span>`;
+    if (n.pinned) bits += `<span class="st-chip st-chip--pin"><span data-ico="star" data-ico-size="10"></span> Destacada</span>`;
+    if (n.featured) bits += `<span class="st-chip st-chip--feat">Portada</span>`;
+    return bits;
+  }
+
+  // Tarjeta del lienzo (hero o lista) — decorada con ribbon de estado + acciones.
   function pageMiniCard(n, hero) {
-    return `<article class="pdrop-card${hero ? ' is-hero' : ''}" draggable="true" data-id="${n.id}">
-      <div class="pdrop-card__img" style="${n.image ? `background-image:url('${esc(n.image)}')` : ''}"></div>
+    return `<article class="pdrop-card${hero ? ' is-hero' : ''}" draggable="true" data-id="${n.id}" data-st="${newsStatusOf(n)}">
+      <div class="pdrop-card__ribbon">${pageRibbonHtml(n)}</div>
+      <div class="pdrop-card__img" style="${n.image ? `background-image:url('${esc(n.image)}')` : ''}">${n.image ? '' : `<span data-ico="image" data-ico-size="18"></span>`}</div>
       <div class="pdrop-card__b">
         <span class="pdrop-card__eyebrow">${esc(pageOutletName(n))}</span>
         <span class="pdrop-card__t">${esc(n.title)}</span>
         <span class="pdrop-card__d">${esc(fmtDate(n.date))}</span>
       </div>
-      <button class="icon-btn pdrop-card__rm" data-page-rm="${n.id}" title="Quitar de la página"><span data-ico="x"></span></button>
+      <div class="pdrop-card__acts">
+        <button class="icon-btn" data-page-act="edit" data-id="${n.id}" title="Editar"><span data-ico="pencil" data-ico-size="14"></span></button>
+        <button class="icon-btn${n.pinned ? ' on' : ''}" data-page-act="pin" data-id="${n.id}" title="Destacar"><span data-ico="star" data-ico-size="14"></span></button>
+        <button class="icon-btn pdrop-card__rm" data-page-rm="${n.id}" title="Quitar de la página"><span data-ico="x" data-ico-size="14"></span></button>
+      </div>
     </article>`;
   }
+
+  // Tarjeta del pool/biblioteca — miniatura + meta + ribbon + acciones rápidas.
+  function pagePoolCard(n) {
+    const st = newsStatusOf(n);
+    return `<div class="page-pool__item st-lc" draggable="true" data-id="${n.id}" data-st="${st}" title="Arrastrar al lienzo">
+      <span class="page-pool__grip" data-ico="grip-vertical" data-ico-size="16"></span>
+      <span class="page-pool__thumb" style="${n.image ? `background-image:url('${esc(n.image)}')` : ''}">${n.image ? '' : `<span data-ico="image" data-ico-size="14"></span>`}</span>
+      <span class="page-pool__txt">
+        <span class="page-pool__top"><span class="st-chip st-chip--${st} st-chip--xs">${BIB_STATUS_LABEL[st]}</span>${n.pinned ? '<span class="st-chip st-chip--pin st-chip--xs">★</span>' : ''}</span>
+        <span class="page-pool__t">${esc(n.title)}</span>
+        <span class="page-pool__d">${esc(fmtDate(n.date))}${n.outletName ? ' · ' + esc(n.outletName) : ''}</span>
+      </span>
+      <span class="page-pool__acts">
+        <button class="icon-btn" data-pool-act="edit" data-id="${n.id}" title="Editar"><span data-ico="pencil" data-ico-size="13"></span></button>
+        <button class="icon-btn" data-pool-act="status" data-id="${n.id}" title="${st === 'published' ? 'Pasar a borrador' : 'Publicar'}"><span data-ico="${st === 'published' ? 'eye-off' : 'eye'}" data-ico-size="13"></span></button>
+        <button class="icon-btn${n.archived ? ' on' : ''}" data-pool-act="archive" data-id="${n.id}" title="${n.archived ? 'Restaurar' : 'Archivar'}"><span data-ico="trash-2" data-ico-size="13"></span></button>
+      </span>
+    </div>`;
+  }
+
+  function pageLibMatch(n, tab) {
+    if (tab === 'all') return true;
+    return newsStatusOf(n) === tab;
+  }
+
+  // Carga/recarga el iframe con la SECCIÓN REAL de noticias (editable inline).
+  let _studioFrameLoaded = false;
+  function loadNewsStudioFrame(force) {
+    const fr = $('#newsStudioFrame'); if (!fr) return;
+    if (_studioFrameLoaded && !force) return;
+    _studioFrameLoaded = true;
+    fr.src = '../?editor=1&studio=news&_=' + Date.now();
+  }
+  function reloadNewsStudioFrame() { const fr = $('#newsStudioFrame'); if (fr && _studioFrameLoaded) fr.src = '../?editor=1&studio=news&_=' + Date.now(); }
+
   function renderPagina() {
     const pages = getPages();
-    const all = getNews().filter(n => n.status === 'published');
-    const byId = {}; all.forEach(n => byId[n.id] = n);
+    const news = getNews();
+    const byId = {}; news.forEach(n => byId[n.id] = n);
     const layout = pages.noticias || { hero: '', items: [] };
-    // limpia ids que ya no existen / no publicados
-    layout.items = (layout.items || []).filter(id => byId[id]);
-    if (layout.hero && !byId[layout.hero]) layout.hero = '';
+    // El lienzo sólo contiene publicadas y no archivadas (= lo que ve el público).
+    const placeable = (id) => byId[id] && byId[id].status === 'published' && !byId[id].archived;
+    layout.items = (layout.items || []).filter(placeable);
+    if (layout.hero && !placeable(layout.hero)) layout.hero = '';
     const placed = new Set(layout.items);
     if (layout.hero) placed.add(layout.hero);
 
-    // Pool = publicadas no colocadas
-    const pool = all.filter(n => !placed.has(n.id));
+    // Contadores por estado (sobre TODO el corpus).
+    const counts = { all: news.length, published: 0, draft: 0, archived: 0 };
+    news.forEach(n => { counts[newsStatusOf(n)]++; });
+    $$('#pageLibTabs [data-libc]').forEach(em => { const k = em.dataset.libc; if (counts[k] != null) em.textContent = counts[k]; });
+
+    // Pool = biblioteca filtrada por pestaña, excluyendo lo ya colocado en el lienzo.
+    const pool = news.filter(n => !placed.has(n.id) && pageLibMatch(n, pageLibTab));
     const poolBox = $('#pagePoolList');
-    if (!pool.length) {
-      poolBox.innerHTML = `<div class="page-pool__empty">No hay noticias publicadas disponibles. Publica noticias en la pestaña «Biblioteca».</div>`;
+    if (!news.length) {
+      poolBox.innerHTML = `<div class="page-pool__empty">Todavía no hay noticias. Crea la primera con «Crear noticia».</div>`;
+    } else if (!pool.length) {
+      poolBox.innerHTML = `<div class="page-pool__empty">Sin noticias en esta vista. Cambia de pestaña o arrastra desde el lienzo.</div>`;
     } else {
-      poolBox.innerHTML = pool.map(n => `
-        <div class="page-pool__item" draggable="true" data-id="${n.id}">
-          <span class="page-pool__grip" data-ico="grip-vertical" data-ico-size="16"></span>
-          <span class="page-pool__thumb" style="${n.image ? `background-image:url('${esc(n.image)}')` : ''}"></span>
-          <span class="page-pool__txt"><span class="page-pool__t">${esc(n.title)}</span><span class="page-pool__d">${esc(fmtDate(n.date))}</span></span>
-        </div>`).join('');
+      poolBox.innerHTML = pool.map(pagePoolCard).join('');
     }
 
     // Hero
     const heroBox = $('#pageHero');
-    if (layout.hero && byId[layout.hero]) heroBox.innerHTML = pageMiniCard(byId[layout.hero], true);
-    else heroBox.innerHTML = `<span class="page-hero__hint">Arrastra aquí la noticia destacada (hero)</span>`;
+    if (layout.hero && byId[layout.hero]) { heroBox.innerHTML = pageMiniCard(byId[layout.hero], true); heroBox.classList.add('has-item'); }
+    else { heroBox.innerHTML = `<span class="page-hero__hint">Arrastra aquí la noticia destacada (hero)</span>`; heroBox.classList.remove('has-item'); }
 
     // Lista
     const listBox = $('#pageList');
@@ -621,13 +684,142 @@
     else listBox.innerHTML = `<span class="page-list__hint">Arrastra noticias aquí para ordenar la página pública</span>`;
 
     pages.noticias = layout; setPages(pages);
+    pageSyncOrder(layout);   // proyecta hero/items a pinned/order en cv_news
+    updatePageStudioChrome();
     hydrate();
   }
+
+  // Proyecta el layout del estudio (hero, items) sobre cv_news para que el sitio
+  // público lo respete: el hero queda `pinned` y al frente; el resto sigue el orden
+  // de `items`; las no colocadas van detrás conservando su orden relativo.
+  function pageSyncOrder(layout) {
+    const news = getNews();
+    const ordered = [];
+    if (layout.hero) ordered.push(layout.hero);
+    (layout.items || []).forEach(id => { if (id !== layout.hero) ordered.push(id); });
+    const rank = {}; ordered.forEach((id, i) => { rank[id] = i; });
+    let chg = false, next = ordered.length;
+    news.forEach(n => {
+      const newOrder = rank[n.id] != null ? rank[n.id] : (next++);
+      if (n.order !== newOrder) { n.order = newOrder; chg = true; }
+      const wantPin = layout.hero === n.id;
+      // El hero manda como destacada; no quita pins manuales de otras.
+      if (wantPin && !n.pinned) { n.pinned = true; chg = true; }
+    });
+    if (chg) setNews(news);
+  }
+
   function savePageLayout(layout, msg) {
     const pages = getPages(); pages.noticias = layout; setPages(pages);
+    renderPagina();              // normaliza layout + proyecta order/pinned a cv_news
+    pageRecord();                // captura el estado YA normalizado para el historial
     logAudit('news', 'página pública', '', 'Layout actualizado');
-    renderPagina();
+    reloadNewsStudioFrame();     // refresca la vista en vivo de la sección
     if (msg) toast(msg, 'ok');
+  }
+
+  // ---- Historial de snapshots (undo/redo) sobre cv_news + cv_pages.noticias ----
+  let pageHist = [], pageHi = -1, pageHistInited = false;
+  function pageSnapshot() {
+    try { return JSON.stringify({ news: getNews(), layout: (getPages().noticias || { hero: '', items: [] }) }); }
+    catch (_) { return null; }
+  }
+  function pageRecord() {
+    const snap = pageSnapshot(); if (snap == null) return;
+    if (pageHi >= 0 && pageHist[pageHi] === snap) return;        // sin cambios reales
+    if (pageHi < pageHist.length - 1) pageHist = pageHist.slice(0, pageHi + 1);
+    pageHist.push(snap);
+    if (pageHist.length > 120) pageHist.shift();
+    pageHi = pageHist.length - 1;
+    updatePageStudioChrome();
+  }
+  function pageResetHistory() {
+    const snap = pageSnapshot(); pageHist = snap == null ? [] : [snap]; pageHi = pageHist.length - 1; pageHistInited = true;
+    updatePageStudioChrome();
+  }
+  function pageApplyHistory() {
+    const snap = pageHist[pageHi]; if (snap == null) return;
+    try {
+      const data = JSON.parse(snap);
+      setNews(Array.isArray(data.news) ? data.news : []);
+      const pages = getPages(); pages.noticias = data.layout || { hero: '', items: [] }; setPages(pages);
+    } catch (_) { return; }
+    renderPagina(); renderBiblioteca();
+    updatePageStudioChrome();
+  }
+  function pageUndo() { if (pageHi <= 0) return; pageHi--; pageApplyHistory(); toast('Cambio deshecho', 'ok'); }
+  function pageRedo() { if (pageHi >= pageHist.length - 1) return; pageHi++; pageApplyHistory(); toast('Cambio rehecho', 'ok'); }
+
+  // ---- Chrome del estudio (botones deshacer/rehacer/previsualizar) ----
+  function updatePageStudioChrome() {
+    const u = $('#pageUndo'), r = $('#pageRedo'), pv = $('#pagePreview');
+    if (u) u.disabled = pageHi <= 0;
+    if (r) r.disabled = pageHi >= pageHist.length - 1;
+    if (pv) {
+      pv.classList.toggle('is-active', pagePreviewing);
+      pv.innerHTML = pagePreviewing
+        ? '<span class="ar" data-ico="x-circle"></span> Volver a edición'
+        : '<span class="ar" data-ico="eye"></span> Previsualizar';
+      hydrate();
+    }
+  }
+
+  // ---- Acciones de estado compartidas (pool + lienzo) ----
+  function pageHandleAct(act, id) {
+    const news = getNews(); const n = news.find(x => x.id === id); if (!n) return;
+    if (act === 'edit') { openNews(id); return; }
+    if (act === 'pin') { n.pinned = !n.pinned; setNews(news); savePageLayout(getPages().noticias, n.pinned ? 'Marcada como destacada' : 'Quitada de destacadas'); return; }
+    if (act === 'status') {
+      n.status = n.status === 'published' ? 'draft' : 'published';
+      if (n.status === 'published') n.archived = false;
+      else pageDetachFromLayout(id);   // al despublicar, sale del lienzo
+      setNews(news);
+      savePageLayout(getPages().noticias, n.status === 'published' ? 'Publicada' : 'Pasada a borrador');
+      return;
+    }
+    if (act === 'archive') {
+      n.archived = !n.archived;
+      if (n.archived) pageDetachFromLayout(id);
+      setNews(news);
+      savePageLayout(getPages().noticias, n.archived ? 'Archivada' : 'Restaurada');
+      return;
+    }
+  }
+  function pageDetachFromLayout(id) {
+    const pages = getPages(); const layout = pages.noticias || { hero: '', items: [] };
+    layout.items = (layout.items || []).filter(x => x !== id);
+    if (layout.hero === id) layout.hero = '';
+    pages.noticias = layout; setPages(pages);
+  }
+
+  // ---- Previsualización (sitio público en pestaña nueva) ----
+  function pageSetPreview(on) {
+    pagePreviewing = on;
+    const panel = $('#npanel-pagina'); if (panel) panel.classList.toggle('is-previewing', on);
+    updatePageStudioChrome();
+    if (on) {
+      // Guarda el layout y abre el sitio público en modo editor para verlo en vivo.
+      try { window.open('../?editor=1#noticias', '_blank', 'noopener'); } catch (_) {}
+      toast('Vista pública abierta en otra pestaña', 'ok');
+    }
+  }
+
+  // ---- Publicar (persistir cv_pages + cv_news) ----
+  function pagePublish() {
+    const pages = getPages(); const layout = pages.noticias || { hero: '', items: [] };
+    pageSyncOrder(layout);
+    pages.noticias = layout; setPages(pages);
+    setNews(getNews());          // re-escribe cv_news (dispara `storage` en la web pública)
+    pageResetHistory();
+    logAudit('news', 'página pública', '', 'Publicada');
+    toast('Página publicada · cambios visibles en la web', 'ok');
+    updatePageStudioChrome();
+  }
+
+  // ---- Crear noticia desde el estudio ----
+  function pageCreateNews() {
+    if (pagePreviewing) pageSetPreview(false);
+    openNews(null);   // abre el modal de noticia (queda como borrador hasta guardar)
   }
   // estado de arrastre de la página
   let pageDrag = null; // {id, src:'pool'|'hero'|'list'}
@@ -658,32 +850,50 @@
 
     hero.addEventListener('drop', e => {
       if (!pageDrag) return; e.preventDefault(); hero.classList.remove('is-dropover');
+      pageEnsurePublished(pageDrag.id);                          // soltar al lienzo = publicar
       const layout = getPages().noticias || { hero: '', items: [] };
-      // quita de items y de hero previo
+      // El hero anterior baja a la lista; el nuevo hero queda destacado (pinned).
+      const prevHero = layout.hero;
       layout.items = (layout.items || []).filter(x => x !== pageDrag.id);
-      if (layout.hero && layout.hero !== pageDrag.id) layout.items = layout.items; // hero anterior se descarta al pool
+      if (prevHero && prevHero !== pageDrag.id && layout.items.indexOf(prevHero) < 0) layout.items.unshift(prevHero);
       layout.hero = pageDrag.id;
       savePageLayout(layout, 'Noticia destacada actualizada');
     });
 
     list.addEventListener('drop', e => {
       if (!pageDrag) return; e.preventDefault(); list.classList.remove('is-dropover');
+      pageEnsurePublished(pageDrag.id);                          // soltar al lienzo = publicar
       const layout = getPages().noticias || { hero: '', items: [] };
       if (layout.hero === pageDrag.id) layout.hero = '';
       layout.items = (layout.items || []).filter(x => x !== pageDrag.id);
       const idx = dropIndex(list, e.clientY);
       layout.items.splice(idx, 0, pageDrag.id);
-      savePageLayout(layout, pageDrag.src === 'pool' ? 'Noticia añadida a la página' : 'Orden actualizado');
+      savePageLayout(layout, pageDrag.src === 'pool' ? 'Noticia publicada y añadida a la página' : 'Orden actualizado');
     });
 
     pool.addEventListener('drop', e => {
       if (!pageDrag || pageDrag.src === 'pool') { if (pool) pool.classList.remove('is-dropover'); return; }
       e.preventDefault(); pool.classList.remove('is-dropover');
+      // Arrastrar fuera del lienzo (de vuelta a la biblioteca) = quitar y pasar a borrador.
       const layout = getPages().noticias || { hero: '', items: [] };
       layout.items = (layout.items || []).filter(x => x !== pageDrag.id);
       if (layout.hero === pageDrag.id) layout.hero = '';
-      savePageLayout(layout, 'Noticia quitada de la página');
+      pages_unpublish(pageDrag.id);
+      savePageLayout(layout, 'Noticia quitada de la página y pasada a borrador');
     });
+  }
+  // Garantiza que una noticia esté publicada y no archivada (al entrar al lienzo).
+  function pageEnsurePublished(id) {
+    const news = getNews(); const n = news.find(x => x.id === id); if (!n) return;
+    let chg = false;
+    if (n.status !== 'published') { n.status = 'published'; chg = true; }
+    if (n.archived) { n.archived = false; chg = true; }
+    if (chg) setNews(news);
+  }
+  // Pasa una noticia a borrador (al salir del lienzo hacia la biblioteca).
+  function pages_unpublish(id) {
+    const news = getNews(); const n = news.find(x => x.id === id); if (!n) return;
+    if (n.status !== 'draft') { n.status = 'draft'; setNews(news); }
   }
   function dropIndex(list, y) {
     const cards = $$('.pdrop-card:not(.is-dragging)', list);
@@ -694,13 +904,49 @@
     }
     return idx;
   }
-  // quitar con botón
+  // Acciones del estudio: quitar / editar / destacar (lienzo) y editar / estado / archivar (pool).
   document.addEventListener('click', e => {
-    const rm = e.target.closest('[data-page-rm]'); if (!rm) return;
-    const layout = getPages().noticias || { hero: '', items: [] };
-    layout.items = (layout.items || []).filter(x => x !== rm.dataset.pageRm);
-    if (layout.hero === rm.dataset.pageRm) layout.hero = '';
-    savePageLayout(layout, 'Noticia quitada de la página');
+    const rm = e.target.closest('[data-page-rm]');
+    if (rm) {
+      const layout = getPages().noticias || { hero: '', items: [] };
+      layout.items = (layout.items || []).filter(x => x !== rm.dataset.pageRm);
+      if (layout.hero === rm.dataset.pageRm) layout.hero = '';
+      savePageLayout(layout, 'Noticia quitada de la página');
+      return;
+    }
+    const pa = e.target.closest('[data-page-act]');
+    if (pa) { e.preventDefault(); pageHandleAct(pa.dataset.pageAct, pa.dataset.id); return; }
+    const la = e.target.closest('[data-pool-act]');
+    if (la) { e.preventDefault(); pageHandleAct(la.dataset.poolAct, la.dataset.id); return; }
+  });
+
+  // Pestañas de estado de la biblioteca (filtran el pool).
+  $('#pageLibTabs') && $('#pageLibTabs').addEventListener('click', e => {
+    const t = e.target.closest('[data-libtab]'); if (!t) return;
+    pageLibTab = t.dataset.libtab;
+    $$('#pageLibTabs [data-libtab]').forEach(b => b.classList.toggle('is-active', b === t));
+    renderPagina();
+  });
+
+  // Barra del estudio: deshacer / rehacer / crear / previsualizar / publicar.
+  $('#pageUndo') && $('#pageUndo').addEventListener('click', pageUndo);
+  $('#pageRedo') && $('#pageRedo').addEventListener('click', pageRedo);
+  $('#pageNewsNew') && $('#pageNewsNew').addEventListener('click', pageCreateNews);
+  $('#pagePreview') && $('#pagePreview').addEventListener('click', () => pageSetPreview(!pagePreviewing));
+  $('#pagePublish') && $('#pagePublish').addEventListener('click', pagePublish);
+
+  // ⌘Z / ⌘⇧Z (Ctrl en Windows/Linux) mientras la pestaña Página está activa.
+  document.addEventListener('keydown', e => {
+    if (newsTab !== 'pagina') return;
+    const panel = $('#npanel-pagina'); if (!panel || panel.hidden) return;
+    const tag = (e.target && e.target.tagName) || '';
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || (e.target && e.target.isContentEditable)) return;
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'Z')) {
+      e.preventDefault();
+      if (e.shiftKey) pageRedo(); else pageUndo();
+    } else if ((e.metaKey || e.ctrlKey) && (e.key === 'y' || e.key === 'Y')) {
+      e.preventDefault(); pageRedo();
+    }
   });
 
   // ============ NOTICIAS · MEDIOS (outlets) ============

@@ -395,6 +395,76 @@ code{font-family:var(--mono);font-size:.86em;background:rgba(11,26,44,.06);paddi
 .page-pool__list.dragover{background:var(--teal-soft);border-radius:10px}
 .drop-line{height:2px;border-radius:2px;background:var(--teal);box-shadow:0 0 0 2px var(--teal-soft);margin:1px 0}
 
+/* ============================================================
+   ESTUDIO DE NOTICIAS (in-place) — barra, biblioteca, tarjetas decoradas
+   ============================================================ */
+/* Barra del estudio */
+.studio-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin-bottom:16px;box-shadow:0 12px 30px -24px rgba(11,26,44,.3)}
+.studio-bar__group{display:flex;align-items:center;gap:8px}
+.studio-bar__spacer{flex:1 1 auto}
+.btn--sm{padding:8px 13px;font-size:11.5px}
+.btn[disabled]{opacity:.42;pointer-events:none}
+.btn.is-active{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+/* Pestañas de estado de la biblioteca */
+.page-lib__tabs{display:flex;flex-wrap:wrap;gap:6px;padding:0 2px 12px;margin-bottom:12px;border-bottom:1px solid var(--line)}
+.page-lib__tab{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:11px;padding:6px 11px;border:1px solid var(--line-strong);background:var(--card);color:var(--gray-700);border-radius:100px;transition:.2s var(--ease)}
+.page-lib__tab:hover{border-color:var(--teal);color:var(--ink)}
+.page-lib__tab.is-active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.page-lib__tab em{font-style:normal;font-size:10px;font-weight:700;min-width:16px;text-align:center;padding:1px 5px;border-radius:8px;background:var(--teal-soft);color:var(--teal-d)}
+.page-lib__tab.is-active em{background:rgba(255,255,255,.18);color:#fff}
+.page-pool__hint{font-size:11px;color:var(--gray-400);line-height:1.45;padding:12px 4px 2px;margin-top:8px;border-top:1px solid var(--line)}
+
+/* Chips de estado (ribbon/badges) */
+.st-chip{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:100px;line-height:1;white-space:nowrap}
+.st-chip [data-ico] svg{width:10px;height:10px}
+.st-chip--xs{font-size:8.5px;padding:2px 6px}
+.st-chip--published{background:rgba(31,157,107,.92);color:#fff}
+.st-chip--draft{background:rgba(233,176,72,.92);color:#3a2a05}
+.st-chip--archived{background:var(--gray-400);color:#fff}
+.st-chip--pin{background:var(--teal);color:#fff}
+.st-chip--feat{background:var(--ink);color:#fff}
+
+/* Tarjetas del pool/biblioteca decoradas */
+.page-pool__item{display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--line-strong);border-radius:11px;padding:8px 9px;cursor:grab;transition:.16s var(--ease);user-select:none;position:relative}
+.page-pool__item:hover{border-color:var(--teal);box-shadow:0 8px 20px -14px rgba(28,181,176,.45);transform:translateY(-1px)}
+.page-pool__item.is-dragging{opacity:.45;cursor:grabbing;border-style:dashed;border-color:var(--teal);transform:none;box-shadow:none}
+.page-pool__item[data-st="archived"]{opacity:.72}
+.page-pool__grip{flex:0 0 auto;width:18px;color:var(--gray-400);display:inline-flex;align-items:center;justify-content:center;cursor:grab}
+.page-pool__item:hover .page-pool__grip{color:var(--teal-d)}
+.page-pool__thumb{flex:0 0 auto;width:42px;height:42px;border-radius:8px;background:var(--paper-2) center/cover no-repeat;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--gray-400)}
+.page-pool__txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.page-pool__top{display:flex;align-items:center;gap:4px}
+.page-pool__t{font-weight:600;font-size:12.5px;color:var(--ink);line-height:1.2;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
+.page-pool__d{font-size:10.5px;color:var(--gray-500)}
+.page-pool__acts{flex:0 0 auto;display:flex;gap:3px;opacity:0;transition:.15s}
+.page-pool__item:hover .page-pool__acts{opacity:1}
+.page-pool__acts .icon-btn{width:26px;height:26px;border-radius:7px}
+.page-pool__acts .icon-btn.on{color:var(--teal-d);border-color:var(--teal);background:var(--teal-soft)}
+
+/* Tarjetas del lienzo (hero/lista) decoradas */
+.pdrop-card{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--line-strong);border-radius:12px;padding:9px;cursor:grab;transition:.16s var(--ease);user-select:none;position:relative}
+.pdrop-card:hover{border-color:var(--teal);box-shadow:0 8px 22px -14px rgba(28,181,176,.45)}
+.pdrop-card.is-dragging{opacity:.45;cursor:grabbing;border-style:dashed;border-color:var(--teal)}
+.pdrop-card.is-hero{padding:11px;border-color:var(--teal);background:linear-gradient(180deg,#fff,var(--teal-soft))}
+.pdrop-card__ribbon{position:absolute;top:7px;left:62px;display:flex;gap:4px;flex-wrap:wrap;z-index:2;pointer-events:none}
+.pdrop-card__img{flex:0 0 auto;width:48px;height:48px;border-radius:9px;background:var(--paper-2) center/cover no-repeat;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--gray-400)}
+.pdrop-card.is-hero .pdrop-card__img{width:64px;height:64px}
+.pdrop-card__b{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;padding-top:14px}
+.pdrop-card__eyebrow{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-d)}
+.pdrop-card__t{font-family:var(--serif);font-size:14.5px;color:var(--ink);line-height:1.18;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.pdrop-card__d{font-size:10.5px;color:var(--gray-500)}
+.pdrop-card__acts{flex:0 0 auto;display:flex;gap:3px;align-self:flex-start;opacity:0;transition:.15s}
+.pdrop-card:hover .pdrop-card__acts{opacity:1}
+.pdrop-card__acts .icon-btn{width:28px;height:28px;border-radius:7px}
+.pdrop-card__acts .icon-btn.on{color:var(--teal-d);border-color:var(--teal);background:var(--teal-soft)}
+.pdrop-card__rm:hover{color:var(--danger);border-color:rgba(192,69,59,.4);background:rgba(192,69,59,.08)}
+
+/* Modo previsualización: oculta el chrome de edición del estudio */
+#npanel-pagina.is-previewing .pdrop-card__acts,
+#npanel-pagina.is-previewing .pdrop-card__ribbon,
+#npanel-pagina.is-previewing .page-pool__acts{display:none !important}
+
 @media(max-width:880px){
   .page-editor{grid-template-columns:1fr}
   .page-pool{position:static;max-height:none}
@@ -929,3 +999,11 @@ code{font-family:var(--mono);font-size:.86em;background:rgba(11,26,44,.06);paddi
 
 /* Pista inline dentro de la etiqueta de campo (requisitos/tags/prioridad) */
 .field__label .field__hint{display:inline;text-transform:none;letter-spacing:0;font-weight:500;color:var(--gray-400);font-size:10.5px}
+
+/* ===== Estudio de noticias: vista REAL de la sección (iframe editable) ===== */
+.news-studio-live{margin-bottom:18px;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--card);box-shadow:0 14px 36px -26px rgba(11,26,44,.4)}
+.news-studio-live__head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--paper)}
+.news-studio-live__hint{font-size:11.5px;color:var(--gray-500)}
+.news-studio-live__frame{position:relative;width:100%;height:600px;background:#eef2f6}
+.news-studio-live__frame iframe{width:100%;height:100%;border:0;display:block}
+@media(max-width:760px){.news-studio-live__frame{height:480px}}
