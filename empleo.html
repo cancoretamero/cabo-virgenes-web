@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Trabajá con nosotros — Cabo Vírgenes</title>
+<meta name="description" content="Sumate al equipo de Cabo Vírgenes: flota, plantas de procesamiento y operación comercial del langostino austral en Argentina y España. Vacantes y candidatura espontánea." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./styles.css" />
+<style>
+  /* ===== Página de Empleo (estética Cabo) ===== */
+  .emp-page{background:var(--page);min-height:100vh}
+  .emp-nav{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;
+    padding:16px clamp(20px,5vw,64px);background:rgba(216,224,231,.86);border-bottom:1px solid rgba(11,26,44,.08)}
+  .emp-nav__brand{display:flex;align-items:center;gap:12px}
+  .emp-nav__brand img{height:42px;width:auto}
+  .emp-nav__home{display:inline-flex;align-items:center;gap:8px;font:600 13px/1 'Inter',sans-serif;color:var(--ink);
+    padding:9px 16px;border:1px solid rgba(11,26,44,.18);border-radius:100px;transition:.2s}
+  .emp-nav__home:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .emp-wrap{max-width:1120px;margin:0 auto;padding:0 clamp(20px,5vw,40px)}
+
+  .emp-hero{position:relative;overflow:hidden;padding:clamp(60px,9vw,120px) 0 clamp(48px,7vw,90px);
+    background:radial-gradient(1100px 600px at 75% -10%,#0c2a55,transparent 60%),linear-gradient(180deg,#06182f,#0a2138);color:#fff}
+  .emp-hero__eyebrow{display:inline-flex;align-items:center;gap:8px;font:700 11px/1 'Inter',sans-serif;
+    letter-spacing:.28em;text-transform:uppercase;color:var(--teal-l,#7fe3df)}
+  .emp-hero__eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--teal,#1cb5b0)}
+  .emp-hero h1{font-family:'Fraunces',serif;font-weight:500;font-size:clamp(40px,8vw,82px);line-height:1.0;
+    letter-spacing:-.02em;margin:18px 0 0}
+  .emp-hero h1 em{font-style:italic;color:var(--teal-l,#7fe3df)}
+  .emp-hero p{max-width:54ch;margin:20px 0 0;color:#b9cadb;font-size:clamp(15px,2vw,18px);line-height:1.6}
+  .emp-hero__cta{margin-top:30px;display:flex;gap:14px;flex-wrap:wrap}
+  .emp-btn{display:inline-flex;align-items:center;gap:9px;font:600 14px/1 'Inter',sans-serif;padding:14px 24px;
+    border-radius:100px;border:1px solid transparent;cursor:pointer;transition:.25s;text-decoration:none}
+  .emp-btn--solid{background:var(--teal,#1cb5b0);color:#06182f}
+  .emp-btn--solid:hover{background:#fff;transform:translateY(-1px)}
+  .emp-btn--ghost{border-color:rgba(255,255,255,.28);color:#fff}
+  .emp-btn--ghost:hover{background:rgba(255,255,255,.1)}
+  .emp-btn .ar{transition:transform .3s}.emp-btn:hover .ar{transform:translateX(3px)}
+
+  .emp-sec{padding:clamp(54px,8vw,96px) 0}
+  .emp-sec__eyebrow{font:700 11px/1 'Inter',sans-serif;letter-spacing:.24em;text-transform:uppercase;color:var(--teal-strong,#0fa6a0)}
+  .emp-sec__title{font-family:'Fraunces',serif;font-weight:500;font-size:clamp(30px,4.5vw,48px);line-height:1.04;
+    color:var(--ink);margin:14px 0 0;letter-spacing:-.01em}
+  .emp-sec__lead{max-width:60ch;margin:16px 0 0;color:var(--gray,#6b7a8a);font-size:16px;line-height:1.6}
+
+  .emp-benefits{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:40px}
+  .emp-benefit{background:#fff;border:1px solid rgba(11,26,44,.08);border-radius:18px;padding:26px 22px;
+    box-shadow:0 18px 40px -28px rgba(11,26,44,.3)}
+  .emp-benefit__ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    background:rgba(28,181,176,.12);color:var(--teal-strong,#0fa6a0);margin-bottom:16px}
+  .emp-benefit__ic svg{width:22px;height:22px}
+  .emp-benefit h3{font-family:'Fraunces',serif;font-weight:500;font-size:20px;color:var(--ink);margin:0 0 8px}
+  .emp-benefit p{color:var(--gray,#6b7a8a);font-size:14px;line-height:1.55}
+
+  .emp-jobs{display:flex;flex-direction:column;gap:16px;margin-top:40px}
+  .emp-job{background:#fff;border:1px solid rgba(11,26,44,.1);border-radius:18px;padding:24px 26px;
+    display:flex;align-items:center;gap:24px;transition:box-shadow .22s,transform .22s;border-left:3px solid var(--teal,#1cb5b0)}
+  .emp-job:hover{box-shadow:0 22px 50px -30px rgba(11,26,44,.4);transform:translateY(-2px)}
+  .emp-job__main{flex:1;min-width:0}
+  .emp-job__tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+  .emp-job__tag{font:700 10px/1 'Inter',sans-serif;letter-spacing:.05em;text-transform:uppercase;
+    padding:5px 10px;border-radius:100px;background:rgba(28,181,176,.1);color:var(--teal-strong,#0fa6a0)}
+  .emp-job__tag.area{background:rgba(11,26,44,.06);color:var(--ink)}
+  .emp-job h3{font-family:'Fraunces',serif;font-weight:500;font-size:23px;color:var(--ink);margin:0 0 6px}
+  .emp-job p{color:var(--gray,#6b7a8a);font-size:14.5px;line-height:1.55;margin:0}
+  .emp-job__meta{display:flex;gap:16px;margin-top:10px;color:var(--gray,#6b7a8a);font-size:13px}
+  .emp-job__meta span{display:inline-flex;align-items:center;gap:6px}
+  .emp-job__apply{flex:none}
+  .emp-empty{background:#fff;border:1px dashed rgba(11,26,44,.2);border-radius:18px;padding:44px;text-align:center;
+    color:var(--gray,#6b7a8a);margin-top:40px}
+  .emp-empty h3{font-family:'Fraunces',serif;color:var(--ink);font-size:24px;margin:0 0 8px;font-weight:500}
+
+  .emp-cta{background:linear-gradient(180deg,#0a2138,#06182f);border-radius:28px;padding:clamp(40px,6vw,72px);
+    text-align:center;color:#fff;margin:0 0 clamp(54px,8vw,96px)}
+  .emp-cta h2{font-family:'Fraunces',serif;font-weight:500;font-size:clamp(28px,4vw,42px);margin:0 0 12px}
+  .emp-cta p{color:#b9cadb;max-width:48ch;margin:0 auto 28px;font-size:16px;line-height:1.6}
+
+  /* Modal de candidatura */
+  .emp-modal{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+  .emp-modal.open{display:flex}
+  .emp-modal__back{position:absolute;inset:0;background:rgba(3,9,20,.66)}
+  .emp-modal__card{position:relative;z-index:1;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;
+    background:#fff;border-radius:22px;padding:30px}
+  .emp-modal__close{position:absolute;top:16px;right:16px;width:34px;height:34px;border-radius:50%;border:1px solid rgba(11,26,44,.14);
+    background:#fff;font-size:18px;color:var(--ink);cursor:pointer}
+  .emp-modal h3{font-family:'Fraunces',serif;font-weight:500;font-size:26px;color:var(--ink);margin:0 4px 4px 0}
+  .emp-modal__sub{color:var(--gray,#6b7a8a);font-size:14px;margin:0 0 20px}
+  .emp-field{display:block;margin-bottom:14px}
+  .emp-field span{display:block;font:600 11px/1 'Inter',sans-serif;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--gray,#6b7a8a);margin-bottom:6px}
+  .emp-field input,.emp-field textarea{width:100%;font:14px/1.5 'Inter',sans-serif;color:var(--ink);
+    background:#f6f8fa;border:1px solid rgba(11,26,44,.16);border-radius:10px;padding:11px 13px}
+  .emp-field input:focus,.emp-field textarea:focus{outline:none;border-color:var(--teal,#1cb5b0);background:#fff}
+  .emp-field textarea{resize:vertical;min-height:90px}
+  .emp-file{display:flex;align-items:center;gap:10px;padding:12px;border:1px dashed rgba(11,26,44,.22);border-radius:10px;cursor:pointer;color:var(--gray,#6b7a8a);font-size:13px}
+  .emp-msg{font-size:13px;margin-top:6px;min-height:18px}
+  .emp-msg.ok{color:var(--teal-strong,#0fa6a0)} .emp-msg.err{color:#c0453b}
+
+  @media(max-width:860px){.emp-benefits{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:680px){
+    .emp-benefits{grid-template-columns:1fr}
+    .emp-job{flex-direction:column;align-items:flex-start;gap:16px}
+    .emp-job__apply{width:100%}.emp-job__apply .emp-btn{width:100%;justify-content:center}
+  }
+  @media (max-width:900px),(hover:none) and (pointer:coarse){
+    *,*::before,*::after{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;animation:none!important}
+    .emp-sec,.emp-hero,.footer{content-visibility:auto;contain-intrinsic-size:auto 600px}
+  }
+</style>
+</head>
+<body class="emp-page">
+
+<!-- ===== Nav ===== -->
+<header class="emp-nav">
+  <a class="emp-nav__brand" href="./" aria-label="Cabo Vírgenes — inicio"><img src="./logo.png" alt="Cabo Vírgenes"></a>
+  <a class="emp-nav__home" href="./"><span class="ar" aria-hidden="true">←</span> Volver al inicio</a>
+</header>
+
+<!-- ===== Hero ===== -->
+<section class="emp-hero">
+  <div class="emp-wrap">
+    <span class="emp-hero__eyebrow"><span class="dot"></span>Trabajá con nosotros</span>
+    <h1>Sumate a la<br><em>flota austral</em>.</h1>
+    <p>Operamos la captura, el procesamiento y la exportación del langostino más valorado del Atlántico Sur, con base en Puerto Rawson y plataforma en España. Buscamos personas que quieran crecer en una operación binacional de clase mundial.</p>
+    <div class="emp-hero__cta">
+      <a class="emp-btn emp-btn--solid" href="#vacantes">Ver vacantes <span class="ar">→</span></a>
+      <button class="emp-btn emp-btn--ghost" type="button" data-apply data-apply-title="Candidatura espontánea">Enviar candidatura espontánea</button>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Beneficios ===== -->
+<section class="emp-sec">
+  <div class="emp-wrap">
+    <span class="emp-sec__eyebrow">Por qué Cabo Vírgenes</span>
+    <h2 class="emp-sec__title">Una operación que cuida<br>a su gente.</h2>
+    <div class="emp-benefits">
+      <div class="emp-benefit">
+        <div class="emp-benefit__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg></div>
+        <h3>Seguridad laboral</h3>
+        <p>Equipamiento, protocolos y cobertura para trabajar a bordo y en planta con los más altos estándares.</p>
+      </div>
+      <div class="emp-benefit">
+        <div class="emp-benefit__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg></div>
+        <h3>Experiencia internacional</h3>
+        <p>Operación binacional Argentina–España y exportación a más de 40 países. Proyección global real.</p>
+      </div>
+      <div class="emp-benefit">
+        <div class="emp-benefit__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div>
+        <h3>Crecimiento profesional</h3>
+        <p>Formación continua y desarrollo de carrera en flota, plantas, calidad y comercial.</p>
+      </div>
+      <div class="emp-benefit">
+        <div class="emp-benefit__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 11a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"/></svg></div>
+        <h3>Cultura y sostenibilidad</h3>
+        <p>Un equipo comprometido con la pesca responsable, la comunidad y el cuidado del Mar Argentino.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Vacantes ===== -->
+<section class="emp-sec" id="vacantes" style="padding-top:0">
+  <div class="emp-wrap">
+    <span class="emp-sec__eyebrow">Oportunidades</span>
+    <h2 class="emp-sec__title">Vacantes abiertas</h2>
+    <p class="emp-sec__lead">Estos son los puestos que estamos buscando. Postulate al que mejor encaje con tu experiencia; si no encontrás el tuyo, dejanos tu candidatura espontánea.</p>
+    <div class="emp-jobs" id="jobsList"></div>
+  </div>
+</section>
+
+<!-- ===== CTA espontánea ===== -->
+<section class="emp-sec" style="padding-top:0">
+  <div class="emp-wrap">
+    <div class="emp-cta">
+      <h2>¿No encontraste tu rol?</h2>
+      <p>Siempre buscamos talento para la flota, las plantas y la operación comercial. Dejanos tu CV y te contactamos cuando surja una oportunidad.</p>
+      <button class="emp-btn emp-btn--solid" type="button" data-apply data-apply-title="Candidatura espontánea" style="background:var(--teal);color:#06182f">Enviar mi candidatura <span class="ar">→</span></button>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Footer (resumido, coherente con el sitio) ===== -->
+<footer class="footer">
+  <div class="footer-base" style="border-top:1px solid rgba(11,26,44,.1);padding-top:24px">
+    <div class="ft-base-left">
+      <span>© 2026 Cabo Vírgenes</span><span class="ft-dot">·</span>
+      <span>Parte de <strong>AISA Group</strong></span><span class="ft-dot">·</span>
+      <span><em>Pleoticus muelleri</em> · FAO 41</span>
+    </div>
+    <div class="ft-base-right">
+      <a href="./">Inicio</a>
+      <a href="mailto:rrhh@cabovirgenes.com">rrhh@cabovirgenes.com</a>
+      <a href="./admin/" class="ft-admin-link">Administración</a>
+    </div>
+  </div>
+</footer>
+
+<!-- ===== Modal de candidatura ===== -->
+<div class="emp-modal" id="applyModal" aria-hidden="true">
+  <div class="emp-modal__back" data-apply-close></div>
+  <div class="emp-modal__card">
+    <button class="emp-modal__close" data-apply-close aria-label="Cerrar">×</button>
+    <h3 id="applyTitle">Postularme</h3>
+    <p class="emp-modal__sub" id="applySub">Completá tus datos y nos pondremos en contacto.</p>
+    <form id="applyForm">
+      <input type="hidden" id="apJobId">
+      <label class="emp-field"><span>Nombre y apellido *</span><input id="apName" required></label>
+      <label class="emp-field"><span>Email *</span><input id="apEmail" type="email" required></label>
+      <label class="emp-field"><span>Teléfono</span><input id="apPhone" type="tel"></label>
+      <label class="emp-field"><span>Mensaje</span><textarea id="apMessage" placeholder="Contanos sobre tu experiencia…"></textarea></label>
+      <label class="emp-file" for="apCvFile"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg> <span id="apCvName">Adjuntar CV (PDF, opcional)</span></label>
+      <input type="file" id="apCvFile" accept=".pdf,.doc,.docx" hidden>
+      <button class="emp-btn emp-btn--solid" type="submit" style="width:100%;justify-content:center;margin-top:18px;background:var(--teal);color:#06182f">Enviar candidatura <span class="ar">→</span></button>
+      <p class="emp-msg" id="applyMsg" role="status"></p>
+    </form>
+  </div>
+</div>
+
+<script defer src="./empleo.js"></script>
+</body>
+</html>
