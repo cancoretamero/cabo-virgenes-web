@@ -97,12 +97,12 @@ export default async (req) => {
       };
       const r = await callClaude({
         system: `Eres auditor SEO senior. ${BRAND_FACTS}
-Analizas el contenido REAL de una página y propones mejoras de SEO concretas, SIN inventar datos (usa solo los hechos dados; corrige imprecisiones del producto si las ves, p.ej. HOSO es CON cabeza).
-Cubre TODO: meta título, meta descripción, H1, encabezados, textos ALT de imágenes (clave para SEO de imágenes y accesibilidad) y textos lead. Para cada elemento que MEJORARÍAS, crea un hallazgo. No propongas cambios cosméticos sin valor SEO.
-Devuelve SOLO JSON: {"findings":[{"type": "title|description|h1|heading|alt|content", "src": "(solo para alt: el src exacto de la imagen)", "current": "texto/alt actual exacto", "proposed": "versión mejorada", "reason": "por qué mejora el SEO (breve)", "severity": "alta|media|baja"}]}.
-Reglas: título <=60 car, descripción 140-155 car, ALT descriptivos con keyword (5-12 palabras), naturales. Máx 18 hallazgos, ordénalos por severidad (alta primero). Español de España.`,
-        messages: [{ role: 'user', content: `Audita esta página de Cabo Vírgenes (JSON):\n${JSON.stringify(compact)}` }],
-        maxTokens: 3000, temperature: 0.4,
+Analizas el contenido REAL de una página y REHACES una versión optimizada para SEO, SIN inventar datos (usa solo los hechos dados; corrige imprecisiones del producto si las ves, p.ej. HOSO es CON cabeza).
+Cubre TODO: meta título, meta descripción, H1, TODOS los encabezados, textos lead/visibles y los textos ALT de imágenes. PRIORIZA reescribir el contenido VISIBLE (H1, encabezados, leads) para que el antes/después se note: titulares más claros con la keyword principal (langostino austral salvaje, Patagonia, FAO 41) manteniendo el tono premium y SIN exagerar. Conserva el significado; mejora claridad + keyword + intención de búsqueda.
+Devuelve SOLO JSON: {"findings":[{"type": "title|description|h1|heading|alt|content", "src": "(solo para alt: el src exacto de la imagen)", "current": "texto/alt actual EXACTO tal cual te lo doy", "proposed": "versión mejorada", "reason": "justificación SEO clara (1-2 frases)", "severity": "alta|media|baja"}]}.
+Reglas: título <=60 car, descripción 140-155 car, ALT descriptivos con keyword (5-12 palabras). "current" debe coincidir EXACTO con el texto dado (para poder localizarlo). Máx 20 hallazgos. Español de España.`,
+        messages: [{ role: 'user', content: `Audita y reoptimiza esta página de Cabo Vírgenes (JSON):\n${JSON.stringify(compact)}` }],
+        maxTokens: 3500, temperature: 0.4,
       });
       if (!r.ok) return json({ error: 'ai', message: r.message }, r.status || 502);
       const data = extractJson(r.text);

@@ -2252,6 +2252,96 @@
     toast(cfg.published ? 'Publicado en vivo' : 'Guardado', 'ok');
   });
 
+  // ---- COMPARADOR IA antes/después (dos vistas reales de la web + slider) ----
+  let seoCompFindings = [];
+  const seoNorm = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+  function seoScanDoc(doc) {
+    const pick = (sel) => { const e = doc.querySelector(sel); return e ? seoNorm(e.textContent) : ''; };
+    const h1 = pick('main h1') || pick('h1');
+    const headings = [].slice.call(doc.querySelectorAll('main h2, main h3')).map(h => seoNorm(h.textContent)).filter(Boolean);
+    const seen = {};
+    const alts = [].slice.call(doc.querySelectorAll('main img, header img')).map(i => ({ src: i.getAttribute('src') || '', alt: i.getAttribute('alt') || '' }))
+      .filter(a => a.src && !/^data:/.test(a.src) && !seen[a.src] && (seen[a.src] = 1));
+    let leads = [].slice.call(doc.querySelectorAll('main .lead, main .ship-desc, main .sec-head p, main .phc-body p')).map(p => seoNorm(p.textContent)).filter(t => t.length > 45);
+    leads = leads.filter((t, i) => leads.indexOf(t) === i).slice(0, 12);
+    return { url: location.origin + '/', title: doc.title, description: (doc.querySelector('meta[name="description"]') || {}).content || '', h1, headings, alts, leads };
+  }
+  function seoFindByText(doc, f) {
+    const sels = f.type === 'h1' ? ['main h1', 'h1'] : (f.type === 'heading' ? ['main h2', 'main h3'] : ['main p', 'main .lead', 'main .ship-desc', 'main h2', 'main h3', 'main h1']);
+    const cur = seoNorm(f.current);
+    for (const s of sels) { const nodes = doc.querySelectorAll(s); for (let i = 0; i < nodes.length; i++) if (seoNorm(nodes[i].textContent) === cur) return nodes[i]; }
+    return null;
+  }
+  function seoApplyToDoc(doc, findings) {
+    findings.forEach(f => {
+      try {
+        if (f.type === 'title') doc.title = f.proposed;
+        else if (f.type === 'description') { const m = doc.querySelector('meta[name="description"]'); if (m) m.setAttribute('content', f.proposed); }
+        else if (f.type === 'alt' && f.src) { const im = doc.querySelector('img[src="' + f.src.replace(/"/g, '\\"') + '"]'); if (im) { im.setAttribute('alt', f.proposed); im.style.outline = '3px dashed #1cb5b0'; im.style.outlineOffset = '2px'; } }
+        else { const el = seoFindByText(doc, f); if (el) { el.textContent = f.proposed; el.style.background = 'rgba(28,181,176,.14)'; el.style.outline = '2px dashed #1cb5b0'; el.style.outlineOffset = '3px'; el.style.borderRadius = '3px'; } }
+      } catch (e) {}
+    });
+  }
+  function seoSetupSlider() {
+    const frames = $('#seoCompFrames'), wrap = $('#seoAfterWrap'), handle = $('#seoCompHandle'), range = $('#seoCompPos');
+    const setW = () => frames.style.setProperty('--stagew', frames.clientWidth + 'px');
+    setW(); window.addEventListener('resize', setW);
+    const setPos = (p) => { p = Math.max(2, Math.min(98, p)); wrap.style.width = p + '%'; handle.style.left = p + '%'; };
+    setPos(50);
+    let drag = false;
+    const move = (x) => { const r = frames.getBoundingClientRect(); setPos(((x - r.left) / r.width) * 100); };
+    handle.addEventListener('mousedown', (e) => { drag = true; e.preventDefault(); });
+    frames.addEventListener('mousedown', (e) => { if (e.target.tagName !== 'IFRAME') { drag = true; move(e.clientX); } });
+    window.addEventListener('mousemove', (e) => { if (drag) move(e.clientX); });
+    window.addEventListener('mouseup', () => { drag = false; });
+    handle.addEventListener('touchmove', (e) => move(e.touches[0].clientX), { passive: true });
+    const scrollBoth = (p) => { ['#seoFrBefore', '#seoFrAfter'].forEach(s => { const f = $(s); try { const w = f.contentWindow, d = f.contentDocument; const max = d.body.scrollHeight - w.innerHeight; w.scrollTo(0, Math.max(0, max) * p / 100); } catch (e) {} }); };
+    if (range) range.oninput = () => scrollBoth(+range.value);
+    frames.addEventListener('wheel', (e) => { e.preventDefault(); const v = Math.max(0, Math.min(100, (+range.value) + (e.deltaY > 0 ? 3 : -3))); range.value = v; scrollBoth(v); }, { passive: false });
+  }
+  function seoRenderChanges() {
+    const L = { title: 'Meta título', description: 'Meta descripción', h1: 'Encabezado H1', heading: 'Encabezado', alt: 'Texto ALT (imagen)', content: 'Texto' };
+    $('#seoChanges').innerHTML = seoCompFindings.map(f => `<div class="seo-change"><div class="seo-change__h"><span class="seo-change__sev ${f.severity}"></span><span class="seo-change__type">${seoEsc(L[f.type] || f.type)}</span></div><div class="seo-change__ba"><div class="seo-change__col b"><small>Antes</small>${seoEsc(f.current) || '<i>(vacío)</i>'}</div><div class="seo-change__col a"><small>Después</small>${seoEsc(f.proposed)}</div></div><p class="seo-change__why">💡 ${seoEsc(f.reason)}</p></div>`).join('');
+    $('#seoCompCount').textContent = seoCompFindings.length + ' cambios propuestos · ' + seoCompFindings.filter(f => f.severity === 'alta').length + ' de prioridad alta';
+  }
+  $('#seoGenVer') && $('#seoGenVer').addEventListener('click', async () => {
+    if (!seoKey()) { toast('Entra al panel primero', 'err'); return; }
+    const btn = $('#seoGenVer'), old = btn.innerHTML; btn.disabled = true; btn.textContent = 'Generando… (~20s)';
+    $('#seoCompStage').hidden = false;
+    const before = $('#seoFrBefore'), after = $('#seoFrAfter');
+    try {
+      await new Promise((res) => { let n = 0; const done = () => { if (++n >= 2) res(); }; before.onload = done; after.onload = done; before.src = '../'; after.src = '../'; setTimeout(res, 9000); });
+      await new Promise(r => setTimeout(r, 1800));
+      const page = seoScanDoc(before.contentDocument);
+      const r = await seoApi('POST', { action: 'audit', page });
+      btn.disabled = false; btn.innerHTML = old; hydrate();
+      if (!r.ok) { toast((r.data && r.data.message) || 'Error de IA', 'err'); return; }
+      seoCompFindings = r.data.findings || [];
+      seoApplyToDoc(after.contentDocument, seoCompFindings);
+      seoSetupSlider(); seoRenderChanges();
+      $('#seoCompActions').hidden = false;
+      toast(seoCompFindings.length + ' mejoras propuestas', 'ok');
+    } catch (e) { btn.disabled = false; btn.innerHTML = old; toast('No se pudo generar la comparación', 'err'); }
+  });
+  $('#seoCompReset') && $('#seoCompReset').addEventListener('click', () => { $('#seoCompStage').hidden = true; $('#seoChanges').innerHTML = ''; $('#seoCompActions').hidden = true; seoCompFindings = []; });
+  $('#seoPublishVer') && $('#seoPublishVer').addEventListener('click', async () => {
+    if (!seoCompFindings.length) return;
+    const cfg = { published: true, altOverrides: Object.assign({}, (seoCfg && seoCfg.altOverrides) || {}), textOverrides: [] };
+    seoCompFindings.forEach(f => {
+      if (f.type === 'title') cfg.title = f.proposed;
+      else if (f.type === 'description') cfg.description = f.proposed;
+      else if (f.type === 'alt' && f.src) cfg.altOverrides[f.src] = f.proposed;
+      else cfg.textOverrides.push({ find: f.current, replace: f.proposed });
+    });
+    const btn = $('#seoPublishVer'); btn.disabled = true; btn.textContent = 'Publicando…';
+    const r = await seoApi('PUT', { config: cfg });
+    btn.disabled = false; hydrate();
+    if (!r.ok) { toast((r.data && r.data.message) || 'No se pudo publicar', 'err'); return; }
+    seoCfg = r.data.config; logAudit('settings', 'SEO', '', 'Versión IA publicada (' + seoCompFindings.length + ' cambios)');
+    $('#seoCompCount').textContent = '✓ Publicado en la web en vivo';
+    toast('Versión optimizada publicada en vivo', 'ok');
+  });
+
   // ============ AJUSTES ============
   function renderAjustes() {
     const s = getSettings();
