@@ -705,7 +705,7 @@ const SKIP_TAGS = new Set(['SCRIPT','STYLE','NOSCRIPT','TEXTAREA','INPUT','SELEC
 const SKIP_SELECTORS = '#worldMap,.leaflet-container,.fab-stack,.cert-marquee,.skip-translate,.cv-marker-hq,.cv-marker-mkt,.solar-viz,.cf-lines,.cf-ring,.lang-flag,.cf-emoji,.bc-illus,.lang-menu,.lang-pill,.lang-name,.lang-code';
 // Contenedores cuyo texto NO se traduce como bloque: se desciende para traducir
 // etiqueta y valor por separado (preserva el estilo span/strong de las fichas).
-const SPLIT_SELECTORS = '.spec-tx,.tm-meta li,.fmt-modal-grid div,.kpi-strip>div,.sc-stats li,.cc-meta';
+const SPLIT_SELECTORS = '.spec-tx,.tm-meta li,.fmt-modal-grid div,.kpi-strip>div,.sc-stats li,.cc-meta,.qi-stat,.mip-stats>span,.modal-stats>li,.sp-stat,.rasa-stats li,.cf-stats li,.v-stats li,.rg-item figcaption';
 
 function isUntranslatable(text){
   if (!text || text.trim().length < 2) return true;
