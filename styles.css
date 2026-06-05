@@ -2589,20 +2589,26 @@ strong{font-weight:600;color:inherit}
   padding:6px 12px;background:rgba(6,18,40,.78);
   border-radius:999px;border:1px solid rgba(127,227,223,.22);
 }
-/* X de cierre igual que el resto de modales (.info-close) */
-.player-close{
-  position:absolute;top:16px;right:16px;
-  width:36px;height:36px;border-radius:50%;color:#fff;
-  display:flex;align-items:center;justify-content:center;z-index:3;
-  background:rgba(8,20,40,.85);border:1px solid rgba(127,227,223,.22);
+/* X de cierre igual que el resto de modales (.info-close). Doble clase +
+   !important para vencer .glass-strong (que en móvil se aclara). */
+.player-close,
+.player-close.glass-strong{
+  position:absolute;top:14px;right:14px;
+  width:38px;height:38px;border-radius:50%;color:#fff;
+  display:flex;align-items:center;justify-content:center;z-index:4;
+  background:rgba(8,20,40,.92) !important;border:1px solid rgba(127,227,223,.28);
+  box-shadow:0 6px 18px -6px rgba(0,0,0,.6);
   transition:transform .2s,background .2s;
 }
-.player-close:hover{transform:rotate(90deg);background:rgba(28,181,176,.85)}
+.player-close:hover{transform:rotate(90deg);background:rgba(28,181,176,.9) !important}
 
-/* Barra de controles SÓLIDA (sin cristal translúcido), a tono con el modal oscuro */
-.player-controls{
+/* Barra de controles SÓLIDA (sin cristal translúcido), a tono con el modal oscuro.
+   La clase .glass se fuerza a blanco en móvil (!important) por la optimización
+   anti-crash; por eso fijamos el fondo oscuro con doble clase + !important. */
+.player-controls,
+.player-controls.glass{
   display:flex;align-items:center;gap:10px;padding:13px 16px;
-  background:linear-gradient(180deg,rgba(8,22,44,.99),rgba(5,15,33,.99));
+  background:linear-gradient(180deg,rgba(8,22,44,.99),rgba(5,15,33,.99)) !important;
   border-top:1px solid rgba(127,227,223,.12);
 }
 .pc-btn{
@@ -3273,6 +3279,9 @@ html.fit-scale body{
   .navpill.glass{ background:rgba(255,255,255,.95) }
   .nav-dropdown,.lang-menu{ background:rgba(255,255,255,.98) }
   .info-back{ background:rgba(3,9,20,.74) }
+  /* Sin blur en móvil, el fondo del reproductor se transparentaba (se veía la
+     página detrás): lo hacemos casi opaco. */
+  .player-back{ background:rgba(3,9,20,.92) }
 }
 
 /* Botón "tocar para cargar el mapa" (sólo aparece en táctil, vía JS) */
