@@ -10,6 +10,9 @@
 
 [functions]
   node_bundler = "esbuild"
+  # @netlify/blobs lo provee el runtime de Netlify (con su contexto); si esbuild
+  # lo bundlea, el store pierde los métodos (setJSON/set no existen).
+  external_node_modules = ["@netlify/blobs"]
 
 # ── Endpoints bonitos /api/* → Netlify Functions ──────────────────────────
 [[redirects]]

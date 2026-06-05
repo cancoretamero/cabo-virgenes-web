@@ -14,7 +14,7 @@ export default async (request, context) => {
 
   let cfg = null;
   try {
-    cfg = await getStore('cabo-seo').get('config.json', { type: 'json' });
+    cfg = await getStore({ name: 'cabo-seo', consistency: 'strong' }).get('config.json', { type: 'json' });
   } catch { /* Blobs no disponible → no tocar */ }
   if (!cfg || !cfg.published) return res;
 

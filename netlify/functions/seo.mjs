@@ -65,7 +65,7 @@ export default async (req) => {
       updatedAt: new Date().toISOString(),
     };
     try { await store(STORE).setJSON(KEY, next); }
-    catch (e) { return json({ error: 'store', message: 'No se pudo guardar (¿Blobs disponible?).' }, 503); }
+    catch (e) { return json({ error: 'store', message: 'No se pudo guardar.', detail: String(e && e.message || e) }, 503); }
     return json({ ok: true, config: next });
   }
 

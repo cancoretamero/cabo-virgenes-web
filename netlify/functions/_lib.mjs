@@ -1,5 +1,6 @@
 // Helpers compartidos para las Netlify Functions de Cabo Vírgenes.
 // ESM (.mjs) → independiente del "type" del package.json.
+import { getStore } from '@netlify/blobs';
 
 export const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
 export const ANTHROPIC_VERSION = '2023-06-01';
@@ -28,18 +29,13 @@ export function preflight(req) {
 }
 
 // ── Netlify Blobs (almacenamiento simple: auth, transcripciones del bot,
-//    ajustes). Import perezoso + try/catch: si no está disponible (test local
-//    sin contexto Netlify), las funciones siguen operando sin persistencia. ──
-let _getStore = null;
+//    ajustes). Import ESTÁTICO (el dinámico se bundlea mal con esbuild y pierde
+//    los métodos del store). try/catch: si no hay contexto Netlify (test local),
+//    devuelve un stub no-op para no romper el flujo. ──
 export async function store(name) {
   try {
-    if (!_getStore) {
-      const mod = await import('@netlify/blobs');
-      _getStore = mod.getStore;
-    }
-    return _getStore(name);
+    return getStore({ name, consistency: 'strong' });
   } catch {
-    // Stub no-op: get→null, set→noop. Mantiene el flujo sin romper.
     return {
       async get() { return null; },
       async set() { return null; },
