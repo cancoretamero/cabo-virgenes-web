@@ -228,11 +228,13 @@ if (navMenuBtn && navDropdown) {
     navDropdown.classList.remove('open');
     navMenuBtn.setAttribute('aria-expanded', 'false');
     navDropdown.setAttribute('aria-hidden', 'true');
+    document.documentElement.classList.remove('nav-open');
   };
   const openNav = () => {
     navDropdown.classList.add('open');
     navMenuBtn.setAttribute('aria-expanded', 'true');
     navDropdown.setAttribute('aria-hidden', 'false');
+    document.documentElement.classList.add('nav-open');
   };
   navMenuBtn.addEventListener('click', (e) => {
     e.stopPropagation();

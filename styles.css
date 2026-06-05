@@ -224,6 +224,39 @@ strong{font-weight:600;color:inherit}
   font-size:11px;color:#5a6a7c;font-weight:500;
 }
 
+/* ===== Menú móvil: hoja a ancho completo bajo la barra + backdrop ===== */
+@media (max-width:720px){
+  .nav-dropdown{
+    position:fixed;
+    left:12px; right:12px; top:80px;
+    min-width:0; width:auto; max-width:none;
+    max-height:calc(100vh - 100px); overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding:12px;
+    border-radius:22px;
+    background:#ffffff !important;
+    transform-origin:top center;
+    transform:translateY(-8px) scale(.98);
+    box-shadow:0 30px 70px -20px rgba(11,26,44,.45), 0 8px 24px -10px rgba(11,26,44,.2);
+    z-index:42;
+  }
+  /* La barra (logo+hamburguesa+idioma) queda por encima del backdrop */
+  html.nav-open .header{ z-index:41; }
+  .nav-dropdown.open{ transform:translateY(0) scale(1); }
+  .nav-dropdown a{ padding:15px 14px; border-radius:14px; }
+  .nav-dropdown .nav-num{ font-size:13px; min-width:26px; }
+  .nav-dropdown .nav-name{ font-size:17px; }
+  .nav-dropdown-foot{ margin-top:10px; padding:13px 14px; font-size:12px; }
+  /* Backdrop que oscurece el resto al abrir el menú */
+  html.nav-open::before{
+    content:""; position:fixed; inset:0; z-index:38;
+    background:rgba(6,18,40,.42);
+    animation:navBackIn .25s ease both;
+  }
+  html.nav-open{ overflow:hidden; }
+}
+@keyframes navBackIn{ from{opacity:0} to{opacity:1} }
+
 .lang-wrap{position:relative}
 .lang-pill{
   display:flex;align-items:center;gap:7px;
