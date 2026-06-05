@@ -3209,3 +3209,40 @@ html.fit-scale body{
     backdrop-filter:none !important; -webkit-backdrop-filter:none !important;
   }
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   MÓVIL — REDUCCIÓN DE MEMORIA DE RENDER (la causa real del crash en iOS):
+   una página larga con muchas secciones e imágenes a 3× DPR acumula
+   "backing stores" de composición hasta agotar la memoria del proceso
+   WebContent → Safari recarga en bucle ("ha generado problemas
+   repetidamente"). content-visibility:auto hace que el navegador NO
+   renderice ni reserve memoria de las secciones fuera del viewport, y la
+   libere al alejarse. Es la herramienta diseñada para esto.
+   Se aplica en CUALQUIER pantalla ≤900px y en táctil.
+   ════════════════════════════════════════════════════════════════════════ */
+@media (max-width:900px), (hover: none) and (pointer: coarse){
+  /* Sólo renderiza/retiene en memoria lo cercano al viewport */
+  main.stage > section.sec,
+  .rasa-block,
+  .footer{
+    content-visibility:auto;
+    contain-intrinsic-size:auto 760px;
+  }
+  /* Sin contextos 3D ni capas de composición costosas */
+  *,*::before,*::after{
+    perspective:none !important;
+    transform-style:flat !important;
+    will-change:auto !important;
+    filter:none !important;
+    animation:none !important;
+  }
+  /* Flip 3D de las tarjetas de calidad → estático */
+  .qcv-inner,.qual-card-v2:hover .qcv-inner{ transform:none !important; }
+  .qcv-back{ display:none !important; }
+  /* Visualización solar (decenas de celdas en transform 3D) → fuera en móvil */
+  .solar-viz,.sv-grid,.sv-wrap,.sv-stage{ display:none !important; }
+  /* Sombras enormes multiplican el área de capa: suavizar */
+  .glass,.glass-strong,.glass-deep,.card,.ship-card-v2,.fmt-card,.member,.plant-card,.news-card{
+    box-shadow:0 6px 18px -10px rgba(11,26,44,.25) !important;
+  }
+}

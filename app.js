@@ -940,7 +940,7 @@ if (aiChatBtn && aiChat) {
 
 // ============ SOLAR GRID (Section 07 — 1.100 paneles animados) ============
 const solarGrid = document.getElementById('solarGrid');
-if (solarGrid) {
+if (solarGrid && !(window.matchMedia && window.matchMedia('(hover: none)').matches)) {
   // Rejilla de paneles (decorativa). 1.120 celdas con transform 3D agotaban la
   // GPU de iOS y crasheaban la página; usamos muchas menos (sigue leyéndose como
   // un campo de paneles). En táctil, mínimas y sin animación.
@@ -986,7 +986,10 @@ if (fan && pager) {
   dots.forEach((d, i) => d.addEventListener('click', () => { reorderFan(i); start(); }));
   fan.addEventListener('mouseenter', stop);
   fan.addEventListener('mouseleave', start);
-  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) start();
+  // En táctil NO se arranca el auto-reorden (setInterval + reflow cada 4s consume
+  // memoria/CPU en iOS); el usuario puede tocar los puntos para cambiar.
+  const _noMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches || (window.matchMedia && window.matchMedia('(hover: none)').matches);
+  if (!_noMotion) start();
 }
 
 // ============ LANGUAGE DROPDOWN ============
