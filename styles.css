@@ -3296,3 +3296,12 @@ html.cv-news-studio #noticias{
 }
 html.cv-news-studio .bg-blobs, html.cv-news-studio .lang-flag,
 html.cv-news-studio .cf-lines, html.cv-news-studio .num-rail{ display:none !important; }
+/* Tarjetas editables: clic = editar la noticia */
+html.cv-news-studio .news-card{ cursor:pointer; position:relative; transition:transform .15s, box-shadow .15s }
+html.cv-news-studio .news-card:hover{ transform:translateY(-3px); box-shadow:0 20px 44px -20px rgba(11,26,44,.5) }
+html.cv-news-studio .news-card::after{
+  content:"✎ Editar"; position:absolute; top:10px; right:10px; z-index:6;
+  background:#1cb5b0; color:#06182f; font:700 11px/1 'Inter',sans-serif;
+  padding:7px 11px; border-radius:100px; opacity:0; transition:opacity .15s; pointer-events:none;
+}
+html.cv-news-studio .news-card:hover::after{ opacity:1 }

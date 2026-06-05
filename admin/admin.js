@@ -644,6 +644,13 @@
     fr.src = '../?editor=1&studio=news&_=' + Date.now();
   }
   function reloadNewsStudioFrame() { const fr = $('#newsStudioFrame'); if (fr && _studioFrameLoaded) fr.src = '../?editor=1&studio=news&_=' + Date.now(); }
+  // Clic en una tarjeta de noticia dentro del iframe del estudio → editar esa noticia.
+  window.addEventListener('message', (e) => {
+    if (e.origin !== location.origin) return;
+    const d = e.data; if (!d || d.type !== 'cv:studio-edit') return;
+    if (d.id && getNews().some(n => String(n.id) === String(d.id))) openNews(d.id);
+    else openNews(null); // ejemplo o sin id → nueva noticia
+  });
 
   function renderPagina() {
     const pages = getPages();

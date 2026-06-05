@@ -150,7 +150,10 @@
   document.addEventListener('click', (e) => {
     const card = e.target.closest('.news-card'); if (!card) return;
     const deck = document.getElementById('newsDeck'); const items = deck && deck._items; if (!items) return;
-    const n = items[+card.dataset.news]; if (n) openNewsModal(n);
+    const n = items[+card.dataset.news]; if (!n) return;
+    // En el ESTUDIO (admin), clic en una tarjeta = editar esa noticia (avisa al panel).
+    if (STUDIO) { e.preventDefault(); e.stopPropagation(); try { parent.postMessage({ type: 'cv:studio-edit', id: n.id || '' }, '*'); } catch (_) {} return; }
+    openNewsModal(n);
   });
 
   // Delegación: abrir el modal de detalle de un miembro del equipo (tarjetas reconstruidas
