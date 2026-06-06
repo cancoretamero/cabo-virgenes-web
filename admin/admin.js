@@ -2374,7 +2374,15 @@
         }
       }
       btn.disabled = false; btn.innerHTML = old; hydrate();
-      if (!seoCompFindings.length) { $('#seoLiveStatus').textContent = 'No se obtuvieron cambios. Reintenta.'; toast('La IA no devolvió cambios', 'err'); return; }
+      // Respaldo: si el streaming no dio cambios (corte de red), audita en modo directo (fiable).
+      if (!seoCompFindings.length) {
+        $('#seoLiveStatus').textContent = 'Reintentando en modo directo…';
+        const r2 = await seoApi('POST', { action: 'audit', page });
+        const f2 = (r2.ok && Array.isArray(r2.data.findings)) ? r2.data.findings : [];
+        if (!f2.length) { $('#seoLiveStatus').textContent = 'No se obtuvieron cambios. Reintenta.'; toast((r2.data && r2.data.message) || 'La IA no devolvió cambios', 'err'); return; }
+        f2.forEach(x => { const f = seoNormF(x); if (!f.proposed || !f.type) return; seoCompFindings.push(f); try { seoApplyToDoc(after.contentDocument, [f]); } catch (e) {} seoAppendChange(f); });
+        $('#seoLiveN').textContent = seoCompFindings.length;
+      }
       // re-aplica al iframe por si recargó algo + resetea scroll alineado
       try { seoApplyToDoc(after.contentDocument, seoCompFindings); } catch (e) {}
       try { before.contentWindow.scrollTo(0, 0); after.contentWindow.scrollTo(0, 0); } catch (e) {}
