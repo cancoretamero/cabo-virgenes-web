@@ -2350,7 +2350,8 @@
       const page = seoScanDoc(before.contentDocument); page.label = seoPage.label;
       $('#seoLiveStatus').textContent = 'Analizando con IA en vivo…'; btn.textContent = 'Analizando…';
       const headers = { 'content-type': 'application/json' }; const k = seoKey(); if (k) headers['x-cabo-admin-token'] = k;
-      const resp = await fetch('/api/seo', { method: 'POST', headers, body: JSON.stringify({ action: 'audit', stream: true, page }) });
+      // URL directa de la función (el redirect /api/* bufferiza el streaming).
+      const resp = await fetch('/.netlify/functions/seo', { method: 'POST', headers, body: JSON.stringify({ action: 'audit', stream: true, page }) });
       if (!resp.ok || !resp.body) { const ed = await resp.json().catch(() => ({})); throw new Error((ed && ed.message) || 'IA no disponible'); }
       const reader = resp.body.getReader(); const dec = new TextDecoder(); let buf = ''; const log = $('#seoLiveLog');
       while (true) {
