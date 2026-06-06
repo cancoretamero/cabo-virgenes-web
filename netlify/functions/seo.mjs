@@ -96,9 +96,9 @@ export default async (req) => {
         title: safe(pg.title, 200),
         description: safe(pg.description, 400),
         h1: safe(pg.h1, 200),
-        headings: Array.isArray(pg.headings) ? pg.headings.slice(0, 30).map(s => safe(s, 160)) : [],
-        alts: Array.isArray(pg.alts) ? pg.alts.slice(0, 60).map(a => ({ src: safe(a.src, 200), alt: safe(a.alt, 200) })) : [],
-        leads: Array.isArray(pg.leads) ? pg.leads.slice(0, 12).map(s => safe(s, 400)) : [],
+        headings: Array.isArray(pg.headings) ? pg.headings.slice(0, 18).map(s => safe(s, 160)) : [],
+        alts: Array.isArray(pg.alts) ? pg.alts.slice(0, 22).map(a => ({ src: safe(a.src, 200), alt: safe(a.alt, 200) })) : [],
+        leads: Array.isArray(pg.leads) ? pg.leads.slice(0, 8).map(s => safe(s, 400)) : [],
       };
       const SYS = `Eres auditor SEO senior. ${BRAND_FACTS}
 Analizas el contenido REAL de "${pageLabel}" de Cabo Vírgenes y REHACES una versión optimizada para SEO, SIN inventar datos (usa solo los hechos dados; corrige imprecisiones del producto si las ves, p.ej. HOSO es CON cabeza).

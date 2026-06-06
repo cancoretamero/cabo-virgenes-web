@@ -2352,44 +2352,33 @@
       await new Promise(r => setTimeout(r, 1600));
       seoSetupSlider();
       const page = seoScanDoc(before.contentDocument); page.label = seoPage.label;
-      $('#seoLiveStatus').textContent = 'Analizando con IA en vivo…'; btn.textContent = 'Analizando…';
-      const headers = { 'content-type': 'application/json' }; const k = seoKey(); if (k) headers['x-cabo-admin-token'] = k;
-      // URL directa de la función (el redirect /api/* bufferiza el streaming).
-      const resp = await fetch('/.netlify/functions/seo', { method: 'POST', headers, body: JSON.stringify({ action: 'audit', stream: true, page }) });
-      if (!resp.ok || !resp.body) { const ed = await resp.json().catch(() => ({})); throw new Error((ed && ed.message) || 'IA no disponible'); }
-      const reader = resp.body.getReader(); const dec = new TextDecoder(); let buf = ''; const log = $('#seoLiveLog');
-      while (true) {
-        let rd;
-        try { rd = await reader.read(); } catch (streamErr) { break; } // el stream pudo cortar al final: usamos lo recibido
-        if (rd.done) break;
-        buf += dec.decode(rd.value, { stream: true });
-        log.textContent = buf.slice(-1600); log.scrollTop = log.scrollHeight;
-        const fs = seoExtractFindings(buf);
-        while (appliedN < fs.length) {
-          const f = seoNormF(fs[appliedN]); appliedN++;
-          if (!f.proposed || !f.type) continue;
-          seoCompFindings.push(f);
-          try { seoApplyToDoc(after.contentDocument, [f]); } catch (e) {}
-          seoAppendChange(f); $('#seoLiveN').textContent = seoCompFindings.length;
-        }
-      }
+      $('#seoLiveStatus').textContent = 'Analizando con IA…'; btn.textContent = 'Analizando…';
+      const log = $('#seoLiveLog');
+      const steps = ['Escaneando el título y la meta descripción…', 'Revisando los encabezados (H1, H2…)…', 'Analizando los textos visibles…', 'Revisando los textos ALT de las imágenes…', 'Reescribiendo con keywords SEO…', 'Comparando antes / después…'];
+      log.textContent = '› Cargando ' + seoPage.label + '…\n'; let si = 0;
+      const ticker = setInterval(() => { if (si < steps.length) { log.textContent += '› ' + steps[si++] + '\n'; log.scrollTop = log.scrollHeight; } }, 1700);
+      // AUDIT en modo directo (fiable, ~10-15s). El streaming superaba el límite de la función.
+      const r = await seoApi('POST', { action: 'audit', page });
+      clearInterval(ticker);
       btn.disabled = false; btn.innerHTML = old; hydrate();
-      // Respaldo: si el streaming no dio cambios (corte de red), audita en modo directo (fiable).
-      if (!seoCompFindings.length) {
-        $('#seoLiveStatus').textContent = 'Reintentando en modo directo…';
-        const r2 = await seoApi('POST', { action: 'audit', page });
-        const f2 = (r2.ok && Array.isArray(r2.data.findings)) ? r2.data.findings : [];
-        if (!f2.length) { $('#seoLiveStatus').textContent = 'No se obtuvieron cambios. Reintenta.'; toast((r2.data && r2.data.message) || 'La IA no devolvió cambios', 'err'); return; }
-        f2.forEach(x => { const f = seoNormF(x); if (!f.proposed || !f.type) return; seoCompFindings.push(f); try { seoApplyToDoc(after.contentDocument, [f]); } catch (e) {} seoAppendChange(f); });
-        $('#seoLiveN').textContent = seoCompFindings.length;
+      const fres = (r.ok && Array.isArray(r.data.findings)) ? r.data.findings : [];
+      if (!fres.length) { $('#seoLiveStatus').textContent = 'No se obtuvieron cambios. Reintenta.'; toast((r.data && r.data.message) || 'La IA no devolvió cambios', 'err'); return; }
+      $('#seoLiveStatus').textContent = 'Aplicando cambios en vivo…';
+      log.textContent += '› ✓ ' + fres.length + ' mejoras encontradas. Aplicando…\n'; log.scrollTop = log.scrollHeight;
+      // revelado UNO A UNO (sensación en vivo) aplicando sobre la web
+      for (const x of fres) {
+        const f = seoNormF(x); if (!f.proposed || !f.type) continue;
+        seoCompFindings.push(f);
+        try { seoApplyToDoc(after.contentDocument, [f]); } catch (e) {}
+        seoAppendChange(f); $('#seoLiveN').textContent = seoCompFindings.length;
+        log.textContent += '   • ' + (SEO_TLBL[f.type] || f.type) + ': ' + f.proposed.slice(0, 56) + '\n'; log.scrollTop = log.scrollHeight;
+        await new Promise(res => setTimeout(res, 200));
       }
-      // re-aplica al iframe por si recargó algo + resetea scroll alineado
-      try { seoApplyToDoc(after.contentDocument, seoCompFindings); } catch (e) {}
       try { before.contentWindow.scrollTo(0, 0); after.contentWindow.scrollTo(0, 0); } catch (e) {}
       live.classList.add('done'); $('#seoLiveStatus').textContent = '✓ Análisis completado · ' + seoCompFindings.length + ' cambios';
       $('#seoCompCount').textContent = seoCompFindings.length + ' cambios · ' + seoCompFindings.filter(f => f.severity === 'alta').length + ' de prioridad alta';
       $('#seoCompActions').hidden = false;
-      setTimeout(() => { live.hidden = true; }, 2600);
+      setTimeout(() => { live.hidden = true; }, 3200);
     } catch (e) { btn.disabled = false; btn.innerHTML = old; $('#seoLiveStatus').textContent = 'Error: ' + (e.message || ''); toast(e.message || 'No se pudo generar', 'err'); }
   });
   $('#seoCompReset') && $('#seoCompReset').addEventListener('click', () => { $('#seoCompStage').hidden = true; $('#seoChanges').innerHTML = ''; $('#seoCompActions').hidden = true; seoCompFindings = []; });
