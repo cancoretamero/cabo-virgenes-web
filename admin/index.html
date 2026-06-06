@@ -621,8 +621,17 @@
 
         <div class="card seo-comp-card">
           <div class="seo-comp-top">
-            <div><div class="panel-title">Comparador IA · antes / después ✨</div><p class="panel-sub">La IA reoptimiza TODA la página para SEO. Arrastra el slider para comparar la web actual con la versión propuesta, y revisa cada cambio justificado abajo.</p></div>
+            <div><div class="panel-title">Comparador IA · antes / después ✨</div><p class="panel-sub">La IA reoptimiza la página para SEO en vivo. Elige la página, mira el análisis en directo, y arrastra el slider para comparar la web actual con la versión propuesta.</p></div>
             <button type="button" class="btn btn--solid" id="seoGenVer"><span class="ar" data-ico="sparkles"></span> Generar versión optimizada</button>
+          </div>
+          <div class="seo-pagetabs" id="seoPageTabs">
+            <button type="button" class="seo-pagetab is-on" data-path="/" data-src="../" data-label="Inicio">Inicio</button>
+            <button type="button" class="seo-pagetab" data-path="/empleo.html" data-src="../empleo.html" data-label="Empleo">Empleo</button>
+            <button type="button" class="seo-pagetab" data-path="/faqs.html" data-src="../faqs.html" data-label="Preguntas frecuentes">FAQs</button>
+          </div>
+          <div class="seo-live" id="seoLive" hidden>
+            <div class="seo-live__head"><span class="seo-live__dot"></span><span id="seoLiveStatus">Analizando con IA en vivo…</span><span class="seo-live__n" id="seoLiveN">0</span></div>
+            <pre class="seo-live__log" id="seoLiveLog"></pre>
           </div>
           <div class="seo-comp-stage" id="seoCompStage" hidden>
             <div class="seo-comp-frames" id="seoCompFrames">

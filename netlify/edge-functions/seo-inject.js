@@ -23,17 +23,20 @@ export default async (request, context) => {
   const url = new URL(request.url);
   const isHome = url.pathname === '/' || url.pathname === '/index.html';
 
+  // Meta por página: home usa cfg.title/description; el resto, cfg.metaByPath[path].
+  const pm = isHome ? { title: cfg.title, description: cfg.description } : ((cfg.metaByPath && cfg.metaByPath[url.pathname]) || {});
+
   // --- <title> ---
-  if (cfg.title) {
-    html = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escHtml(cfg.title)}</title>`);
+  if (pm.title) {
+    html = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escHtml(pm.title)}</title>`);
   }
   // --- meta description ---
-  if (cfg.description) {
-    html = html.replace(/(<meta\s+name="description"\s+content=")[^"]*(")/i, `$1${escAttr(cfg.description)}$2`);
+  if (pm.description) {
+    html = html.replace(/(<meta\s+name="description"\s+content=")[^"]*(")/i, `$1${escAttr(pm.description)}$2`);
   }
   // --- Open Graph / Twitter (título, descripción, imagen) ---
-  const ogTitle = cfg.title;
-  const ogDesc = cfg.description;
+  const ogTitle = pm.title;
+  const ogDesc = pm.description;
   const setMetaProp = (prop, val) => {
     if (!val) return;
     const re = new RegExp(`(<meta\\s+property="${prop}"\\s+content=")[^"]*(")`, 'i');
@@ -99,4 +102,4 @@ function absUrl(v, url) {
   return url.origin + (v.startsWith('/') ? v : '/' + v);
 }
 
-export const config = { path: ['/', '/index.html', '/empleo.html'] };
+export const config = { path: ['/', '/index.html', '/empleo.html', '/faqs.html'] };

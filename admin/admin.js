@@ -2304,35 +2304,89 @@
     $('#seoChanges').innerHTML = seoCompFindings.map(f => `<div class="seo-change"><div class="seo-change__h"><span class="seo-change__sev ${f.severity}"></span><span class="seo-change__type">${seoEsc(L[f.type] || f.type)}</span></div><div class="seo-change__ba"><div class="seo-change__col b"><small>Antes</small>${seoEsc(f.current) || '<i>(vacío)</i>'}</div><div class="seo-change__col a"><small>Después</small>${seoEsc(f.proposed)}</div></div><p class="seo-change__why">💡 ${seoEsc(f.reason)}</p></div>`).join('');
     $('#seoCompCount').textContent = seoCompFindings.length + ' cambios propuestos · ' + seoCompFindings.filter(f => f.severity === 'alta').length + ' de prioridad alta';
   }
+  // página seleccionada (Inicio / Empleo / FAQs)
+  let seoPage = { path: '/', src: '../', label: 'Inicio' };
+  [].slice.call(document.querySelectorAll('.seo-pagetab')).forEach(tab => tab.addEventListener('click', () => {
+    document.querySelectorAll('.seo-pagetab').forEach(t => t.classList.remove('is-on'));
+    tab.classList.add('is-on');
+    seoPage = { path: tab.dataset.path, src: tab.dataset.src, label: tab.dataset.label };
+  }));
+
+  // Extrae findings COMPLETOS del JSON que llega en streaming (respeta strings).
+  function seoExtractFindings(buf) {
+    let i = buf.indexOf('"findings"'); if (i < 0) return []; i = buf.indexOf('[', i); if (i < 0) return [];
+    const out = []; let depth = 0, start = -1, inStr = false, esc = false;
+    for (let j = i + 1; j < buf.length; j++) {
+      const c = buf[j];
+      if (inStr) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false; continue; }
+      if (c === '"') { inStr = true; continue; }
+      if (c === '{') { if (depth === 0) start = j; depth++; }
+      else if (c === '}') { depth--; if (depth === 0 && start >= 0) { try { out.push(JSON.parse(buf.slice(start, j + 1))); } catch (e) {} start = -1; } }
+      else if (c === ']' && depth === 0) break;
+    }
+    return out;
+  }
+  function seoNormF(f) { return { type: String(f.type || ''), src: String(f.src || ''), current: String(f.current || ''), proposed: String(f.proposed || ''), reason: String(f.reason || ''), severity: ['alta', 'media', 'baja'].indexOf(f.severity) >= 0 ? f.severity : 'media' }; }
+  const SEO_TLBL = { title: 'Meta título', description: 'Meta descripción', h1: 'Encabezado H1', heading: 'Encabezado', alt: 'Texto ALT (imagen)', content: 'Texto' };
+  function seoAppendChange(f) {
+    const div = document.createElement('div'); div.className = 'seo-change';
+    div.innerHTML = `<div class="seo-change__h"><span class="seo-change__sev ${f.severity}"></span><span class="seo-change__type">${seoEsc(SEO_TLBL[f.type] || f.type)}</span></div><div class="seo-change__ba"><div class="seo-change__col b"><small>Antes</small>${seoEsc(f.current) || '<i>(vacío)</i>'}</div><div class="seo-change__col a"><small>Después</small>${seoEsc(f.proposed)}</div></div><p class="seo-change__why">💡 ${seoEsc(f.reason)}</p>`;
+    $('#seoChanges').appendChild(div);
+  }
+
   $('#seoGenVer') && $('#seoGenVer').addEventListener('click', async () => {
     if (!seoKey()) { toast('Entra al panel primero', 'err'); return; }
-    const btn = $('#seoGenVer'), old = btn.innerHTML; btn.disabled = true; btn.textContent = 'Generando… (~20s)';
+    const btn = $('#seoGenVer'), old = btn.innerHTML; btn.disabled = true; btn.textContent = 'Cargando…';
+    seoCompFindings = []; let appliedN = 0;
+    $('#seoChanges').innerHTML = ''; $('#seoCompActions').hidden = true;
     $('#seoCompStage').hidden = false;
+    const live = $('#seoLive'); live.hidden = false; live.classList.remove('done');
+    $('#seoLiveLog').textContent = ''; $('#seoLiveN').textContent = '0'; $('#seoLiveStatus').textContent = 'Cargando la web (' + seoPage.label + ')…';
     const before = $('#seoFrBefore'), after = $('#seoFrAfter');
     try {
-      await new Promise((res) => { let n = 0; const done = () => { if (++n >= 2) res(); }; before.onload = done; after.onload = done; before.src = '../'; after.src = '../'; setTimeout(res, 9000); });
-      await new Promise(r => setTimeout(r, 1800));
-      const page = seoScanDoc(before.contentDocument);
-      const r = await seoApi('POST', { action: 'audit', page });
+      await new Promise((res) => { let n = 0; const done = () => { if (++n >= 2) res(); }; before.onload = done; after.onload = done; before.src = seoPage.src; after.src = seoPage.src; setTimeout(res, 9000); });
+      await new Promise(r => setTimeout(r, 1600));
+      seoSetupSlider();
+      const page = seoScanDoc(before.contentDocument); page.label = seoPage.label;
+      $('#seoLiveStatus').textContent = 'Analizando con IA en vivo…'; btn.textContent = 'Analizando…';
+      const headers = { 'content-type': 'application/json' }; const k = seoKey(); if (k) headers['x-cabo-admin-token'] = k;
+      const resp = await fetch('/api/seo', { method: 'POST', headers, body: JSON.stringify({ action: 'audit', stream: true, page }) });
+      if (!resp.ok || !resp.body) { const ed = await resp.json().catch(() => ({})); throw new Error((ed && ed.message) || 'IA no disponible'); }
+      const reader = resp.body.getReader(); const dec = new TextDecoder(); let buf = ''; const log = $('#seoLiveLog');
+      while (true) {
+        const rd = await reader.read(); if (rd.done) break;
+        buf += dec.decode(rd.value, { stream: true });
+        log.textContent = buf.slice(-1600); log.scrollTop = log.scrollHeight;
+        const fs = seoExtractFindings(buf);
+        while (appliedN < fs.length) {
+          const f = seoNormF(fs[appliedN]); appliedN++;
+          if (!f.proposed || !f.type) continue;
+          seoCompFindings.push(f);
+          try { seoApplyToDoc(after.contentDocument, [f]); } catch (e) {}
+          seoAppendChange(f); $('#seoLiveN').textContent = seoCompFindings.length;
+        }
+      }
       btn.disabled = false; btn.innerHTML = old; hydrate();
-      if (!r.ok) { toast((r.data && r.data.message) || 'Error de IA', 'err'); return; }
-      seoCompFindings = r.data.findings || [];
-      seoApplyToDoc(after.contentDocument, seoCompFindings);
-      seoSetupSlider(); seoRenderChanges();
+      live.classList.add('done'); $('#seoLiveStatus').textContent = '✓ Análisis completado';
+      $('#seoCompCount').textContent = seoCompFindings.length + ' cambios · ' + seoCompFindings.filter(f => f.severity === 'alta').length + ' de prioridad alta';
       $('#seoCompActions').hidden = false;
-      toast(seoCompFindings.length + ' mejoras propuestas', 'ok');
-    } catch (e) { btn.disabled = false; btn.innerHTML = old; toast('No se pudo generar la comparación', 'err'); }
+      setTimeout(() => { live.hidden = true; }, 2600);
+    } catch (e) { btn.disabled = false; btn.innerHTML = old; $('#seoLiveStatus').textContent = 'Error: ' + (e.message || ''); toast(e.message || 'No se pudo generar', 'err'); }
   });
   $('#seoCompReset') && $('#seoCompReset').addEventListener('click', () => { $('#seoCompStage').hidden = true; $('#seoChanges').innerHTML = ''; $('#seoCompActions').hidden = true; seoCompFindings = []; });
   $('#seoPublishVer') && $('#seoPublishVer').addEventListener('click', async () => {
     if (!seoCompFindings.length) return;
-    const cfg = { published: true, altOverrides: Object.assign({}, (seoCfg && seoCfg.altOverrides) || {}), textOverrides: [] };
+    const cfg = { published: true, altOverrides: Object.assign({}, (seoCfg && seoCfg.altOverrides) || {}), textOverrides: ((seoCfg && seoCfg.textOverrides) || []).slice() };
+    const haveFind = {}; cfg.textOverrides.forEach(o => { haveFind[o.find] = 1; });
+    let mTitle = null, mDesc = null;
     seoCompFindings.forEach(f => {
-      if (f.type === 'title') cfg.title = f.proposed;
-      else if (f.type === 'description') cfg.description = f.proposed;
+      if (f.type === 'title') mTitle = f.proposed;
+      else if (f.type === 'description') mDesc = f.proposed;
       else if (f.type === 'alt' && f.src) cfg.altOverrides[f.src] = f.proposed;
-      else cfg.textOverrides.push({ find: f.current, replace: f.proposed });
+      else if (!haveFind[f.current]) { cfg.textOverrides.push({ find: f.current, replace: f.proposed }); haveFind[f.current] = 1; }
     });
+    if (seoPage.path === '/') { if (mTitle) cfg.title = mTitle; if (mDesc) cfg.description = mDesc; }
+    else { cfg.metaByPath = {}; cfg.metaByPath[seoPage.path] = { title: mTitle || '', description: mDesc || '' }; }
     const btn = $('#seoPublishVer'); btn.disabled = true; btn.textContent = 'Publicando…';
     const r = await seoApi('PUT', { config: cfg });
     btn.disabled = false; hydrate();
