@@ -1061,9 +1061,9 @@ code{font-family:var(--mono);font-size:.86em;background:rgba(11,26,44,.06);paddi
 .seo-comp-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .seo-comp-stage{margin-top:16px}
 .seo-comp-frames{position:relative;height:min(620px,66vh);border-radius:14px;overflow:hidden;border:1px solid var(--line,#e6eaf0);background:#fff;user-select:none}
-.seo-comp-fr{position:absolute;top:0;left:0;width:100%;height:100%;border:0;display:block;background:#fff}
-.seo-comp-afterwrap{position:absolute;top:0;left:0;height:100%;width:50%;overflow:hidden;border-right:2px solid #1cb5b0;z-index:2}
-.seo-comp-afterwrap .seo-comp-fr{width:var(--stagew,900px)}
+.seo-comp-fr{position:absolute;top:0;left:0;width:100%;height:100%;border:0;display:block;background:#fff;pointer-events:none}
+.seo-comp-frames{cursor:ew-resize}
+.seo-comp-afterwrap{position:absolute;inset:0;overflow:hidden;z-index:2;clip-path:inset(0 0 0 var(--split,50%))}
 .seo-comp-handle{position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);width:2px;background:#1cb5b0;z-index:5;cursor:ew-resize;touch-action:none}
 .seo-comp-handle span{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;border-radius:50%;background:#1cb5b0;color:#06182f;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 4px 14px rgba(0,0,0,.3)}
 .seo-comp-tag{position:absolute;top:10px;z-index:6;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:100px;pointer-events:none}

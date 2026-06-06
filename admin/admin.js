@@ -2282,22 +2282,26 @@
       } catch (e) {}
     });
   }
+  function seoScrollBoth(p) {
+    let y = 0;
+    try { const bw = $('#seoFrBefore').contentWindow, bd = $('#seoFrBefore').contentDocument; y = Math.max(0, (bd.body.scrollHeight - bw.innerHeight)) * p / 100; } catch (e) {}
+    ['#seoFrBefore', '#seoFrAfter'].forEach(s => { try { $(s).contentWindow.scrollTo(0, y); } catch (e) {} });
+  }
   function seoSetupSlider() {
-    const frames = $('#seoCompFrames'), wrap = $('#seoAfterWrap'), handle = $('#seoCompHandle'), range = $('#seoCompPos');
-    const setW = () => frames.style.setProperty('--stagew', frames.clientWidth + 'px');
-    setW(); window.addEventListener('resize', setW);
-    const setPos = (p) => { p = Math.max(2, Math.min(98, p)); wrap.style.width = p + '%'; handle.style.left = p + '%'; };
+    const frames = $('#seoCompFrames'), handle = $('#seoCompHandle'), range = $('#seoCompPos');
+    const setPos = (p) => { p = Math.max(0, Math.min(100, p)); frames.style.setProperty('--split', p + '%'); handle.style.left = p + '%'; };
     setPos(50);
+    if (range) range.value = 0;
+    if (frames.__wired) return; // ya cableado (evita listeners duplicados)
+    frames.__wired = 1;
     let drag = false;
     const move = (x) => { const r = frames.getBoundingClientRect(); setPos(((x - r.left) / r.width) * 100); };
-    handle.addEventListener('mousedown', (e) => { drag = true; e.preventDefault(); });
-    frames.addEventListener('mousedown', (e) => { if (e.target.tagName !== 'IFRAME') { drag = true; move(e.clientX); } });
+    frames.addEventListener('mousedown', (e) => { drag = true; move(e.clientX); e.preventDefault(); });
     window.addEventListener('mousemove', (e) => { if (drag) move(e.clientX); });
     window.addEventListener('mouseup', () => { drag = false; });
-    handle.addEventListener('touchmove', (e) => move(e.touches[0].clientX), { passive: true });
-    const scrollBoth = (p) => { ['#seoFrBefore', '#seoFrAfter'].forEach(s => { const f = $(s); try { const w = f.contentWindow, d = f.contentDocument; const max = d.body.scrollHeight - w.innerHeight; w.scrollTo(0, Math.max(0, max) * p / 100); } catch (e) {} }); };
-    if (range) range.oninput = () => scrollBoth(+range.value);
-    frames.addEventListener('wheel', (e) => { e.preventDefault(); const v = Math.max(0, Math.min(100, (+range.value) + (e.deltaY > 0 ? 3 : -3))); range.value = v; scrollBoth(v); }, { passive: false });
+    frames.addEventListener('touchmove', (e) => move(e.touches[0].clientX), { passive: true });
+    if (range) range.oninput = () => seoScrollBoth(+range.value);
+    frames.addEventListener('wheel', (e) => { e.preventDefault(); const v = Math.max(0, Math.min(100, (+(range.value || 0)) + (e.deltaY > 0 ? 4 : -4))); range.value = v; seoScrollBoth(v); }, { passive: false });
   }
   function seoRenderChanges() {
     const L = { title: 'Meta título', description: 'Meta descripción', h1: 'Encabezado H1', heading: 'Encabezado', alt: 'Texto ALT (imagen)', content: 'Texto' };
@@ -2355,7 +2359,9 @@
       if (!resp.ok || !resp.body) { const ed = await resp.json().catch(() => ({})); throw new Error((ed && ed.message) || 'IA no disponible'); }
       const reader = resp.body.getReader(); const dec = new TextDecoder(); let buf = ''; const log = $('#seoLiveLog');
       while (true) {
-        const rd = await reader.read(); if (rd.done) break;
+        let rd;
+        try { rd = await reader.read(); } catch (streamErr) { break; } // el stream pudo cortar al final: usamos lo recibido
+        if (rd.done) break;
         buf += dec.decode(rd.value, { stream: true });
         log.textContent = buf.slice(-1600); log.scrollTop = log.scrollHeight;
         const fs = seoExtractFindings(buf);
@@ -2368,7 +2374,11 @@
         }
       }
       btn.disabled = false; btn.innerHTML = old; hydrate();
-      live.classList.add('done'); $('#seoLiveStatus').textContent = '✓ Análisis completado';
+      if (!seoCompFindings.length) { $('#seoLiveStatus').textContent = 'No se obtuvieron cambios. Reintenta.'; toast('La IA no devolvió cambios', 'err'); return; }
+      // re-aplica al iframe por si recargó algo + resetea scroll alineado
+      try { seoApplyToDoc(after.contentDocument, seoCompFindings); } catch (e) {}
+      try { before.contentWindow.scrollTo(0, 0); after.contentWindow.scrollTo(0, 0); } catch (e) {}
+      live.classList.add('done'); $('#seoLiveStatus').textContent = '✓ Análisis completado · ' + seoCompFindings.length + ' cambios';
       $('#seoCompCount').textContent = seoCompFindings.length + ' cambios · ' + seoCompFindings.filter(f => f.severity === 'alta').length + ' de prioridad alta';
       $('#seoCompActions').hidden = false;
       setTimeout(() => { live.hidden = true; }, 2600);

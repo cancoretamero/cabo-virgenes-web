@@ -104,7 +104,8 @@ export default async (req) => {
 Analizas el contenido REAL de "${pageLabel}" de Cabo Vírgenes y REHACES una versión optimizada para SEO, SIN inventar datos (usa solo los hechos dados; corrige imprecisiones del producto si las ves, p.ej. HOSO es CON cabeza).
 Cubre TODO: meta título, meta descripción, H1, TODOS los encabezados, textos lead/visibles y los textos ALT de imágenes. PRIORIZA reescribir el contenido VISIBLE (H1, encabezados, leads) para que el antes/después se note: titulares más claros con la keyword principal (langostino austral salvaje, Patagonia, FAO 41) manteniendo el tono premium y SIN exagerar. Conserva el significado; mejora claridad + keyword + intención de búsqueda.
 Devuelve SOLO JSON: {"findings":[{"type": "title|description|h1|heading|alt|content", "src": "(solo para alt: el src exacto de la imagen)", "current": "texto/alt actual EXACTO tal cual te lo doy", "proposed": "versión mejorada", "reason": "justificación SEO clara (1-2 frases)", "severity": "alta|media|baja"}]}.
-Reglas: título <=60 car, descripción 140-155 car, ALT descriptivos con keyword (5-12 palabras). "current" debe coincidir EXACTO con el texto dado (para poder localizarlo). Máx 20 hallazgos. Español de España. Emite los hallazgos UNO A UNO (uno por elemento) en cuanto los decidas.`;
+Reglas: título <=60 car, descripción 140-155 car, ALT descriptivos con keyword (5-12 palabras). "current" debe coincidir EXACTO con el texto dado (para poder localizarlo). Máx 20 hallazgos. Español de España.
+IMPORTANTE: responde ÚNICAMENTE con el objeto JSON. NO escribas absolutamente nada antes ni después (ni resúmenes, ni explicaciones, ni texto). Termina inmediatamente al cerrar el JSON con "}".`;
       const USER = `Audita y reoptimiza ${pageLabel} (JSON):\n${JSON.stringify(compact)}`;
 
       // --- STREAMING: emite los tokens de la IA en vivo (live stream) ---
