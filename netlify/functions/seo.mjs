@@ -26,7 +26,7 @@ const DEFAULTS = {
 };
 
 const BRAND_FACTS = `Cabo Vírgenes: empresa pesquera de LANGOSTINO AUSTRAL SALVAJE (Pleoticus muelleri), Atlántico Sudoccidental (FAO 41), Patagonia argentina. Parte de AISA Group (desde enero 2025; fundada 2008).
-- 5 buques propios (3 fresqueros + 2 factoría), captura >3.000 t/año desde Puerto Rawson.
+- 5 buques propios (3 fresqueros + 2 factoría), captura >10.000 t/año desde Puerto Rawson.
 - 5 formatos: HOSO (entero, con cabeza y cáscara), HLSO (cola con cáscara, sin cabeza), EZP (fácil pelado, cáscara pre-cortada), P&D (pelado y devenado), PDTO (pelado y devenado con cola). Producto salvaje, natural, sin antibióticos.
 - 2 plantas: Puerto Rawson (Chubut, AR) y Palencia (ES). Exporta a 40 países en 4 continentes.
 - Certificaciones: HACCP, BRCGS, IFS, MSC (en proceso), ASC, FDA.
