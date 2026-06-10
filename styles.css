@@ -3452,40 +3452,54 @@ html.cv-news-studio .news-card:hover::after{ opacity:1 }
 .cv-stlc__acts button.danger:hover{background:rgba(192,69,59,.12);color:#c0453b}
 
 /* ============================================================
-   HEADER STICKY (patrón Aisa): al scrollear, el header pasa a
-   barra fija compacta translúcida que acompaña; al volver arriba
-   recupera su sitio en el hero. app.js conmuta .scrolled (+spacer).
+   HEADER STICKY flotante: al scrollear NO hay barra de fondo —
+   solo bajan flotando la píldora liquid-glass del menú y el logo
+   pequeño a la izquierda (+ idioma). app.js conmuta .scrolled.
    ============================================================ */
 html{scroll-padding-top:92px}
 .header.scrolled{
   position:fixed;top:0;left:0;right:0;z-index:90;
   margin:0;
-  padding:10px clamp(16px,4vw,48px);
-  background:linear-gradient(180deg,rgba(248,251,253,.9),rgba(241,247,251,.78));
-  backdrop-filter:blur(18px) saturate(170%);
-  -webkit-backdrop-filter:blur(18px) saturate(170%);
-  border-bottom:1px solid rgba(11,26,44,.07);
-  box-shadow:0 16px 38px -24px rgba(11,26,44,.32);
+  padding:12px clamp(16px,4vw,48px);
+  background:transparent;
+  border-bottom:0;
+  box-shadow:none;
+  pointer-events:none; /* el header no tapa el contenido; solo sus piezas */
   animation:hdrSlideIn .45s cubic-bezier(.3,1,.4,1);
 }
 @keyframes hdrSlideIn{from{transform:translateY(-110%)}to{transform:translateY(0)}}
-/* Compacto, como el estado .solid de Aisa */
-.header.scrolled .brand{height:44px}
-.header.scrolled .brand img{height:44px}
-.header.scrolled .navpill{padding:4px 4px 4px 16px}
+.header.scrolled .brand,
+.header.scrolled .navpill,
+.header.scrolled .lang-wrap{pointer-events:auto}
+/* Logo flotante pequeñito a la izquierda */
+.header.scrolled .brand{height:40px}
+.header.scrolled .brand img{height:40px;filter:drop-shadow(0 3px 9px rgba(11,26,44,.28))}
+/* Píldora liquid-glass flotante (se ve el contenido a través) */
+.header.scrolled .navpill{
+  padding:5px 5px 5px 18px;
+  background:linear-gradient(180deg,rgba(255,255,255,.78),rgba(243,249,252,.58)) !important;
+  backdrop-filter:blur(22px) saturate(180%) !important;
+  -webkit-backdrop-filter:blur(22px) saturate(180%) !important;
+  border:1px solid rgba(255,255,255,.65) !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.85) inset,
+    0 18px 44px -20px rgba(11,26,44,.35) !important;
+}
 .header.scrolled .navpill > a{padding:8px 12px;font-size:12.5px}
-/* El dropdown del menú no debe quedar cortado por la barra */
+/* El dropdown del menú no debe quedar cortado */
 .header.scrolled .nav-dropdown{max-height:calc(100vh - 90px);overflow-y:auto}
 
 @media (max-width:720px){
-  .header.scrolled{
-    padding:8px 14px;
-    background:rgba(255,255,255,.96);
-    backdrop-filter:none;
-    -webkit-backdrop-filter:none;
-    box-shadow:0 12px 28px -18px rgba(11,26,44,.3);
-  }
+  .header.scrolled{padding:10px 14px}
   .header.scrolled .brand,
-  .header.scrolled .brand img{height:38px}
-  .header.scrolled .navpill{padding:0}
+  .header.scrolled .brand img{height:34px}
+  /* En móvil la píldora no existe: flotan el logo, la hamburguesa y el idioma */
+  .header.scrolled .navpill{
+    padding:0;
+    background:transparent !important;
+    border:none !important;
+    box-shadow:none !important;
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+  }
 }
