@@ -3503,8 +3503,9 @@ html{scroll-padding-top:92px}
      una sola pieza flotante centrada: logo + idioma + hamburguesa. */
   .header.scrolled{padding:10px 12px;justify-content:center}
   .header.scrolled .navpill{
+    width:100%;
     gap:6px;
-    padding:4px 4px 4px 12px;
+    padding:5px 5px 5px 14px;
     background:linear-gradient(180deg,rgba(255,255,255,.82),rgba(243,249,252,.62)) !important;
     backdrop-filter:blur(18px) saturate(180%) !important;
     -webkit-backdrop-filter:blur(18px) saturate(180%) !important;
@@ -3515,8 +3516,10 @@ html{scroll-padding-top:92px}
   }
   /* El logo es un <a>: anula el display:none de los enlaces del navpill móvil */
   .header.scrolled .navpill > a.brand{display:inline-flex}
-  .header.scrolled .navpill .brand{height:30px;margin-right:4px;padding-left:0}
-  .header.scrolled .navpill .brand img{height:30px;filter:none}
+  .header.scrolled .navpill .brand{height:32px;margin-right:4px;padding-left:0}
+  .header.scrolled .navpill .brand img{height:32px;filter:none}
+  /* Logo a la izquierda; idioma + hamburguesa empujados a la derecha */
+  .header.scrolled .navpill .lang-wrap{margin-left:auto}
   .header.scrolled .navpill .lang-pill{padding:7px 10px;background:rgba(255,255,255,.85) !important}
   /* Hamburguesa como en escritorio: círculo navy con barras blancas */
   .header.scrolled .nav-menu{
