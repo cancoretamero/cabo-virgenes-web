@@ -97,6 +97,12 @@
       date: new Date().toISOString(), read: false,
     });
     write('cv_applications', apps);
+    try {
+      fetch('/api/public', { method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'apply', jobId: $('#apJobId').value || null,
+          jobTitle: job ? job.title : 'Candidatura espontánea', name, email,
+          phone: $('#apPhone').value.trim(), message: $('#apMessage').value.trim() }) }).catch(function () {});
+    } catch (_) {}
     msg.textContent = '✓ ¡Candidatura enviada! Gracias, te contactaremos.'; msg.className = 'emp-msg ok';
     setTimeout(closeApply, 1600);
   });

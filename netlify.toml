@@ -44,6 +44,14 @@
   from = "/api/seo"
   to = "/.netlify/functions/seo"
   status = 200
+[[redirects]]
+  from = "/api/data"
+  to = "/.netlify/functions/data"
+  status = 200
+[[redirects]]
+  from = "/api/public"
+  to = "/.netlify/functions/public"
+  status = 200
 
 [[headers]]
   for = "/*"

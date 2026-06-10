@@ -165,6 +165,14 @@
     if (closer) { const md = closer.closest('.info-modal'); if (md) { md.classList.remove('open'); md.setAttribute('aria-hidden', 'true'); } }
   });
 
+  // Envía a Supabase (fire-and-forget; el localStorage queda como respaldo).
+  function postPublic(action, data) {
+    try {
+      fetch('/api/public', { method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(Object.assign({ action: action }, data)) }).catch(function () {});
+    } catch (_) {}
+  }
+
   // Alta de suscriptor sin duplicar por correo (compartido con el panel /admin)
   function addSubscriber(rec) {
     const email = String(rec.email || '').trim().toLowerCase();
@@ -187,6 +195,10 @@
       }, rec, { email: String(rec.email || '').trim() }));
     }
     localStorage.setItem('cv_subscribers', JSON.stringify(subs));
+    postPublic('subscribe', {
+      email: rec.email, name: rec.name, country: rec.country,
+      interests: rec.interests, outlet: rec.outlet, web: rec.web, phone: rec.phone, source: rec.source
+    });
   }
 
   // Captura de consultas del formulario de contacto (todos los campos)
@@ -208,6 +220,7 @@
         status: 'new', resolution: 'open', read: false
       });
       localStorage.setItem('cv_consultas', JSON.stringify(arr));
+      postPublic('contact', { name, email, company, country, topic, message });
       // Quien escribe por «Prensa» o pide novedades entra también a la base de suscriptores.
       if (email && topic === 'Prensa') {
         addSubscriber({ email, name, country, outlet: company, source: 'prensa', interests: ['Prensa'] });
@@ -230,7 +243,26 @@
      panel de vidrio de Aisa: tabs por estado + contadores, crear,
      tarjetas con chip de estado y acciones, minimizar y arrastrar.
      ============================================================ */
-  const setNews = (v) => { try { localStorage.setItem('cv_news', JSON.stringify(v)); } catch (_) {} };
+  // Empuja el conjunto COMPLETO de noticias a Supabase tras cada mutación del
+  // estudio (este iframe escribe localStorage directo, sin pasar por el admin).
+  // Usa el token de sesión del panel; si no hay, el admin padre re-empuja al
+  // recibir cv:studio-changed (doble cinturón → los borradores nunca se pierden).
+  let _stPushT = null;
+  function stCloudPush() {
+    clearTimeout(_stPushT);
+    _stPushT = setTimeout(() => {
+      try {
+        const tok = localStorage.getItem('cv_auth_token') || '';
+        if (!tok) return;
+        fetch('/api/data', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-cabo-admin-token': tok },
+          body: JSON.stringify({ entity: 'news', action: 'replace', payload: getNews() }),
+        }).catch(() => {});
+      } catch (_) {}
+    }, 600);
+  }
+  const setNews = (v) => { try { localStorage.setItem('cv_news', JSON.stringify(v)); } catch (_) {} stCloudPush(); };
   const stStatusOf = (n) => n.archived ? 'archived' : (n.status === 'draft' ? 'draft' : 'published');
   const ICN = {
     drag: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></svg>',

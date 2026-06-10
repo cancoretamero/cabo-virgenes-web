@@ -18,9 +18,13 @@
     outlets: 'cv_outlets', journalists: 'cv_journalists', jobs: 'cv_jobs',
     apps: 'cv_applications', subs: 'cv_subscribers', pages: 'cv_pages', audit: 'cv_audit',
     newsletters: 'cv_newsletters',
+    // Sesión multi-usuario (/api/auth) y semilla del boletín de bienvenida
+    token: 'cv_auth_token', sessUser: 'cv_auth_user', welcomeSeed: 'cv_welcome_seeded',
   };
+  // Usuario de sesión actual (de /api/auth). null = sin sesión / acceso de emergencia.
+  let sessionUser = (() => { try { return JSON.parse(localStorage.getItem('cv_auth_user')); } catch { return null; } })();
   const read = (k, def) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? def : v; } catch { return def; } };
-  const write = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+  const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} try { cloudWriteThrough(k); } catch (_) {} };
 
   const DEFAULT_TEAM = [
     { id: 'basavilbaso', key: 'basavilbaso', name: 'Juan Pablo Basavilbaso', role: 'Gerente General', area: 'Estrategia · Operación', photo: '../team-1.jpg', bio: 'Contador Público con más de 20 años en la industria pesquera argentina. Conduce la estrategia y la operación de Cabo Vírgenes.' },
@@ -74,6 +78,124 @@
   const setAudit = (v) => write(K.audit, v);
   const getNewsletters = () => read(K.newsletters, []);
   const setNewsletters = (v) => write(K.newsletters, v);
+
+  // ============ SINCRONIZACIÓN CON SUPABASE (/api/data) ============
+  // localStorage = caché optimista; el servidor = fuente de verdad. Las
+  // escrituras del admin se replican a Supabase (write-through) y, en el
+  // arranque, se migra una vez lo local y se hidrata desde el servidor.
+  let cloudSuppress = false;          // evita re-enviar durante la hidratación
+  const cloudTimers = {};
+  const CLOUD = {
+    news:        { key: K.news,        get: () => getNews() },
+    team:        { key: K.team,        get: () => getTeam() },
+    jobs:        { key: K.jobs,        get: () => getJobs() },
+    applications:{ key: K.apps,        get: () => getApps() },
+    subscribers: { key: K.subs,        get: () => getSubs() },
+    consultas:   { key: K.msgs,        get: () => getMsgs() },
+    outlets:     { key: K.outlets,     get: () => getOutlets() },
+    journalists: { key: K.journalists, get: () => getJournalists() },
+    newsletters: { key: K.newsletters, get: () => getNewsletters() },
+  };
+  const KEY2ENT = Object.fromEntries(Object.entries(CLOUD).map(([e, v]) => [v.key, e]));
+  KEY2ENT[K.settings] = 'settings';
+  KEY2ENT[K.pages] = 'pages';
+  KEY2ENT[K.legal] = 'ov';
+
+  async function dataApi(obj) { return adminApi('/api/data', 'POST', obj); }
+
+  // Overrides del editor visual + legales: se guardan como filas de cv_pages
+  // (slug 'ov-*', layout = el objeto completo) y /api/public las sirve a todos.
+  const OV_MAP = { 'ov-content': 'cv_content', 'ov-imgs': 'cv_imgs', 'ov-styles': 'cv_styles', 'ov-legal': 'cv_legal' };
+  async function cloudPushOverrides() {
+    for (const [slug, key] of Object.entries(OV_MAP)) {
+      try {
+        const v = read(key, null);
+        await dataApi({ entity: 'pages', action: 'save', payload: { slug, layout: (v && typeof v === 'object') ? v : {} } });
+      } catch (_) {}
+    }
+  }
+
+  async function cloudPushEntity(entity) {
+    try {
+      if (entity === 'settings') { await dataApi({ entity: 'settings', action: 'save', payload: { key: 'site', value: getSettings() } }); return; }
+      if (entity === 'ov') { await cloudPushOverrides(); return; }
+      if (entity === 'pages') {
+        const pg = getPages();
+        for (const [slug, layout] of Object.entries(pg || {})) {
+          if (layout && typeof layout === 'object') await dataApi({ entity: 'pages', action: 'save', payload: { slug, layout } });
+        }
+        return;
+      }
+      const arr = CLOUD[entity] ? CLOUD[entity].get() : null;
+      if (Array.isArray(arr)) await dataApi({ entity, action: 'replace', payload: arr });
+    } catch (_) { /* offline → queda en localStorage */ }
+  }
+  function cloudWriteThrough(k) {
+    if (cloudSuppress) return;
+    const entity = KEY2ENT[k];
+    if (!entity) return;
+    clearTimeout(cloudTimers[entity]);
+    cloudTimers[entity] = setTimeout(() => cloudPushEntity(entity), 700);
+  }
+
+  async function cloudMigrateOnce() {
+    if (localStorage.getItem('cv_cloud_migrated') === '1') return;
+    // Sube lo que el navegador ya tenga (sin pisar el seed con vacíos).
+    for (const entity of Object.keys(CLOUD)) {
+      try {
+        const arr = CLOUD[entity].get();
+        if (Array.isArray(arr) && arr.length) await dataApi({ entity, action: 'replace', payload: arr });
+      } catch (_) {}
+    }
+    try {
+      const s = read(K.settings, null);
+      if (s && Object.keys(s).length) await dataApi({ entity: 'settings', action: 'save', payload: { key: 'site', value: getSettings() } });
+    } catch (_) {}
+    try { const pg = read(K.pages, null); if (pg && Object.keys(pg).length) await cloudPushEntity('pages'); } catch (_) {}
+    localStorage.setItem('cv_cloud_migrated', '1');
+  }
+
+  async function cloudHydrate() {
+    cloudSuppress = true;
+    let serverHasOv = false;
+    try {
+      for (const [entity, info] of Object.entries(CLOUD)) {
+        const r = await dataApi({ entity, action: 'list' });
+        if (r && r.ok && r.data && Array.isArray(r.data.data)) write(info.key, r.data.data);
+      }
+      const rs = await dataApi({ entity: 'settings', action: 'get', key: 'site' });
+      if (rs && rs.ok && rs.data && rs.data.data && rs.data.data.value) write(K.settings, rs.data.data.value);
+      // Páginas + overrides del editor: las filas ov-* van a sus claves; el resto a cv_pages.
+      const rp = await dataApi({ entity: 'pages', action: 'list' });
+      if (rp && rp.ok && rp.data && Array.isArray(rp.data.data)) {
+        const pagesObj = {};
+        for (const row of rp.data.data) {
+          if (!row || !row.slug) continue;
+          if (OV_MAP[row.slug]) { serverHasOv = true; write(OV_MAP[row.slug], row.layout || {}); }
+          else pagesObj[row.slug] = row.layout || {};
+        }
+        if (Object.keys(pagesObj).length) write(K.pages, pagesObj);
+      }
+    } finally { cloudSuppress = false; }
+    return { serverHasOv };
+  }
+
+  let cloudSynced = false;
+  async function cloudSync() {
+    if (cloudSynced) return; cloudSynced = true;
+    try {
+      await cloudMigrateOnce();
+      const h = await cloudHydrate();
+      // Primera subida de los overrides del editor: si el servidor aún no los
+      // tiene pero este navegador sí (ediciones visuales previas), súbelos ya.
+      if (h && !h.serverHasOv) {
+        const hasLocalOv = Object.values(OV_MAP).some(k => { const v = read(k, null); return v && typeof v === 'object' && Object.keys(v).length; });
+        if (hasLocalOv) await cloudPushOverrides();
+      }
+      try { hydrate(); route(); refreshBadges(); } catch (_) {}
+      toast('Sincronizado con la nube ✓', 'ok');
+    } catch (_) { /* sin conexión: el panel sigue con localStorage */ }
+  }
 
   // ---------- UI helpers ----------
   const toastEl = $('#toast');
@@ -160,26 +282,97 @@
 
   // ============ AUTH ============
   const loginEl = $('#login'), appEl = $('#app');
+  // Autenticado = hay flag local (sesión por email o acceso de emergencia).
   function isAuthed() { return localStorage.getItem(K.auth) === '1'; }
+  // Token enviado en cada llamada autenticada: el de sesión (/api/auth) o, en
+  // acceso de emergencia, la contraseña del panel (validada por CABO_ADMIN_PASS).
+  function authToken() { return localStorage.getItem(K.token) || (isAuthed() ? CRED.pass : ''); }
+  function setWhoami() {
+    const w = $('#whoami');
+    if (w) w.textContent = (sessionUser && (sessionUser.name || sessionUser.email)) || 'admin';
+    const cpb = $('#changePwBtn');
+    if (cpb) cpb.hidden = !(sessionUser && sessionUser.id && !sessionUser.master);
+  }
   function showApp() {
     loginEl.hidden = true; appEl.hidden = false;
+    setWhoami(); seedWelcomeNewsletter();
     if (!location.hash || location.hash === '#') location.hash = '#/inicio';
     route(); hydrate();
+    cloudSync();
   }
   function showLogin() { appEl.hidden = true; loginEl.hidden = false; }
 
-  $('#loginForm').addEventListener('submit', (e) => {
+  $('#loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const u = $('#userInput').value.trim(), p = $('#passInput').value;
-    const msg = $('#loginMsg');
-    if (u === CRED.user && p === CRED.pass) {
-      localStorage.setItem(K.auth, '1'); msg.textContent = ''; showApp();
-    } else { msg.textContent = 'Usuario o contraseña incorrectos.'; msg.className = 'login__msg'; }
+    const email = $('#userInput').value.trim(), p = $('#passInput').value;
+    const msg = $('#loginMsg'); const btn = $('#loginSubmit');
+    msg.textContent = ''; msg.className = 'login__msg';
+    // Acceso de emergencia local (sin tocar el backend): admin / cabovirgenes.
+    const emergency = () => {
+      localStorage.setItem(K.auth, '1'); localStorage.removeItem(K.token);
+      sessionUser = { name: 'Propietario', email: 'admin', role: 'owner', master: true };
+      try { localStorage.setItem(K.sessUser, JSON.stringify(sessionUser)); } catch {}
+      showApp();
+    };
+    if (btn) btn.disabled = true;
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'login', email, password: p }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok && data.token) {
+        localStorage.setItem(K.token, data.token);
+        localStorage.setItem(K.auth, '1');
+        sessionUser = data.user || null;
+        try { localStorage.setItem(K.sessUser, JSON.stringify(sessionUser)); } catch {}
+        showApp(); return;
+      }
+      if (email === CRED.user && p === CRED.pass) { emergency(); return; }
+      msg.textContent = (data && data.message) || 'Email o contraseña incorrectos.';
+    } catch (_) {
+      if (email === CRED.user && p === CRED.pass) { emergency(); return; }
+      msg.textContent = 'No se pudo conectar con el servidor.';
+    } finally { if (btn) btn.disabled = false; }
   });
   $('#togglePass').addEventListener('click', () => {
     const i = $('#passInput'); i.type = i.type === 'password' ? 'text' : 'password';
   });
-  $('#logoutBtn').addEventListener('click', () => { localStorage.removeItem(K.auth); location.hash = ''; showLogin(); });
+  $('#logoutBtn').addEventListener('click', async () => {
+    const tok = localStorage.getItem(K.token);
+    if (tok) { try { await fetch('/api/auth', { method: 'POST', headers: { 'content-type': 'application/json', 'x-cabo-admin-token': tok }, body: JSON.stringify({ action: 'logout' }) }); } catch {} }
+    localStorage.removeItem(K.auth); localStorage.removeItem(K.token); localStorage.removeItem(K.sessUser);
+    sessionUser = null; location.hash = ''; showLogin();
+  });
+
+  // ---- Cambio de contraseña (solo sesiones reales de /api/auth) ----
+  const cpModal = $('#changePwModal');
+  function openChangePw() {
+    if (!sessionUser || sessionUser.master) { toast('El cambio de contraseña es para los perfiles del equipo.', 'info'); return; }
+    if ($('#cpCurrent')) $('#cpCurrent').value = '';
+    if ($('#cpNext')) $('#cpNext').value = '';
+    if ($('#cpConfirm')) $('#cpConfirm').value = '';
+    const m = $('#cpMsg'); if (m) m.textContent = '';
+    if (cpModal) { cpModal.classList.add('open'); cpModal.setAttribute('aria-hidden', 'false'); }
+  }
+  function closeChangePw() { if (cpModal) { cpModal.classList.remove('open'); cpModal.setAttribute('aria-hidden', 'true'); } }
+  (function bindChangePw() {
+    const b = $('#changePwBtn'); if (b) b.addEventListener('click', openChangePw);
+    if (cpModal) cpModal.addEventListener('click', e => { if (e.target.closest('[data-close-cp]')) closeChangePw(); });
+    const form = $('#changePwForm');
+    if (form) form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const cur = $('#cpCurrent').value, next = $('#cpNext').value, conf = $('#cpConfirm').value;
+      const m = $('#cpMsg'); if (m) { m.textContent = ''; m.className = 'login__msg'; }
+      if (next.length < 8) { if (m) m.textContent = 'La nueva contraseña debe tener al menos 8 caracteres.'; return; }
+      if (next !== conf) { if (m) m.textContent = 'Las contraseñas nuevas no coinciden.'; return; }
+      const sb = $('#cpSubmit'); if (sb) sb.disabled = true;
+      const r = await adminApi('/api/auth', 'POST', { action: 'changePassword', current: cur, next });
+      if (sb) sb.disabled = false;
+      if (r.ok && r.data && r.data.ok) { closeChangePw(); toast('Contraseña actualizada.', 'ok'); }
+      else if (m) m.textContent = (r.data && r.data.message) || 'No se pudo cambiar la contraseña.';
+    });
+  })();
 
   // ============ ROUTING ============
   const TITLES = { inicio: 'Inicio', edicion: 'Edición visual', noticias: 'Noticias', equipo: 'Equipo', legales: 'Legales', consultas: 'Consultas', suscriptores: 'Suscriptores', boletines: 'Boletines', empleo: 'Empleo', seo: 'SEO / Buscador', ajustes: 'Ajustes' };
@@ -654,9 +847,11 @@
       if (d.id && getNews().some(n => String(n.id) === String(d.id))) openNews(d.id);
       else openNews(null); // ejemplo o sin id → nueva noticia
     } else if (d.type === 'cv:studio-changed') {
-      // El estudio modificó cv_news (publicar/archivar/destacar/eliminar): refresca el admin.
+      // El estudio modificó cv_news (publicar/archivar/destacar/eliminar): refresca el admin
+      // y re-empuja el conjunto completo a Supabase (el iframe escribe localStorage directo).
       try { refreshBadges(); } catch (_) {}
       try { if (newsTab === 'biblioteca') renderBiblioteca(); if (newsTab === 'pagina') renderPagina(); } catch (_) {}
+      try { cloudWriteThrough(K.news); } catch (_) {}
     }
   });
 
@@ -2136,18 +2331,20 @@
   // ============ SEO / BUSCADOR ============
   let seoCfg = null;
   let seoProposals = null;
-  // Estando dentro del panel, autoriza con la contraseña del propio login
-  // (el servidor la acepta vía CABO_ADMIN_PASS). Sin claves extra para el equipo.
-  const seoKey = () => (isAuthed() ? CRED.pass : '');
-  async function seoApi(method, body) {
+  // Token de autorización del panel: el de sesión (/api/auth) o la contraseña del
+  // login en acceso de emergencia (el servidor la valida vía CABO_ADMIN_PASS).
+  const seoKey = () => authToken();
+  // Cliente autenticado genérico para cualquier endpoint /api del panel.
+  async function adminApi(path, method, body) {
     const headers = { 'content-type': 'application/json' };
-    const k = seoKey(); if (k) headers['x-cabo-admin-token'] = k;
+    const k = authToken(); if (k) headers['x-cabo-admin-token'] = k;
     let res, data = {};
-    try { res = await fetch('/api/seo', { method, headers, body: body ? JSON.stringify(body) : undefined }); }
+    try { res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined }); }
     catch (e) { return { ok: false, status: 0, data: { message: 'Sin conexión con el servidor (¿estás en el sitio publicado?).' } }; }
     try { data = await res.json(); } catch {}
     return { ok: res.ok, status: res.status, data };
   }
+  async function seoApi(method, body) { return adminApi('/api/seo', method, body); }
   const seoEsc = (s) => esc(String(s == null ? '' : s));
 
   async function renderSeo() {
@@ -2507,6 +2704,9 @@
       case 'cv:saved':
         setDirty(false);
         toast(d.ok === false ? 'No se pudo guardar' : 'Cambios guardados', d.ok === false ? 'err' : 'ok');
+        // El editor guardó overrides (cv_content/cv_imgs/cv_styles/cv_legal) en
+        // localStorage: súbelos a Supabase para que los vean TODOS los visitantes.
+        try { cloudPushOverrides(); } catch (_) {}
         break;
       case 'cv:history':
         setHistory(!!d.canUndo, !!d.canRedo);
@@ -2516,6 +2716,7 @@
         break;
       case 'cv-saved': // legacy
         setDirty(false); toast('Cambios guardados', 'ok');
+        try { cloudPushOverrides(); } catch (_) {}
         break;
     }
   });
@@ -3211,6 +3412,140 @@
     toast('Boletín registrado. Exporta los destinatarios o copia el HTML para enviarlo.', 'ok');
   }
 
+  // ---- Texto plano de respaldo (clientes de correo sin HTML) ----
+  function bnRenderText() {
+    bnStashDraft();
+    const news = bnSelectedNews();
+    const lines = [];
+    lines.push(bnDraft.subject || 'Boletín de Cabo Vírgenes', '');
+    if (bnDraft.intro) lines.push(String(bnDraft.intro).trim(), '');
+    news.forEach(n => { lines.push('• ' + (n.title || ''), String(n.excerpt || '').trim(), ''); });
+    lines.push('Visitar el sitio: ' + BN_SITE);
+    lines.push('Para darte de baja, responde a este mensaje con el asunto «Baja».');
+    return lines.join('\n');
+  }
+
+  // ---- Envío REAL por email vía Resend (/api/newsletters) ----
+  async function bnSendReal() {
+    bnStashDraft();
+    const subject = (bnDraft.subject || '').trim();
+    if (!subject) { toast('Pon un asunto para el boletín', 'err'); if ($('#bnSubject')) $('#bnSubject').focus(); return; }
+    const aud = bnDraft.audience || { mode: 'all', value: '' };
+    const recipients = bnAudienceList(aud).map(s => s.email).filter(Boolean);
+    if (!recipients.length) { toast('No hay destinatarios en este segmento', 'err'); return; }
+    if (!await confirmDialog('Enviar por email',
+      `Se enviará «${subject}» por correo a ${recipients.length} destinatario(s) (${bnAudLabel(aud)}) usando Resend. Esta acción envía correos reales. ¿Continuar?`)) return;
+    const btn = $('#bnSendRealBtn'); if (btn) { btn.disabled = true; btn.classList.add('is-busy'); }
+    const html = bnRenderHTML();
+    const text = bnRenderText();
+    const news = bnSelectedNews();
+    const r = await adminApi('/api/newsletters', 'POST', {
+      action: 'send', subject, html, text, recipients,
+      audienceLabel: bnAudLabel(aud),
+      meta: { template: bnDraft.template || 'clasico', items: news.map(n => ({ id: n.id, title: n.title })) },
+    });
+    if (btn) { btn.disabled = false; btn.classList.remove('is-busy'); }
+    const d = (r && r.data) || {};
+    if (r && r.ok && d.ok) {
+      const rec = {
+        id: uid(), subject, intro: bnDraft.intro || '',
+        template: bnDraft.template || 'clasico', date: new Date().toISOString(),
+        recipientCount: recipients.length,
+        audience: { mode: aud.mode, value: aud.value || '' },
+        items: news.map(n => ({ id: n.id, title: n.title })),
+        html, status: d.failed ? 'partial' : 'sent', sentCount: d.sent || 0, failedCount: d.failed || 0, provider: 'resend',
+      };
+      const list = getNewsletters(); list.unshift(rec); setNewsletters(list);
+      logAudit('settings', 'boletín', '∅', 'Enviado por email (' + (d.sent || 0) + '): ' + subject + ' · ' + bnAudLabel(aud));
+      bnDraft = { subject: '', intro: '', template: bnDraft.template, items: [], audience: { mode: 'all', value: '' } };
+      bnClearDraft();
+      if ($('#bnSubject')) $('#bnSubject').value = '';
+      if ($('#bnIntro')) $('#bnIntro').value = '';
+      renderBnNewsPick(); renderBnSegments(); renderBnAudience(); renderBnHistory();
+      toast('Boletín enviado a ' + (d.sent || 0) + ' destinatario(s)' + (d.failed ? ' (' + d.failed + ' fallaron)' : '') + '.', 'ok');
+    } else {
+      const msg = (d.message) || ({
+        no_resend_key: 'Resend no está configurado en el servidor (RESEND_API_KEY).',
+        no_recipients: 'No hay destinatarios válidos.',
+        config: 'El panel no está configurado en el servidor.',
+        unauthorized: 'Tu sesión no es válida. Vuelve a iniciar sesión.',
+      })[d.error] || 'No se pudo enviar. Usa «Registrar (sin enviar)» + copiar HTML como respaldo.';
+      toast(msg, 'err');
+      if (d.error || d.detail) console.warn('newsletters:', d.error, d.detail || '');
+    }
+  }
+
+  // ---- Boletín de bienvenida (onboarding del equipo). Email-safe, se archiva
+  //      una vez por navegador en el historial de Boletines. ----
+  const BN_WELCOME_HTML = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#eef2f5;font-family:Georgia,'Times New Roman',serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef2f5;padding:28px 12px;"><tr><td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 24px 60px -28px rgba(11,26,44,.4);">
+  <tr><td style="background:linear-gradient(135deg,#0b1a2c 0%,#06182f 60%,#0e2d3a 100%);padding:34px 40px 28px;">
+    <table role="presentation" width="100%"><tr>
+      <td style="vertical-align:middle;"><img src="https://cabovirgenes.com/email-logo-white.png" alt="Cabo Vírgenes" height="40" style="height:40px;vertical-align:middle;"></td>
+      <td align="right" style="vertical-align:middle;color:#7fe3df;font:700 10px/1 Arial,sans-serif;letter-spacing:.24em;text-transform:uppercase;">Panel de administración</td>
+    </tr></table>
+  </td></tr>
+  <tr><td style="padding:0;font-size:0;line-height:0;"><img src="https://cabovirgenes.com/esmeralda-1.jpg" alt="Flota Cabo Vírgenes" width="600" style="width:100%;display:block;"></td></tr>
+  <tr><td style="padding:6px 40px 0;background:#fff;">
+    <p style="margin:0 0 6px;color:#1cb5b0;font:700 11px/1 Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;">Te damos la bienvenida</p>
+    <h1 style="margin:0 0 12px;color:#0b1a2c;font:400 31px/1.15 Georgia,serif;">Hola, equipo 👋<br>Ya formáis parte del panel de Cabo Vírgenes.</h1>
+    <p style="margin:0 0 18px;color:#41556b;font:400 15px/1.7 Georgia,serif;">Os hemos creado un acceso al panel de administración de <strong style="color:#0b1a2c;">cabovirgenes.com</strong> — el centro desde el que se gestiona toda la web del langostino austral salvaje: noticias, equipo, boletines, consultas y el SEO con IA.</p>
+  </td></tr>
+  <tr><td style="padding:4px 40px 6px;background:#fff;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td width="50%" style="padding:8px 10px 8px 0;vertical-align:top;"><table role="presentation" width="100%" style="background:#f5f8fa;border-radius:12px;"><tr><td style="padding:13px 15px;"><span style="font:700 22px/1 Arial;color:#1cb5b0;">📰</span><div style="font:600 14px/1.3 Georgia,serif;color:#0b1a2c;margin-top:6px;">Noticias y prensa</div><div style="font:400 12px/1.5 Georgia,serif;color:#6b7a8a;">Publica y ordena novedades.</div></td></tr></table></td>
+        <td width="50%" style="padding:8px 0 8px 10px;vertical-align:top;"><table role="presentation" width="100%" style="background:#f5f8fa;border-radius:12px;"><tr><td style="padding:13px 15px;"><span style="font:700 22px/1 Arial;color:#1cb5b0;">✉️</span><div style="font:600 14px/1.3 Georgia,serif;color:#0b1a2c;margin-top:6px;">Boletines</div><div style="font:400 12px/1.5 Georgia,serif;color:#6b7a8a;">Compón y envía como este.</div></td></tr></table></td>
+      </tr>
+      <tr>
+        <td width="50%" style="padding:8px 10px 8px 0;vertical-align:top;"><table role="presentation" width="100%" style="background:#f5f8fa;border-radius:12px;"><tr><td style="padding:13px 15px;"><span style="font:700 22px/1 Arial;color:#1cb5b0;">👥</span><div style="font:600 14px/1.3 Georgia,serif;color:#0b1a2c;margin-top:6px;">Equipo y empleo</div><div style="font:400 12px/1.5 Georgia,serif;color:#6b7a8a;">Cargos, bios y vacantes.</div></td></tr></table></td>
+        <td width="50%" style="padding:8px 0 8px 10px;vertical-align:top;"><table role="presentation" width="100%" style="background:#eafaf7;border-radius:12px;border:1px solid #b9ece6;"><tr><td style="padding:13px 15px;"><span style="font:700 22px/1 Arial;color:#1cb5b0;">✨</span><div style="font:600 14px/1.3 Georgia,serif;color:#0b1a2c;margin-top:6px;">SEO con IA</div><div style="font:400 12px/1.5 Georgia,serif;color:#16776d;">Comparador antes/después.</div></td></tr></table></td>
+      </tr>
+    </table>
+  </td></tr>
+  <tr><td style="padding:18px 40px 6px;background:#fff;">
+    <table role="presentation" width="100%" style="background:#0b1a2c;border-radius:14px;"><tr><td style="padding:20px 24px;">
+      <p style="margin:0 0 4px;color:#7fe3df;font:700 10px/1 Arial,sans-serif;letter-spacing:.18em;text-transform:uppercase;">Tu acceso</p>
+      <p style="margin:0 0 14px;color:#cfe0ee;font:400 13px/1.6 Georgia,serif;">Usuario: <strong style="color:#fff;">tu correo del equipo</strong><br>Contraseña temporal: <strong style="color:#fff;font-family:monospace;">la que recibiste por correo</strong> &nbsp;<span style="color:#8aa0b6;font-size:11px;">(cámbiala al entrar)</span></p>
+      <a href="https://cabovirgenes.com/admin/" style="display:inline-block;background:#e9b048;color:#3a2a06;font:700 14px/1 Arial,sans-serif;text-decoration:none;padding:14px 26px;border-radius:100px;">Entrar al panel →</a>
+    </td></tr></table>
+  </td></tr>
+  <tr><td style="padding:22px 40px 8px;background:#fff;">
+    <p style="margin:0;color:#41556b;font:400 14px/1.7 Georgia,serif;">Cualquier duda, respóndenos a este correo o escribe a <a href="mailto:info@cabovirgenes.com" style="color:#1cb5b0;text-decoration:none;">info@cabovirgenes.com</a>. ¡Bienvenido/a a bordo! 🦐</p>
+  </td></tr>
+  <tr><td style="padding:24px 40px 30px;background:#fff;border-top:1px solid #eef2f5;">
+    <table role="presentation" width="100%"><tr>
+      <td style="vertical-align:middle;"><div style="font:600 13px/1.3 Georgia,serif;color:#0b1a2c;">Cabo Vírgenes</div><div style="font:400 11px/1.5 Arial,sans-serif;color:#8a98a6;">Langostino austral salvaje · Pleoticus muelleri · FAO 41</div></td>
+      <td align="right" style="vertical-align:middle;font:400 11px/1.5 Arial,sans-serif;color:#8a98a6;">Una empresa de<br><strong style="color:#0b1a2c;">AISA Group</strong></td>
+    </tr></table>
+  </td></tr>
+</table>
+</td></tr></table>
+</body></html>`;
+
+  function seedWelcomeNewsletter() {
+    try {
+      if (localStorage.getItem(K.welcomeSeed) === '1') return;
+      const list = getNewsletters();
+      if (!list.some(b => b && b.id === 'nl-welcome-onboarding')) list.unshift({
+        id: 'nl-welcome-onboarding',
+        subject: 'Bienvenida al panel · Equipo Cabo Vírgenes',
+        intro: 'Boletín de onboarding enviado a los 4 perfiles del equipo (Gabriela, Juan José, Chani y Romina) con su acceso al panel de administración.',
+        template: 'costa',
+        date: new Date().toISOString(),
+        recipientCount: 4,
+        audience: { mode: 'all', value: '' },
+        items: [],
+        html: BN_WELCOME_HTML,
+        status: 'sent', sentCount: 4, provider: 'resend',
+      });
+      setNewsletters(list);
+      localStorage.setItem(K.welcomeSeed, '1');
+    } catch (_) {}
+  }
+
   // ---- Historial de boletines enviados ----
   function renderBnHistory() {
     const list = getNewsletters();
@@ -3302,6 +3637,7 @@
 
     const pv = $('#bnPreviewBtn'); if (pv) pv.addEventListener('click', bnOpenPreview);
     const send = $('#bnSendBtn'); if (send) send.addEventListener('click', bnSend);
+    const sendReal = $('#bnSendRealBtn'); if (sendReal) sendReal.addEventListener('click', bnSendReal);
     const expd = $('#bnExportDest'); if (expd) expd.addEventListener('click', bnExportDest);
     const cph = $('#bnCopyHtml'); if (cph) cph.addEventListener('click', bnCopyHtml);
     const cph2 = $('#bnCopyHtml2'); if (cph2) cph2.addEventListener('click', bnCopyHtml);

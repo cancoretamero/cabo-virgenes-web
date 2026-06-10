@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cabo Vírgenes — Panel de administración</title>
 <meta name="robots" content="noindex, nofollow">
-<link rel="stylesheet" href="admin.css?v=20260606c">
+<link rel="stylesheet" href="admin.css?v=20260610a">
 </head>
 <body class="is-loading">
 
@@ -19,8 +19,8 @@
     <p class="login__lede">Inicia sesión para gestionar las noticias y el contenido del sitio.</p>
     <form class="login__form" id="loginForm" autocomplete="on">
       <label class="field">
-        <span class="field__label">Usuario</span>
-        <input type="text" id="userInput" class="field__input" placeholder="admin" autocomplete="username" autocapitalize="off" spellcheck="false" required>
+        <span class="field__label">Email</span>
+        <input type="email" id="userInput" class="field__input" placeholder="tu.correo@cabovirgenes.com" autocomplete="username" autocapitalize="off" spellcheck="false" required>
       </label>
       <label class="field">
         <span class="field__label">Contraseña</span>
@@ -32,7 +32,7 @@
       <button type="submit" class="btn btn--solid login__submit" id="loginSubmit"><span class="btn__label">Entrar</span><span class="ar" data-ico="arrow-right"></span></button>
       <p class="login__msg" id="loginMsg" role="status"></p>
     </form>
-    <p class="login__hint">Acceso de demostración (validación en el navegador) · usuario <code>admin</code> · contraseña <code>cabovirgenes</code>. Para un acceso seguro real se necesitaría backend.</p>
+    <p class="login__hint">Inicia sesión con tu <strong>email</strong> y tu contraseña del equipo de Cabo Vírgenes. ¿Problemas de acceso? Escribe a <a href="mailto:info@cabovirgenes.com">info@cabovirgenes.com</a>.</p>
   </div>
   <div class="login__foot">© 2026 Cabo Vírgenes · Parte de AISA Group</div>
 </section>
@@ -81,6 +81,7 @@
       </div>
       <div class="topbar__right">
         <span class="topbar__who" id="whoami">admin</span>
+        <button type="button" class="btn btn--ghost" id="changePwBtn" hidden style="padding:6px 12px;font-size:12px;">Cambiar contraseña</button>
       </div>
     </header>
 
@@ -341,11 +342,12 @@
         <div class="view__head">
           <div>
             <h2 class="view__h">Boletines</h2>
-            <p class="view__sub">Compón un boletín con tus noticias publicadas y envíalo a los suscriptores. Sin servidor de correo: el envío queda registrado y los destinatarios se exportan en CSV; también puedes copiar el HTML o abrir tu cliente de correo.</p>
+            <p class="view__sub">Compón un boletín con tus noticias publicadas y envíalo a los suscriptores por email (Resend). También puedes registrarlo sin enviar, exportar los destinatarios en CSV o copiar el HTML.</p>
           </div>
           <div class="view__actions">
             <button type="button" class="btn btn--ghost" id="bnPreviewBtn"><span class="ar" data-ico="eye"></span> Vista previa</button>
-            <button type="button" class="btn btn--solid" id="bnSendBtn"><span class="ar" data-ico="send"></span> Registrar envío</button>
+            <button type="button" class="btn btn--ghost" id="bnSendBtn"><span class="ar" data-ico="save"></span> Registrar (sin enviar)</button>
+            <button type="button" class="btn btn--solid" id="bnSendRealBtn"><span class="ar" data-ico="mail"></span> Enviar por email</button>
           </div>
         </div>
 
@@ -777,6 +779,38 @@
 </div>
 
 <!-- ============ MODAL EDITOR NOTICIA ============ -->
+<!-- ============ CAMBIAR CONTRASEÑA ============ -->
+<div class="modal" id="changePwModal" aria-hidden="true" aria-labelledby="changePwTitle">
+  <div class="modal__back" data-close-cp></div>
+  <div class="modal__card">
+    <div class="modal__head">
+      <h3 class="modal__h" id="changePwTitle">Cambiar contraseña</h3>
+      <button class="modal__close" data-close-cp aria-label="Cerrar"><span data-ico="x" data-ico-size="18"></span></button>
+    </div>
+    <form id="changePwForm">
+      <div class="modal__body">
+        <label class="field">
+          <span class="field__label">Contraseña actual</span>
+          <input type="password" id="cpCurrent" class="field__input" autocomplete="current-password" required>
+        </label>
+        <label class="field">
+          <span class="field__label">Nueva contraseña</span>
+          <input type="password" id="cpNext" class="field__input" autocomplete="new-password" minlength="8" placeholder="mínimo 8 caracteres" required>
+        </label>
+        <label class="field">
+          <span class="field__label">Repite la nueva contraseña</span>
+          <input type="password" id="cpConfirm" class="field__input" autocomplete="new-password" required>
+        </label>
+        <p class="login__msg" id="cpMsg" role="status"></p>
+      </div>
+      <div class="modal__foot">
+        <button type="button" class="btn btn--ghost" data-close-cp>Cancelar</button>
+        <button type="submit" class="btn btn--solid" id="cpSubmit"><span class="btn__label">Guardar</span></button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="modal" id="newsModal" aria-hidden="true">
   <div class="modal__back" data-close-modal></div>
   <div class="modal__card">
@@ -1195,7 +1229,7 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="icons.js?v=20260606c"></script>
-<script src="admin.js?v=20260606c"></script>
+<script src="icons.js?v=20260610a"></script>
+<script src="admin.js?v=20260610a"></script>
 </body>
 </html>

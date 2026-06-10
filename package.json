@@ -19,7 +19,8 @@
   "author": "Cabo Vírgenes S.A.",
   "license": "UNLICENSED",
   "dependencies": {
-    "@netlify/blobs": "^8.1.0"
+    "@netlify/blobs": "^8.1.0",
+    "@supabase/supabase-js": "^2.108.1"
   },
   "devDependencies": {
     "puppeteer": "^24.3.2"
