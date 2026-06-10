@@ -155,11 +155,24 @@ window.addEventListener('load', () => console.log('JS:load done, reveal count=',
 // "te acompaña"); al volver arriba recupera su sitio en el hero. El espaciador
 // evita el salto de layout y la histéresis (entrar >140 / salir <80) el parpadeo.
 const header = document.getElementById('header');
+const hdrBrand = header.querySelector('.brand');
+const hdrPill = header.querySelector('.navpill');
 const hdrSpacer = document.createElement('div');
 hdrSpacer.id = 'hdrSpacer';
 hdrSpacer.style.display = 'none';
 header.parentNode.insertBefore(hdrSpacer, header.nextSibling);
 let hdrFixed = false;
+// En escritorio, al flotar, el logo se mete DENTRO de la píldora (primer hueco);
+// al volver arriba (o en móvil) regresa a su sitio original en el header.
+const hdrIsMobile = () => window.matchMedia('(max-width:720px)').matches;
+const placeBrand = () => {
+  if (!hdrBrand || !hdrPill) return;
+  if (hdrFixed && !hdrIsMobile()) {
+    if (hdrBrand.parentElement !== hdrPill) hdrPill.insertBefore(hdrBrand, hdrPill.firstChild);
+  } else if (hdrBrand.parentElement === hdrPill) {
+    header.insertBefore(hdrBrand, header.firstChild);
+  }
+};
 const onScroll = () => {
   const y = window.scrollY;
   if (!hdrFixed && y > 140) {
@@ -167,13 +180,16 @@ const onScroll = () => {
     hdrSpacer.style.display = 'block';
     header.classList.add('scrolled');
     hdrFixed = true;
+    placeBrand();
   } else if (hdrFixed && y < 80) {
     header.classList.remove('scrolled');
     hdrSpacer.style.display = 'none';
     hdrFixed = false;
+    placeBrand();
   }
 };
 window.addEventListener('scroll', onScroll, { passive: true });
+window.addEventListener('resize', placeBrand, { passive: true });
 onScroll();
 
 // ============ REVEAL ON SCROLL ============
