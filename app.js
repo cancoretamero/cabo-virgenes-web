@@ -150,9 +150,29 @@ fitViewport();
 window.addEventListener('resize', fitViewport, { passive: true });
 window.addEventListener('load', () => console.log('JS:load done, reveal count=', document.querySelectorAll('[data-reveal]').length, 'in count=', document.querySelectorAll('[data-reveal].in').length));
 
-// ============ HEADER SCROLL ============
+// ============ HEADER SCROLL (sticky tipo Aisa) ============
+// Al bajar, el header pasa a fijo arriba (barra compacta translúcida que
+// "te acompaña"); al volver arriba recupera su sitio en el hero. El espaciador
+// evita el salto de layout y la histéresis (entrar >140 / salir <80) el parpadeo.
 const header = document.getElementById('header');
-const onScroll = () => header.classList.toggle('scrolled', window.scrollY > 30);
+const hdrSpacer = document.createElement('div');
+hdrSpacer.id = 'hdrSpacer';
+hdrSpacer.style.display = 'none';
+header.parentNode.insertBefore(hdrSpacer, header.nextSibling);
+let hdrFixed = false;
+const onScroll = () => {
+  const y = window.scrollY;
+  if (!hdrFixed && y > 140) {
+    hdrSpacer.style.height = header.offsetHeight + 'px';
+    hdrSpacer.style.display = 'block';
+    header.classList.add('scrolled');
+    hdrFixed = true;
+  } else if (hdrFixed && y < 80) {
+    header.classList.remove('scrolled');
+    hdrSpacer.style.display = 'none';
+    hdrFixed = false;
+  }
+};
 window.addEventListener('scroll', onScroll, { passive: true });
 onScroll();
 
