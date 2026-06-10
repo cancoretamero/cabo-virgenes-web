@@ -3501,7 +3501,9 @@ html{scroll-padding-top:92px}
 @media (max-width:720px){
   /* Móvil: la MISMA píldora liquid-glass de escritorio, en pequeño —
      una sola pieza flotante centrada: logo + idioma + hamburguesa. */
-  .header.scrolled{padding:10px 16px;justify-content:center}
+  /* La tarjeta (.stage) va a 10px del borde en móvil: con 26px de margen
+     la píldora queda claramente DENTRO de la tarjeta de la página. */
+  .header.scrolled{padding:10px 26px;justify-content:center}
   .header.scrolled .navpill{
     width:100%;
     gap:6px;
