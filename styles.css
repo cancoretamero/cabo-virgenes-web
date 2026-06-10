@@ -3499,16 +3499,34 @@ html{scroll-padding-top:92px}
 .header.scrolled .nav-dropdown{max-height:calc(100vh - 90px);overflow-y:auto}
 
 @media (max-width:720px){
-  .header.scrolled{padding:10px 14px}
-  .header.scrolled .brand,
-  .header.scrolled .brand img{height:34px}
-  /* En móvil la píldora no existe: flotan el logo, la hamburguesa y el idioma */
+  /* Móvil: la MISMA píldora liquid-glass de escritorio, en pequeño —
+     una sola pieza flotante centrada: logo + idioma + hamburguesa. */
+  .header.scrolled{padding:10px 12px;justify-content:center}
   .header.scrolled .navpill{
-    padding:0;
-    background:transparent !important;
-    border:none !important;
-    box-shadow:none !important;
-    backdrop-filter:none !important;
-    -webkit-backdrop-filter:none !important;
+    gap:6px;
+    padding:4px 4px 4px 12px;
+    background:linear-gradient(180deg,rgba(255,255,255,.82),rgba(243,249,252,.62)) !important;
+    backdrop-filter:blur(18px) saturate(180%) !important;
+    -webkit-backdrop-filter:blur(18px) saturate(180%) !important;
+    border:1px solid rgba(255,255,255,.65) !important;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,.85) inset,
+      0 16px 38px -18px rgba(11,26,44,.38) !important;
   }
+  /* El logo es un <a>: anula el display:none de los enlaces del navpill móvil */
+  .header.scrolled .navpill > a.brand{display:inline-flex}
+  .header.scrolled .navpill .brand{height:30px;margin-right:4px;padding-left:0}
+  .header.scrolled .navpill .brand img{height:30px;filter:none}
+  .header.scrolled .navpill .lang-pill{padding:7px 10px;background:rgba(255,255,255,.85) !important}
+  /* Hamburguesa como en escritorio: círculo navy con barras blancas */
+  .header.scrolled .nav-menu{
+    width:38px;height:38px;
+    background:linear-gradient(180deg,#0b1a2c 0%,#06182f 100%);
+    border:1px solid rgba(255,255,255,.10);
+    box-shadow:0 1px 0 rgba(255,255,255,.18) inset, 0 8px 16px -8px rgba(11,26,44,.4);
+  }
+  .header.scrolled .nav-menu .nav-menu-bar{background:#fff;width:15px;height:1.6px}
+  .header.scrolled .nav-menu[aria-expanded="true"] .nav-menu-bar{width:18px}
+  .header.scrolled .nav-menu[aria-expanded="true"] .nav-menu-bar:nth-child(1){transform:translateY(5.6px) rotate(45deg)}
+  .header.scrolled .nav-menu[aria-expanded="true"] .nav-menu-bar:nth-child(3){transform:translateY(-5.6px) rotate(-45deg)}
 }

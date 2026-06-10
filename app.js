@@ -157,20 +157,31 @@ window.addEventListener('load', () => console.log('JS:load done, reveal count=',
 const header = document.getElementById('header');
 const hdrBrand = header.querySelector('.brand');
 const hdrPill = header.querySelector('.navpill');
+const hdrLang = header.querySelector('.lang-wrap');
 const hdrSpacer = document.createElement('div');
 hdrSpacer.id = 'hdrSpacer';
 hdrSpacer.style.display = 'none';
 header.parentNode.insertBefore(hdrSpacer, header.nextSibling);
 let hdrFixed = false;
-// En escritorio, al flotar, el logo se mete DENTRO de la píldora (primer hueco);
-// al volver arriba (o en móvil) regresa a su sitio original en el header.
+// Al flotar, el logo se mete DENTRO de la píldora (primer hueco). En móvil el
+// idioma también entra en la píldora (queda una sola pieza liquid-glass
+// compacta: logo + idioma + hamburguesa). Al volver arriba, todo a su sitio.
 const hdrIsMobile = () => window.matchMedia('(max-width:720px)').matches;
 const placeBrand = () => {
   if (!hdrBrand || !hdrPill) return;
-  if (hdrFixed && !hdrIsMobile()) {
+  if (hdrFixed) {
     if (hdrBrand.parentElement !== hdrPill) hdrPill.insertBefore(hdrBrand, hdrPill.firstChild);
-  } else if (hdrBrand.parentElement === hdrPill) {
-    header.insertBefore(hdrBrand, header.firstChild);
+    if (hdrLang) {
+      if (hdrIsMobile()) {
+        const mw = hdrPill.querySelector('.nav-menu-wrap');
+        if (hdrLang.parentElement !== hdrPill) hdrPill.insertBefore(hdrLang, mw);
+      } else if (hdrLang.parentElement === hdrPill) {
+        header.appendChild(hdrLang);
+      }
+    }
+  } else {
+    if (hdrBrand.parentElement === hdrPill) header.insertBefore(hdrBrand, header.firstChild);
+    if (hdrLang && hdrLang.parentElement === hdrPill) header.appendChild(hdrLang);
   }
 };
 const onScroll = () => {
