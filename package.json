@@ -20,7 +20,8 @@
   "license": "UNLICENSED",
   "dependencies": {
     "@netlify/blobs": "^8.1.0",
-    "@supabase/supabase-js": "^2.108.1"
+    "@supabase/supabase-js": "^2.108.1",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "puppeteer": "^24.3.2"

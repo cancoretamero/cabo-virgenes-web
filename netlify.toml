@@ -6,10 +6,11 @@
 
 [build.environment]
   NETLIFY_USE_YARN = "false"
-  NODE_VERSION = "20"
+  NODE_VERSION = "22"
 
 [functions]
   node_bundler = "esbuild"
+  external_node_modules = ["ws"]
 
 # ── Endpoints bonitos /api/* → Netlify Functions ──────────────────────────
 [[redirects]]
