@@ -89,3 +89,23 @@
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
     Cache-Control = "no-cache, no-store, must-revalidate"
+
+# ── Rutas de la web antigua indexadas en Google → 301 ──
+[[redirects]]
+  from = "/empresa.html"
+  to = "/"
+  status = 301
+[[redirects]]
+  from = "/productos.html"
+  to = "/"
+  status = 301
+[[redirects]]
+  from = "/contacto.html"
+  to = "/"
+  status = 301
+
+# Catch-all: cualquier ruta desconocida → portada (evita el 404 de Netlify)
+[[redirects]]
+  from = "/*"
+  to = "/"
+  status = 301
