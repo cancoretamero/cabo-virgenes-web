@@ -2612,6 +2612,7 @@
   let assetsItems = null;
   let assetsKind = '';
   let assetsQuery = '';
+  let assetsTag = '';
   let knConfig = null;
   let pendingKnFile = null;
   let knTestMsgs = [];
@@ -2742,14 +2743,31 @@
     return rec.data.item;
   }
 
-  function assetMatches(it, kind, query) {
+  function assetMatches(it, kind, query, tag) {
     if (kind && it.kind !== kind) return false;
+    if (tag && !(it.tags || []).includes(tag)) return false;
     if (query) {
       const q = query.toLowerCase();
       const hay = (it.name || '') + ' ' + (it.tags || []).join(' ');
       if (hay.toLowerCase().indexOf(q) < 0) return false;
     }
     return true;
+  }
+
+  // Chips de colecciones: se construyen de las etiquetas reales de la biblioteca.
+  function renderAssetsTags() {
+    const box = $('#assetsTags');
+    if (!box) return;
+    const freq = {};
+    (assetsItems || []).forEach((it) => (it.tags || []).forEach((t) => { freq[t] = (freq[t] || 0) + 1; }));
+    const tags = Object.keys(freq).sort((x, y) => freq[y] - freq[x]);
+    if (assetsTag && !tags.includes(assetsTag)) assetsTag = '';
+    if (!tags.length) { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    box.innerHTML = '<span class="as-tags__lbl">Colecciones</span>' +
+      '<button type="button" class="as-tag' + (!assetsTag ? ' is-active' : '') + '" data-tag="">Todas</button>' +
+      tags.map((t) => '<button type="button" class="as-tag' + (assetsTag === t ? ' is-active' : '') + '" data-tag="' + esc(t) + '">' +
+        esc(t) + ' <em>' + freq[t] + '</em></button>').join('');
   }
 
   function assetCardHtml(it, pick) {
@@ -2760,6 +2778,9 @@
       : '<span class="as-card__ph">' + asIco(assetKindIcon(it.kind), 26) + '</span>';
     const badge = it.kind === 'video' ? '<span class="as-card__play">' + asIco('play', 13) + '</span>' : '';
     const meta = assetKindLabel(it.kind) + (it.size ? ' · ' + fmtSize(it.size) : '') + (it.w && it.h ? ' · ' + it.w + '×' + it.h : '');
+    const tagChips = (it.tags || []).length
+      ? '<span class="as-card__tags">' + it.tags.slice(0, 3).map((t) => '<i>' + esc(t) + '</i>').join('') + '</span>'
+      : '';
     const acts = pick ? '' :
       '<div class="as-card__acts">' +
         '<button type="button" data-act="copy" title="Copiar URL">' + asIco('copy', 14) + '</button>' +
@@ -2770,17 +2791,18 @@
     return '<article class="as-card' + (pick ? ' as-card--pick' : '') + '" data-id="' + esc(it.id) + '" tabindex="0">' +
       '<div class="as-card__media">' + media + badge + acts + '</div>' +
       '<div class="as-card__body"><strong class="as-card__name" title="' + esc(it.name) + '">' + esc(it.name) + '</strong>' +
-      '<span class="as-card__meta">' + esc(meta) + '</span></div>' +
+      '<span class="as-card__meta">' + esc(meta) + '</span>' + tagChips + '</div>' +
       '</article>';
   }
 
   function renderAssetsGrid() {
     const grid = $('#assetsGrid');
     if (!grid) return;
-    const items = (assetsItems || []).filter((it) => assetMatches(it, assetsKind, assetsQuery));
+    renderAssetsTags();
+    const items = (assetsItems || []).filter((it) => assetMatches(it, assetsKind, assetsQuery, assetsTag));
     const cl = $('#asCountLib'); if (cl) cl.textContent = (assetsItems || []).length;
     if (!items.length) {
-      grid.innerHTML = (assetsQuery || assetsKind)
+      grid.innerHTML = (assetsQuery || assetsKind || assetsTag)
         ? asEmpty('search', 'Sin resultados.<br>Prueba con otra búsqueda o filtro.')
         : asEmpty('image', 'La biblioteca está vacía.<br>Sube tus primeras imágenes, vídeos o documentos.');
       hydrate();
@@ -3024,6 +3046,12 @@
     assetsQuery = $('#assetsSearch').value.trim();
     renderAssetsGrid();
   }, 160));
+  $('#assetsTags') && $('#assetsTags').addEventListener('click', (e) => {
+    const t = e.target.closest('[data-tag]');
+    if (!t) return;
+    assetsTag = t.dataset.tag || '';
+    renderAssetsGrid();
+  });
   $('#assetsFilters') && $('#assetsFilters').addEventListener('click', (e) => {
     const c = e.target.closest('.chip'); if (!c) return;
     $$('#assetsFilters .chip').forEach((x) => x.classList.toggle('is-active', x === c));

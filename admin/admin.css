@@ -1186,3 +1186,16 @@ code{font-family:var(--mono);font-size:.86em;background:rgba(11,26,44,.06);paddi
 .kn-msg--bot ul{margin:0 0 6px 16px;padding:0}.kn-msg--bot li{margin:2px 0}
 .kn-test__form{display:flex;gap:9px}
 .kn-test__form input{flex:1}
+
+/* — Colecciones (etiquetas) de la biblioteca — */
+.as-tags{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin:-2px 0 14px; }
+.as-tags__lbl{ font:600 10px/1.3 var(--mono); letter-spacing:.22em; text-transform:uppercase; color:var(--gray-500, #6b7d90); margin-right:3px; }
+.as-tag{ display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border:1px solid var(--line); border-radius:999px;
+  background:var(--card, #fff); color:var(--gray-600, #51606e); font:600 11px/1.3 var(--sans); cursor:pointer; transition:all .15s var(--ease, ease); }
+.as-tag em{ font-style:normal; font-family:var(--mono); font-size:9.5px; opacity:.65; }
+.as-tag:hover{ border-color:var(--teal); color:var(--teal-d); }
+.as-tag.is-active{ background:var(--ink); border-color:var(--ink); color:#fff; }
+.as-tag.is-active em{ opacity:.8; }
+.as-card__tags{ display:flex; gap:4px; flex-wrap:wrap; margin-top:5px; }
+.as-card__tags i{ font:600 9px/1.3 var(--mono); font-style:normal; letter-spacing:.06em; text-transform:uppercase;
+  padding:2px 7px; border-radius:999px; background:var(--teal-soft); color:var(--teal-d); }
