@@ -104,8 +104,5 @@
   to = "/"
   status = 301
 
-# Catch-all: cualquier ruta desconocida → portada (evita el 404 de Netlify)
-[[redirects]]
-  from = "/*"
-  to = "/"
-  status = 301
+# El resto de rutas desconocidas las atiende 404.html (redirección instantánea a portada).
+# Nota: Netlify ignora un [[redirects]] con from = "/*" hacia "/", por eso se usa 404.html.
