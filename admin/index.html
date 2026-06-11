@@ -55,6 +55,7 @@
       <a href="#/noticias" data-view="noticias" class="side__link"><span class="side__ic" data-ico="newspaper"></span><span class="side__label">Noticias</span><span class="side__badge" id="newsBadge" hidden>0</span></a>
       <a href="#/equipo" data-view="equipo" class="side__link"><span class="side__ic" data-ico="users"></span><span class="side__label">Equipo</span></a>
       <a href="#/legales" data-view="legales" class="side__link"><span class="side__ic" data-ico="scale"></span><span class="side__label">Legales</span></a>
+      <a href="#/assets" data-view="assets" class="side__link"><span class="side__ic" data-ico="image"></span><span class="side__label">Assets</span></a>
       <span class="side__section">Comunidad</span>
       <a href="#/consultas" data-view="consultas" class="side__link"><span class="side__ic" data-ico="mail"></span><span class="side__label">Consultas</span><span class="side__badge" id="msgBadge" hidden>0</span></a>
       <a href="#/suscriptores" data-view="suscriptores" class="side__link"><span class="side__ic" data-ico="at-sign"></span><span class="side__label">Suscriptores</span><span class="side__badge" id="subsBadge" hidden>0</span></a>
@@ -727,6 +728,99 @@
         </div>
       </section>
 
+      <!-- ===== ASSETS (biblioteca de medios + conocimiento IA) ===== -->
+      <section class="view" id="view-assets" hidden>
+        <div class="view__head">
+          <div>
+            <h2 class="view__h">Assets</h2>
+            <p class="view__sub">Biblioteca de imágenes, vídeos y documentos para toda la web, y conocimiento del asistente IA.</p>
+          </div>
+          <div class="view__actions">
+            <div class="seg-row" role="tablist">
+              <button type="button" class="seg is-active" data-atab="lib" role="tab"><span class="ar" data-ico="layout-grid" data-ico-size="14"></span> Biblioteca <em class="seg__n" id="asCountLib">0</em></button>
+              <button type="button" class="seg" data-atab="ia" role="tab"><span class="ar" data-ico="sparkles" data-ico-size="14"></span> Conocimiento IA <em class="seg__n" id="asCountIa">0</em></button>
+            </div>
+            <button type="button" class="btn btn--solid" id="assetsUploadBtn"><span class="ar" data-ico="upload"></span> Subir archivos</button>
+          </div>
+        </div>
+
+        <!-- Pestaña Biblioteca -->
+        <div id="apanel-lib">
+          <div class="as-toolbar">
+            <label class="as-search"><span class="ar" data-ico="search" data-ico-size="15"></span><input type="text" id="assetsSearch" placeholder="Buscar por nombre o etiqueta…"></label>
+            <div class="chip-row" id="assetsFilters" role="group" aria-label="Filtrar por tipo">
+              <button type="button" class="chip is-active" data-kind="">Todos</button>
+              <button type="button" class="chip" data-kind="image">Imágenes</button>
+              <button type="button" class="chip" data-kind="video">Vídeos</button>
+              <button type="button" class="chip" data-kind="doc">Documentos</button>
+            </div>
+          </div>
+          <div class="as-drop" id="assetsDrop" tabindex="0" role="button" aria-label="Subir archivos">
+            <span class="as-drop__ic" data-ico="upload" data-ico-size="22"></span>
+            <p class="as-drop__t"><strong>Arrastra archivos aquí</strong> o haz clic para elegirlos.</p>
+            <p class="as-drop__hint">Imágenes, vídeos (hasta 50 MB) y documentos. Quedan disponibles para noticias, equipo, editor visual y boletines.</p>
+            <input type="file" id="assetsFile" multiple hidden>
+          </div>
+          <div class="as-queue" id="assetsQueue" hidden></div>
+          <div class="as-grid" id="assetsGrid" aria-live="polite"></div>
+        </div>
+
+        <!-- Pestaña Conocimiento IA -->
+        <div id="apanel-ia" hidden>
+          <div class="card kn-intro">
+            <div class="panel-title">Cómo funciona</div>
+            <p class="panel-sub">Sube documentos (PDF, imágenes, texto) o pega texto, y dile al asistente <strong>en lenguaje normal</strong> qué puede contar de cada uno. Ejemplo: <em>«De la ficha técnica responde solo sobre los formatos; los precios son confidenciales»</em>. El chat de la web responderá usando solo el conocimiento activo.</p>
+          </div>
+
+          <div class="card" style="margin-top:18px">
+            <div class="panel-title">Añadir conocimiento</div>
+            <div class="kn-add">
+              <div class="as-drop as-drop--sm" id="knDrop" tabindex="0" role="button" aria-label="Subir documento de conocimiento">
+                <span class="as-drop__ic" data-ico="file-text" data-ico-size="20"></span>
+                <p class="as-drop__t"><strong>Arrastra un PDF, imagen o texto</strong> o haz clic para elegirlo.</p>
+                <p class="as-drop__hint">La IA extraerá el contenido automáticamente (hasta 4,5 MB).</p>
+                <input type="file" id="knFile" accept=".pdf,.txt,.md,.csv,image/*,application/pdf" hidden>
+              </div>
+              <div class="kn-or">o pega el texto</div>
+              <label class="field"><span class="field__label">Título</span><input type="text" id="knTitle" class="field__input" placeholder="P. ej.: Ficha técnica langostino HOSO"></label>
+              <label class="field"><span class="field__label">Texto del documento</span><textarea id="knText" class="field__area" rows="4" placeholder="Pega aquí el contenido…"></textarea></label>
+              <label class="field"><span class="field__label">Instrucciones para el asistente (opcional, en lenguaje normal)</span><textarea id="knInstructions" class="field__area" rows="2" placeholder="P. ej.: De este documento responde solo X; el resto es confidencial."></textarea></label>
+              <div class="kn-add__foot">
+                <span class="kn-status" id="knAddStatus"></span>
+                <button type="button" class="btn btn--solid btn--sm" id="knAddBtn"><span class="ar" data-ico="plus"></span> Añadir al conocimiento</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:18px">
+            <div class="panel-title">Reglas globales del asistente</div>
+            <p class="panel-sub">Se aplican siempre, a todo el chat. P. ej.: «Nunca des precios ni volúmenes de captura» o «Deriva las consultas de prensa a prensa@cabovirgenes.com».</p>
+            <textarea id="knGlobal" class="field__area" rows="3" placeholder="Escribe aquí las reglas generales…"></textarea>
+            <div class="kn-add__foot" style="margin-top:10px">
+              <span class="kn-status" id="knGlobalStatus"></span>
+              <button type="button" class="btn btn--ghost btn--sm" id="knGlobalSave"><span class="ar" data-ico="save"></span> Guardar reglas</button>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:18px">
+            <div class="panel-title">Conocimiento cargado</div>
+            <div class="kn-list" id="knList"></div>
+          </div>
+
+          <div class="card" style="margin-top:18px">
+            <div class="panel-title">Probar el asistente</div>
+            <p class="panel-sub">Habla con el asistente exactamente como lo haría un visitante de la web, con el conocimiento actual.</p>
+            <div class="kn-test">
+              <div class="kn-test__log" id="knTestLog"></div>
+              <form class="kn-test__form" id="knTestForm">
+                <input type="text" id="knTestInput" class="field__input" placeholder="Escribe una pregunta de prueba…" autocomplete="off">
+                <button type="submit" class="btn btn--solid btn--sm"><span class="ar" data-ico="arrow-right"></span> Enviar</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- ===== AJUSTES ===== -->
       <section class="view" id="view-ajustes" hidden>
         <div class="view__head"><div>
@@ -832,6 +926,7 @@
         </div>
         <input type="file" id="nfImgFile" accept="image/*" hidden>
         <label class="field"><span class="field__label">URL de la imagen</span><input class="field__input" id="nfImage" placeholder="../esp-1.jpg o https://…"></label>
+        <button type="button" class="btn btn--ghost btn--sm as-libbtn" id="nfLib"><span class="ar" data-ico="layout-grid"></span> Elegir de Assets</button>
         <label class="field"><span class="field__label">Título</span><input class="field__input" id="nfTitle" placeholder="Título de la noticia" required></label>
         <label class="field"><span class="field__label">Extracto</span><textarea class="field__area" id="nfExcerpt" placeholder="Resumen breve que se ve en la tarjeta…"></textarea></label>
         <label class="field"><span class="field__label">Cuerpo (opcional)</span><textarea class="field__area" id="nfBody" placeholder="Texto completo de la noticia…" style="min-height:120px"></textarea></label>
@@ -887,6 +982,7 @@
         </div>
         <input type="file" id="tfPhotoFile" accept="image/*" hidden>
         <label class="field"><span class="field__label">URL de la foto</span><input class="field__input" id="tfPhoto" placeholder="../team-1.jpg o https://…"></label>
+        <button type="button" class="btn btn--ghost btn--sm as-libbtn" id="tfLib"><span class="ar" data-ico="layout-grid"></span> Elegir de Assets</button>
         <div class="grid2">
           <label class="field"><span class="field__label">Nombre</span><input class="field__input" id="tfName" placeholder="Nombre y apellido" required></label>
           <label class="field"><span class="field__label">Cargo</span><input class="field__input" id="tfRole" placeholder="Gerente General"></label>
@@ -1206,6 +1302,25 @@
     <div class="modal__foot">
       <button type="button" class="btn btn--ghost" id="bnCopyHtml2"><span class="ar" data-ico="copy"></span> Copiar HTML</button>
       <button type="button" class="btn btn--solid" data-close-modal>Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL SELECTOR DE ASSETS (picker reutilizable) ============ -->
+<div class="modal" id="assetPicker" aria-hidden="true" aria-labelledby="assetPickerTitle">
+  <div class="modal__back" data-ap-close></div>
+  <div class="modal__card">
+    <div class="modal__head">
+      <h3 class="modal__h" id="assetPickerTitle">Elegir de la biblioteca</h3>
+      <button class="modal__close" id="assetPickerClose" aria-label="Cerrar"><span data-ico="x" data-ico-size="18"></span></button>
+    </div>
+    <div class="modal__body">
+      <div class="as-toolbar as-toolbar--pick">
+        <label class="as-search"><span class="ar" data-ico="search" data-ico-size="15"></span><input type="text" id="apSearch" placeholder="Buscar…"></label>
+        <button type="button" class="btn btn--ghost btn--sm" id="apUpload"><span class="ar" data-ico="upload"></span> Subir nuevo</button>
+        <input type="file" id="apFile" hidden>
+      </div>
+      <div class="as-grid as-grid--pick" id="apGrid"></div>
     </div>
   </div>
 </div>

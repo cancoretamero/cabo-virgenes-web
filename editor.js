@@ -410,6 +410,32 @@
     emitToast('Medio actualizado', 'ok');
   }
 
+  // Biblioteca de Assets: panel flotante compartido (assets-pick.js, carga
+  // perezosa). El picker lee el token de localStorage('cv_auth_token')
+  // (mismo origen que el admin).
+  function openAssetLib(node) {
+    if (!node) return;
+    const apply = (item) => {
+      if (!item || !item.url) return;
+      applyMedia(node, item.url);
+      recordMedia(node, item.url);
+      pushHistory();
+      emitToast('Asset aplicado', 'ok');
+    };
+    const openIt = () => {
+      window.CaboAssetPicker.open({
+        accept: node.tagName === 'VIDEO' ? 'video' : 'image',
+        onPick: apply
+      });
+    };
+    if (window.CaboAssetPicker) { openIt(); return; }
+    const s = document.createElement('script');
+    s.src = '/assets-pick.js';
+    s.onload = openIt;
+    s.onerror = () => emitToast('No se pudo cargar la biblioteca', 'err');
+    document.body.appendChild(s);
+  }
+
   /* ============================================================
      NAV / CTAs / enlaces — clic-derecho edita (markNav)
      ============================================================ */
@@ -612,6 +638,7 @@
         <span class="cv-sep"></span>
         <button type="button" class="cv-btn" data-pick="1" title="Subir archivo">⇅</button>
         <button type="button" class="cv-btn" data-url="1" title="Pegar URL">↪</button>
+        <button type="button" class="cv-btn" data-lib="1" title="Biblioteca de Assets">⊞</button>
       </div>`;
 
     document.body.appendChild(bar);
@@ -673,6 +700,7 @@
     // Acciones de medio.
     if (d.pick) { pickFile(); return; }
     if (d.url) { pasteUrl(); return; }
+    if (d.lib) { if (activeMedia) openAssetLib(activeMedia); return; }
 
     // Acciones de bloque (no necesitan selección de texto).
     if (d.width) { if (activeBlock) { recordStyle(activeBlock, { width: d.width }); pushHistory(); } return; }

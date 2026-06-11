@@ -375,7 +375,7 @@
   })();
 
   // ============ ROUTING ============
-  const TITLES = { inicio: 'Inicio', edicion: 'Edición visual', noticias: 'Noticias', equipo: 'Equipo', legales: 'Legales', consultas: 'Consultas', suscriptores: 'Suscriptores', boletines: 'Boletines', empleo: 'Empleo', seo: 'SEO / Buscador', ajustes: 'Ajustes' };
+  const TITLES = { inicio: 'Inicio', edicion: 'Edición visual', noticias: 'Noticias', equipo: 'Equipo', legales: 'Legales', assets: 'Assets', consultas: 'Consultas', suscriptores: 'Suscriptores', boletines: 'Boletines', empleo: 'Empleo', seo: 'SEO / Buscador', ajustes: 'Ajustes' };
   function currentView() { const m = (location.hash || '').match(/#\/(\w+)/); return m && TITLES[m[1]] ? m[1] : 'inicio'; }
   function route() {
     const v = currentView();
@@ -398,6 +398,7 @@
     else if (v === 'boletines') renderBoletines();
     else if (v === 'empleo') renderEmpleo();
     else if (v === 'seo') renderSeo();
+    else if (v === 'assets') renderAssets();
     else if (v === 'ajustes') renderAjustes();
     hydrate();
   }
@@ -2599,6 +2600,543 @@
     seoCfg = r.data.config; logAudit('settings', 'SEO', '', 'Versión IA publicada (' + seoCompFindings.length + ' cambios)');
     $('#seoCompCount').textContent = '✓ Publicado en la web en vivo';
     toast('Versión optimizada publicada en vivo', 'ok');
+  });
+
+  // ============ ASSETS (biblioteca de medios + conocimiento IA) ============
+  // Vista server-backed (como SEO): /api/assets y /api/knowledge vía adminApi
+  // (que ya añade x-cabo-admin-token). Binarios en Supabase Storage 'web-assets'
+  // (fallback Blobs); índice y conocimiento en Blobs 'cabo-assets'.
+  const ASSETS_SMALL_LIMIT = 4 * 1024 * 1024;   // ≤4 MB → base64 vía function
+  const ASSETS_BIG_LIMIT = 50 * 1024 * 1024;    // ≤50 MB → subida directa firmada (Supabase)
+  const KN_FILE_LIMIT = Math.round(4.5 * 1024 * 1024);
+  let assetsItems = null;
+  let assetsKind = '';
+  let assetsQuery = '';
+  let knConfig = null;
+  let pendingKnFile = null;
+  let knTestMsgs = [];
+  let apResolve = null;
+  let apAccept = '';
+
+  const assetsApi = (method, body) => adminApi('/api/assets', method, body);
+  const knowledgeApi = (method, body) => adminApi('/api/knowledge', method, body);
+  // Aviso claro según el estado de la sesión / configuración del servidor.
+  function assetsFail(r, fallback) {
+    const msg = (r && r.data && r.data.message) || '';
+    if (r && r.status === 401) toast('Sesión no válida. Sal y vuelve a entrar al panel.', 'err');
+    else if (r && r.status === 503) toast(msg || 'El servidor no está configurado (CABO_ADMIN_TOKEN). Avisa a IT.', 'err');
+    else toast(msg || fallback || 'Error inesperado', 'err');
+  }
+
+  const asIco = (name, size) => (window.cvIcon ? window.cvIcon(name, size || 14) : '');
+  const asEmpty = (icon, html) => `<div class="news-empty"><span data-ico="${icon}" data-ico-size="42"></span><p>${html}</p></div>`;
+  function fileToBase64(file) {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(String(r.result).split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+  }
+  function absAssetUrl(u) { if (!u) return u; return /^https?:\/\//i.test(u) ? u : location.origin + u; }
+  function fmtSize(n) {
+    if (!n) return '';
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return Math.round(n / 1024) + ' KB';
+    return (n / (1024 * 1024)).toFixed(1).replace('.0', '') + ' MB';
+  }
+  function asFmtWhen(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return isNaN(d) ? '' : d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+  function assetKindLabel(k) { return { image: 'Imagen', video: 'Vídeo', audio: 'Audio', doc: 'Documento', file: 'Archivo' }[k] || 'Archivo'; }
+  function assetKindIcon(k) { return { image: 'image', video: 'video', audio: 'play', doc: 'file-text', file: 'file-text' }[k] || 'file-text'; }
+
+  async function loadAssets(force) {
+    if (assetsItems && !force) return assetsItems;
+    const r = await assetsApi('GET');
+    if (!r.ok) { assetsFail(r, 'No se pudo cargar la biblioteca'); assetsItems = assetsItems || []; return assetsItems; }
+    assetsItems = (r.data && r.data.items) || [];
+    return assetsItems;
+  }
+  async function loadKnowledge(force) {
+    if (knConfig && !force) return knConfig;
+    const r = await knowledgeApi('GET');
+    if (r.ok) knConfig = (r.data && r.data.config) || { global: '', items: [] };
+    return knConfig || { global: '', items: [] };
+  }
+
+  function renderAssets() {
+    loadAssets().then(renderAssetsGrid);
+    loadKnowledge().then(renderKnowledge);
+  }
+
+  // Miniatura cliente (canvas) para imágenes y fotograma de vídeos.
+  // Devuelve { thumb (base64 sin prefijo), w, h, duration } o {}.
+  function makeAssetMeta(file) {
+    return new Promise((resolve) => {
+      const done = (meta) => resolve(meta || {});
+      const toJpeg = (source, w, h, extra) => {
+        try {
+          const max = 480;
+          const scale = Math.min(1, max / Math.max(w, h || 1));
+          const cw = Math.max(1, Math.round(w * scale));
+          const ch = Math.max(1, Math.round(h * scale));
+          const canvas = document.createElement('canvas');
+          canvas.width = cw; canvas.height = ch;
+          canvas.getContext('2d').drawImage(source, 0, 0, cw, ch);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+          done(Object.assign({ thumb: dataUrl.split(',')[1], w, h }, extra || {}));
+        } catch (_) { done(extra ? Object.assign({ w, h }, extra) : { w, h }); }
+      };
+      if (file.type && file.type.startsWith('image/')) {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => { toJpeg(img, img.naturalWidth, img.naturalHeight); URL.revokeObjectURL(url); };
+        img.onerror = () => { URL.revokeObjectURL(url); done({}); };
+        img.src = url;
+        return;
+      }
+      if (file.type && file.type.startsWith('video/')) {
+        const v = document.createElement('video');
+        const url = URL.createObjectURL(file);
+        v.muted = true; v.playsInline = true; v.preload = 'metadata'; v.src = url;
+        let settled = false;
+        const finish = (meta) => { if (settled) return; settled = true; URL.revokeObjectURL(url); done(meta); };
+        v.addEventListener('loadedmetadata', () => {
+          try { v.currentTime = Math.min(0.6, (v.duration || 1) / 3); } catch (_) { finish({ duration: v.duration || null }); }
+        });
+        v.addEventListener('seeked', () => {
+          toJpeg(v, v.videoWidth, v.videoHeight, { duration: v.duration || null });
+          settled = true; URL.revokeObjectURL(url);
+        });
+        v.addEventListener('error', () => finish({}));
+        setTimeout(() => finish({}), 4000);
+        return;
+      }
+      done({});
+    });
+  }
+
+  // Subida unificada a la biblioteca: pequeña por base64, grande por URL firmada.
+  // Lanza Error(message) si falla (la cola lo muestra por archivo).
+  async function uploadAsset(file) {
+    const meta = await makeAssetMeta(file).catch(() => ({}));
+    const type = file.type || 'application/octet-stream';
+    if (file.size <= ASSETS_SMALL_LIMIT) {
+      const dataBase64 = await fileToBase64(file);
+      const r = await assetsApi('POST', { action: 'upload', name: file.name, type, dataBase64, thumbBase64: meta.thumb, w: meta.w, h: meta.h, duration: meta.duration });
+      if (!r.ok || !(r.data && r.data.item)) throw new Error((r.data && r.data.message) || 'No se pudo subir (HTTP ' + r.status + ').');
+      if (assetsItems) assetsItems.unshift(r.data.item);
+      return r.data.item;
+    }
+    if (file.size > ASSETS_BIG_LIMIT) throw new Error('El archivo supera 50 MB. Comprime el vídeo antes de subirlo.');
+    const s = await assetsApi('POST', { action: 'sign', name: file.name, type });
+    if (!s.ok || !(s.data && s.data.uploadUrl)) throw new Error((s.data && s.data.message) || 'No se pudo firmar la subida.');
+    const put = await fetch(s.data.uploadUrl, { method: 'PUT', headers: { 'content-type': type }, body: file });
+    if (!put.ok) throw new Error('Fallo subiendo al almacenamiento (' + put.status + ').');
+    const rec = await assetsApi('POST', { action: 'record', id: s.data.id, path: s.data.path, name: file.name, type, size: file.size, thumbBase64: meta.thumb, w: meta.w, h: meta.h, duration: meta.duration });
+    if (!rec.ok || !(rec.data && rec.data.item)) throw new Error((rec.data && rec.data.message) || 'No se pudo registrar el archivo.');
+    if (assetsItems) assetsItems.unshift(rec.data.item);
+    return rec.data.item;
+  }
+
+  function assetMatches(it, kind, query) {
+    if (kind && it.kind !== kind) return false;
+    if (query) {
+      const q = query.toLowerCase();
+      const hay = (it.name || '') + ' ' + (it.tags || []).join(' ');
+      if (hay.toLowerCase().indexOf(q) < 0) return false;
+    }
+    return true;
+  }
+
+  function assetCardHtml(it, pick) {
+    const url = absAssetUrl(it.url);
+    const visual = it.thumb ? absAssetUrl(it.thumb) : (it.kind === 'image' ? url : null);
+    const media = visual
+      ? '<img src="' + esc(visual) + '" alt="" loading="lazy">'
+      : '<span class="as-card__ph">' + asIco(assetKindIcon(it.kind), 26) + '</span>';
+    const badge = it.kind === 'video' ? '<span class="as-card__play">' + asIco('play', 13) + '</span>' : '';
+    const meta = assetKindLabel(it.kind) + (it.size ? ' · ' + fmtSize(it.size) : '') + (it.w && it.h ? ' · ' + it.w + '×' + it.h : '');
+    const acts = pick ? '' :
+      '<div class="as-card__acts">' +
+        '<button type="button" data-act="copy" title="Copiar URL">' + asIco('copy', 14) + '</button>' +
+        '<button type="button" data-act="open" title="Abrir">' + asIco('external-link', 14) + '</button>' +
+        '<button type="button" data-act="rename" title="Renombrar">' + asIco('pencil', 14) + '</button>' +
+        '<button type="button" data-act="del" title="Eliminar">' + asIco('trash-2', 14) + '</button>' +
+      '</div>';
+    return '<article class="as-card' + (pick ? ' as-card--pick' : '') + '" data-id="' + esc(it.id) + '" tabindex="0">' +
+      '<div class="as-card__media">' + media + badge + acts + '</div>' +
+      '<div class="as-card__body"><strong class="as-card__name" title="' + esc(it.name) + '">' + esc(it.name) + '</strong>' +
+      '<span class="as-card__meta">' + esc(meta) + '</span></div>' +
+      '</article>';
+  }
+
+  function renderAssetsGrid() {
+    const grid = $('#assetsGrid');
+    if (!grid) return;
+    const items = (assetsItems || []).filter((it) => assetMatches(it, assetsKind, assetsQuery));
+    const cl = $('#asCountLib'); if (cl) cl.textContent = (assetsItems || []).length;
+    if (!items.length) {
+      grid.innerHTML = (assetsQuery || assetsKind)
+        ? asEmpty('search', 'Sin resultados.<br>Prueba con otra búsqueda o filtro.')
+        : asEmpty('image', 'La biblioteca está vacía.<br>Sube tus primeras imágenes, vídeos o documentos.');
+      hydrate();
+      return;
+    }
+    grid.innerHTML = items.map((it) => assetCardHtml(it, false)).join('');
+  }
+
+  async function assetAction(id, act) {
+    const it = (assetsItems || []).find((x) => x.id === id);
+    if (!it) return;
+    if (act === 'copy') {
+      try { await navigator.clipboard.writeText(absAssetUrl(it.url)); toast('URL copiada al portapapeles', 'ok'); }
+      catch (_) { toast(absAssetUrl(it.url)); }
+      return;
+    }
+    if (act === 'open') { window.open(absAssetUrl(it.url), '_blank', 'noopener'); return; }
+    if (act === 'rename') {
+      const name = window.prompt('Nuevo nombre del archivo:', it.name || '');
+      if (name == null || !name.trim() || name.trim() === it.name) return;
+      const r = await assetsApi('POST', { action: 'update', id, name: name.trim() });
+      if (!r.ok) { assetsFail(r, 'No se pudo renombrar'); return; }
+      if (r.data.item) { it.name = r.data.item.name; renderAssetsGrid(); toast('Nombre actualizado', 'ok'); }
+      return;
+    }
+    if (act === 'del') {
+      if (!await confirmDialog('Eliminar archivo', `¿Eliminar «${it.name || 'archivo'}» de la biblioteca? Si está en uso en la web dejará de verse.`)) return;
+      const r = await assetsApi('POST', { action: 'delete', id });
+      if (!r.ok) { assetsFail(r, 'No se pudo eliminar'); return; }
+      assetsItems = (assetsItems || []).filter((x) => x.id !== id);
+      renderAssetsGrid();
+      toast('Archivo eliminado', 'ok');
+    }
+  }
+
+  // Cola de subida con estado por archivo.
+  async function uploadFilesToLibrary(files) {
+    const queue = $('#assetsQueue');
+    const list = Array.from(files || []);
+    if (!list.length || !queue) return;
+    queue.hidden = false;
+    for (const file of list) {
+      const row = document.createElement('div');
+      row.className = 'as-qrow';
+      row.innerHTML = '<span class="as-qrow__ic as-spin">' + asIco('loader', 14) + '</span>' +
+        '<span class="as-qrow__name">' + esc(file.name) + '</span>' +
+        '<span class="as-qrow__st">' + (file.size > ASSETS_SMALL_LIMIT ? 'Subida directa…' : 'Subiendo…') + '</span>';
+      queue.appendChild(row);
+      try {
+        await uploadAsset(file);
+        row.querySelector('.as-qrow__ic').innerHTML = asIco('check-circle', 14);
+        row.querySelector('.as-qrow__ic').classList.remove('as-spin');
+        row.querySelector('.as-qrow__st').textContent = 'Listo';
+        row.classList.add('ok');
+        renderAssetsGrid();
+      } catch (err) {
+        row.querySelector('.as-qrow__ic').innerHTML = asIco('triangle-alert', 14);
+        row.querySelector('.as-qrow__ic').classList.remove('as-spin');
+        row.querySelector('.as-qrow__st').textContent = (err && err.message) || 'Error';
+        row.classList.add('err');
+      }
+    }
+    setTimeout(() => { queue.innerHTML = ''; queue.hidden = true; }, 4500);
+  }
+
+  // ---- Picker reutilizable (noticias, equipo, etc.): openAssetPicker → Promise<item|null> ----
+  function renderApGrid() {
+    const grid = $('#apGrid');
+    if (!grid) return;
+    const q = ($('#apSearch').value || '').trim();
+    const items = (assetsItems || []).filter((it) => assetMatches(it, apAccept, q));
+    if (!items.length) { grid.innerHTML = asEmpty('image', 'Nada por aquí.<br>Sube un archivo con «Subir nuevo».'); hydrate(); return; }
+    grid.innerHTML = items.map((it) => assetCardHtml(it, true)).join('');
+  }
+
+  function openAssetPicker(opts) {
+    opts = opts || {};
+    apAccept = opts.accept || '';
+    return new Promise((resolve) => {
+      if (apResolve) apResolve(null);
+      apResolve = resolve;
+      const m = $('#assetPicker');
+      m.classList.add('open'); m.setAttribute('aria-hidden', 'false');
+      const f = $('#apFile');
+      if (f) f.accept = apAccept === 'image' ? 'image/*' : apAccept === 'video' ? 'video/*' : '';
+      $('#apSearch').value = '';
+      renderApGrid();
+      loadAssets().then(renderApGrid);
+      setTimeout(() => $('#apSearch').focus(), 60);
+    });
+  }
+  function closeAssetPicker(item) {
+    const m = $('#assetPicker');
+    if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
+    if (apResolve) { const r = apResolve; apResolve = null; r(item || null); }
+  }
+
+  // ---- Conocimiento IA ----
+  function knMd(s) {
+    let t = esc(s).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    const lines = t.split(/\n/); const out = []; let list = null;
+    for (const ln of lines) {
+      if (/^\s*[-•]\s+/.test(ln)) { (list = list || []).push('<li>' + ln.replace(/^\s*[-•]\s+/, '') + '</li>'); continue; }
+      if (list) { out.push('<ul>' + list.join('') + '</ul>'); list = null; }
+      if (ln.trim()) out.push('<p>' + ln + '</p>');
+    }
+    if (list) out.push('<ul>' + list.join('') + '</ul>');
+    return out.join('');
+  }
+
+  function knItemHtml(it) {
+    const isErr = it.status === 'error';
+    const chip = isErr
+      ? '<span class="kn-chip kn-chip--err">Error</span>'
+      : (it.enabled ? '<span class="kn-chip kn-chip--on">Activo</span>' : '<span class="kn-chip">Inactivo</span>');
+    const src = it.sourceName ? esc(it.sourceName) + ' · ' : '';
+    return '<article class="kn-item' + (isErr ? ' kn-item--err' : '') + '" data-id="' + esc(it.id) + '">' +
+      '<div class="kn-item__head">' +
+        '<div class="kn-item__id"><strong>' + esc(it.title || 'Documento') + '</strong> ' + chip +
+          '<span class="kn-item__meta">' + src + esc(asFmtWhen(it.createdAt)) + '</span></div>' +
+        '<div class="kn-item__acts">' +
+          '<label class="switch switch--sm" title="Usar en el chat"><input type="checkbox" data-kn="enabled" ' + (it.enabled ? 'checked' : '') + (isErr ? ' disabled' : '') + '><span class="switch__track"></span></label>' +
+          '<button type="button" class="btn btn--ghost btn--sm" data-kn-act="del" title="Eliminar">' + asIco('trash-2', 14) + '</button>' +
+        '</div>' +
+      '</div>' +
+      (isErr ? '<p class="kn-item__error">' + esc(it.error || 'No se pudo procesar el documento.') + '</p>' : '') +
+      '<label class="field"><span class="field__label">Instrucciones para el asistente (se guardan solas)</span>' +
+        '<textarea class="field__area" data-kn="instructions" rows="2" placeholder="P. ej.: De este documento responde solo X; el resto es confidencial.">' + esc(it.instructions || '') + '</textarea></label>' +
+      '<details class="kn-item__digest"><summary>Contenido (' + (it.digest ? it.digest.length : 0) + ' caracteres) — editable</summary>' +
+        '<textarea class="field__area" data-kn="digest" rows="6">' + esc(it.digest || '') + '</textarea></details>' +
+      '</article>';
+  }
+
+  function renderKnowledge() {
+    const cfg = knConfig || { global: '', items: [] };
+    const g = $('#knGlobal');
+    if (g && document.activeElement !== g) g.value = cfg.global || '';
+    const ci = $('#asCountIa'); if (ci) ci.textContent = (cfg.items || []).filter((i) => i.enabled).length;
+    const list = $('#knList');
+    if (!list) return;
+    list.innerHTML = (cfg.items || []).length
+      ? cfg.items.map(knItemHtml).join('')
+      : asEmpty('sparkles', 'Sin conocimiento aún.<br>Sube un documento o pega un texto arriba: el asistente responderá con ello.');
+    hydrate();
+  }
+
+  const knPatch = debounce(async (id, patch) => {
+    const r = await knowledgeApi('POST', Object.assign({ action: 'update', id }, patch));
+    if (!r.ok) { assetsFail(r, 'No se pudo guardar'); return; }
+    if (r.data.item && knConfig) {
+      const i = knConfig.items.findIndex((x) => x.id === id);
+      if (i >= 0) knConfig.items[i] = r.data.item;
+      const ci = $('#asCountIa'); if (ci) ci.textContent = knConfig.items.filter((x) => x.enabled).length;
+    }
+  }, 700);
+
+  async function knAdd() {
+    const status = $('#knAddStatus');
+    const title = $('#knTitle').value.trim();
+    const instructions = $('#knInstructions').value.trim();
+    let body = null;
+    if (pendingKnFile) {
+      if (pendingKnFile.size > KN_FILE_LIMIT) { toast('El documento supera 4,5 MB. Pega el texto relevante en su lugar.', 'err'); return; }
+      status.textContent = 'Procesando con IA… (puede tardar unos segundos)';
+      const dataBase64 = await fileToBase64(pendingKnFile);
+      body = {
+        action: 'add', title: title || pendingKnFile.name, instructions,
+        name: pendingKnFile.name, type: pendingKnFile.type || 'application/octet-stream', dataBase64
+      };
+    } else {
+      const text = $('#knText').value.trim();
+      if (!text) { toast('Sube un documento o pega un texto', 'err'); return; }
+      status.textContent = 'Guardando…';
+      body = { action: 'add', title: title || 'Texto pegado', instructions, text };
+    }
+    const r = await knowledgeApi('POST', body);
+    status.textContent = '';
+    if (!r.ok && !(r.data && r.data.item)) { assetsFail(r, 'No se pudo añadir el conocimiento'); return; }
+    knConfig = (r.data && r.data.config) || knConfig;
+    if (r.data.item && r.data.item.status === 'error') toast('No se pudo procesar: ' + (r.data.item.error || 'error desconocido'), 'err');
+    else { toast('Conocimiento añadido. Ya está activo en el chat.', 'ok'); logAudit('settings', 'Conocimiento IA', '∅', (r.data.item && r.data.item.title) || 'Documento'); }
+    $('#knTitle').value = ''; $('#knText').value = ''; $('#knInstructions').value = '';
+    setKnPendingFile(null);
+    renderKnowledge();
+  }
+
+  function setKnPendingFile(file) {
+    pendingKnFile = file || null;
+    const drop = $('#knDrop');
+    if (!drop) return;
+    const t = drop.querySelector('.as-drop__t');
+    if (t) t.innerHTML = pendingKnFile
+      ? '<strong>' + esc(pendingKnFile.name) + '</strong> listo. Añade instrucciones si quieres y pulsa «Añadir».'
+      : '<strong>Arrastra un PDF, imagen o texto</strong> o haz clic para elegirlo.';
+    drop.classList.toggle('has-file', !!pendingKnFile);
+    if (pendingKnFile && !$('#knTitle').value.trim()) $('#knTitle').value = pendingKnFile.name.replace(/\.[a-z0-9]+$/i, '');
+  }
+
+  function renderKnTest() {
+    const log = $('#knTestLog');
+    if (!log) return;
+    log.innerHTML = knTestMsgs.map((m) =>
+      '<div class="kn-msg kn-msg--' + (m.role === 'user' ? 'user' : 'bot') + '">' +
+      (m.role === 'user' ? esc(m.content) : (m.pending ? '<em>…</em>' : knMd(m.content))) + '</div>'
+    ).join('');
+    log.scrollTop = log.scrollHeight;
+  }
+
+  async function knTestSend(text) {
+    knTestMsgs.push({ role: 'user', content: text });
+    const pending = { role: 'assistant', content: '', pending: true };
+    knTestMsgs.push(pending);
+    renderKnTest();
+    const r = await knowledgeApi('POST', { action: 'test', messages: knTestMsgs.filter((m) => !m.pending).slice(-12) });
+    pending.content = r.ok ? ((r.data && r.data.reply) || 'Sin respuesta.') : ('Error: ' + ((r.data && r.data.message) || 'no se pudo contactar con la IA.'));
+    delete pending.pending;
+    renderKnTest();
+  }
+
+  // ---- Bindings de la vista Assets (DOM estático: se cablea una vez) ----
+  $$('#view-assets [data-atab]').forEach((b) => b.addEventListener('click', () => {
+    $$('#view-assets [data-atab]').forEach((x) => x.classList.toggle('is-active', x === b));
+    $('#apanel-lib').hidden = b.dataset.atab !== 'lib';
+    $('#apanel-ia').hidden = b.dataset.atab !== 'ia';
+    $('#assetsUploadBtn').hidden = b.dataset.atab !== 'lib';
+  }));
+
+  $('#assetsUploadBtn') && $('#assetsUploadBtn').addEventListener('click', () => $('#assetsFile').click());
+  $('#assetsFile') && $('#assetsFile').addEventListener('change', (e) => { uploadFilesToLibrary(e.target.files); e.target.value = ''; });
+  (() => {
+    const drop = $('#assetsDrop');
+    if (!drop) return;
+    drop.addEventListener('click', () => $('#assetsFile').click());
+    drop.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#assetsFile').click(); } });
+    ['dragover', 'dragenter'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('is-drag'); }));
+    ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('is-drag'); }));
+    drop.addEventListener('drop', (e) => uploadFilesToLibrary(e.dataTransfer.files));
+  })();
+
+  $('#assetsSearch') && $('#assetsSearch').addEventListener('input', debounce(() => {
+    assetsQuery = $('#assetsSearch').value.trim();
+    renderAssetsGrid();
+  }, 160));
+  $('#assetsFilters') && $('#assetsFilters').addEventListener('click', (e) => {
+    const c = e.target.closest('.chip'); if (!c) return;
+    $$('#assetsFilters .chip').forEach((x) => x.classList.toggle('is-active', x === c));
+    assetsKind = c.dataset.kind || '';
+    renderAssetsGrid();
+  });
+
+  $('#assetsGrid') && $('#assetsGrid').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    const card = e.target.closest('.as-card');
+    if (card) assetAction(card.dataset.id, btn.dataset.act);
+  });
+
+  // Picker
+  $('#assetPickerClose') && $('#assetPickerClose').addEventListener('click', () => closeAssetPicker(null));
+  $('#assetPicker') && $('#assetPicker').querySelector('[data-ap-close]').addEventListener('click', () => closeAssetPicker(null));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && $('#assetPicker') && $('#assetPicker').classList.contains('open')) closeAssetPicker(null);
+  });
+  $('#apSearch') && $('#apSearch').addEventListener('input', debounce(renderApGrid, 140));
+  $('#apGrid') && $('#apGrid').addEventListener('click', (e) => {
+    const card = e.target.closest('.as-card');
+    if (!card) return;
+    const it = (assetsItems || []).find((x) => x.id === card.dataset.id);
+    if (it) closeAssetPicker(it);
+  });
+  $('#apUpload') && $('#apUpload').addEventListener('click', () => $('#apFile').click());
+  $('#apFile') && $('#apFile').addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    const grid = $('#apGrid');
+    grid.innerHTML = asEmpty('loader', 'Subiendo «' + esc(file.name) + '»…');
+    hydrate();
+    try {
+      const item = await uploadAsset(file);
+      toast('Archivo subido a Assets', 'ok');
+      closeAssetPicker(item);
+      renderAssetsGrid();
+    } catch (err) {
+      toast((err && err.message) || 'Subida fallida', 'err');
+      renderApGrid();
+    }
+  });
+
+  // Botones «Elegir de Assets» de los modales de noticia y equipo.
+  $('#nfLib') && $('#nfLib').addEventListener('click', async () => {
+    const it = await openAssetPicker({ accept: 'image' });
+    if (it) { setImgPrev(absAssetUrl(it.url)); toast('Imagen aplicada desde Assets', 'ok'); }
+  });
+  $('#tfLib') && $('#tfLib').addEventListener('click', async () => {
+    const it = await openAssetPicker({ accept: 'image' });
+    if (it) { setTeamPhoto(absAssetUrl(it.url)); toast('Foto aplicada desde Assets', 'ok'); }
+  });
+
+  // Conocimiento IA — bindings
+  (() => {
+    const kd = $('#knDrop');
+    if (!kd) return;
+    kd.addEventListener('click', () => $('#knFile').click());
+    ['dragover', 'dragenter'].forEach((ev) => kd.addEventListener(ev, (e) => { e.preventDefault(); kd.classList.add('is-drag'); }));
+    ['dragleave', 'drop'].forEach((ev) => kd.addEventListener(ev, (e) => { e.preventDefault(); kd.classList.remove('is-drag'); }));
+    kd.addEventListener('drop', (e) => { const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) setKnPendingFile(f); });
+  })();
+  $('#knFile') && $('#knFile').addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; if (f) setKnPendingFile(f); e.target.value = ''; });
+  $('#knAddBtn') && $('#knAddBtn').addEventListener('click', knAdd);
+  $('#knGlobalSave') && $('#knGlobalSave').addEventListener('click', async () => {
+    $('#knGlobalStatus').textContent = 'Guardando…';
+    const r = await knowledgeApi('POST', { action: 'global', text: $('#knGlobal').value });
+    $('#knGlobalStatus').textContent = '';
+    if (!r.ok) { assetsFail(r, 'No se pudo guardar'); return; }
+    knConfig = (r.data && r.data.config) || knConfig;
+    toast('Reglas globales guardadas', 'ok');
+  });
+  $('#knList') && $('#knList').addEventListener('change', async (e) => {
+    const item = e.target.closest('.kn-item'); if (!item) return;
+    if (e.target.matches('[data-kn="enabled"]')) {
+      const id = item.dataset.id;
+      const val = e.target.checked;
+      const r = await knowledgeApi('POST', { action: 'update', id, enabled: val });
+      if (!r.ok) { assetsFail(r, 'No se pudo cambiar'); e.target.checked = !val; return; }
+      if (r.data.item && knConfig) {
+        const i = knConfig.items.findIndex((x) => x.id === id);
+        if (i >= 0) knConfig.items[i] = r.data.item;
+        const ci = $('#asCountIa'); if (ci) ci.textContent = knConfig.items.filter((x) => x.enabled).length;
+      }
+      toast(val ? 'Activado en el chat' : 'Desactivado', 'ok');
+    }
+  });
+  $('#knList') && $('#knList').addEventListener('input', (e) => {
+    const item = e.target.closest('.kn-item'); if (!item) return;
+    if (e.target.matches('[data-kn="instructions"]')) knPatch(item.dataset.id, { instructions: e.target.value });
+    if (e.target.matches('[data-kn="digest"]')) knPatch(item.dataset.id, { digest: e.target.value });
+  });
+  $('#knList') && $('#knList').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-kn-act="del"]'); if (!btn) return;
+    const item = e.target.closest('.kn-item'); if (!item) return;
+    const it = (knConfig && knConfig.items || []).find((x) => x.id === item.dataset.id);
+    if (!await confirmDialog('Eliminar conocimiento', `¿Eliminar «${(it && it.title) || 'documento'}» del conocimiento del asistente?`)) return;
+    const r = await knowledgeApi('POST', { action: 'delete', id: item.dataset.id });
+    if (!r.ok) { assetsFail(r, 'No se pudo eliminar'); return; }
+    knConfig.items = knConfig.items.filter((x) => x.id !== item.dataset.id);
+    renderKnowledge();
+    toast('Eliminado', 'ok');
+  });
+  $('#knTestForm') && $('#knTestForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = $('#knTestInput');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    knTestSend(text);
   });
 
   // ============ AJUSTES ============

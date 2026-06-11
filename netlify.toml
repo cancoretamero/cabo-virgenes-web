@@ -45,6 +45,14 @@
   to = "/.netlify/functions/seo"
   status = 200
 [[redirects]]
+  from = "/api/assets"
+  to = "/.netlify/functions/assets"
+  status = 200
+[[redirects]]
+  from = "/api/knowledge"
+  to = "/.netlify/functions/knowledge"
+  status = 200
+[[redirects]]
   from = "/api/data"
   to = "/.netlify/functions/data"
   status = 200

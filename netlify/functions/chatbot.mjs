@@ -3,20 +3,11 @@
 //   → { reply }
 // Sin ANTHROPIC_API_KEY responde 503 y el front cae a su base de conocimiento
 // local (KB) sin romper la experiencia.
+// El system prompt (marca + conocimiento dinámico del admin → Assets →
+// Conocimiento IA) se compone en _knowledge-lib.mjs: ÚNICA fuente, compartida
+// con el probador del admin (knowledge.mjs).
 import { json, preflight, callClaude, store, safe } from './_lib.mjs';
-
-const SYSTEM = `Eres el asistente virtual de Cabo Vírgenes, empresa pesquera de langostino austral salvaje (Pleoticus muelleri) del Atlántico Sudoccidental (FAO 41), parte de AISA Group desde enero de 2025 (fundada en 2008).
-
-DATOS CLAVE (responde solo con esto; si no lo sabes, invita a contactar):
-- PRODUCTO: langostino austral salvaje. 5 formatos — HOSO (entero con cabeza y cáscara), HLSO (cola con cáscara), EZP (easy peel / fácil pelado), P&D (pelado y devenado), PDTO (pelado y devenado con cola). Calibres L1/L2/L3/C1/C2/CR.
-- FLOTA: 5 buques propios. Fresqueros: Espartano (21 m), Cristo Redentor (31 m), Iglú I (32 m). Factoría (congelan IQF a bordo): Mar Esmeralda (53 m), Kaleu Kaleu (56 m). Captura > 10.000 t/año desde Puerto Rawson.
-- PLANTAS: Puerto Rawson, Chubut (Argentina) — núcleo productivo, congelación, hielo en escama. Palencia (España) — plataforma logística y valor agregado, 4.600 m², 22 t/día, 1.100+ paneles solares (autoconsumo, ~450 t CO₂/año evitadas).
-- EXPORTACIÓN: 40+ países en 4 continentes (América, Europa, Asia, África).
-- CERTIFICACIONES: HACCP, BRCGS, IFS Food, MSC (en proceso), ASC, FDA; SENASA y habilitaciones de exportación.
-- SOSTENIBILIDAD / RASA (Rawson Ambiental S.A.): tratamiento integral de efluentes pesqueros + granja biosalina; el agua tratada cultiva halófitos (salicornia, microalgas, zampa, piquillín). Cabo Vírgenes participa accionariamente. 0% de vertido a cuerpos de agua.
-- CONTACTO: info@cabovirgenes.com (consultas comerciales e institucionales) · prensa@cabovirgenes.com (prensa) · rrhh@cabovirgenes.com (empleo).
-
-ESTILO: breve, profesional y cordial; español rioplatense. Responde SIEMPRE en el idioma del usuario. No inventes precios ni datos confidenciales: para cotizaciones deriva a info@cabovirgenes.com o al formulario de contacto. No menciones WhatsApp. Sin emojis excesivos.`;
+import { loadComposedSystem } from './_knowledge-lib.mjs';
 
 export default async (req) => {
   const pf = preflight(req);
@@ -50,8 +41,12 @@ export default async (req) => {
   msgs = msgs.slice(-12);
   while (msgs.length && msgs[0].role !== 'user') msgs.shift();
 
+  // Prompt base de marca + conocimiento autorizado por el equipo (Blobs
+  // 'cabo-assets'/knowledge.json). callClaude ya manda el system como bloque
+  // cacheable, así que solo cambia de precio cuando el equipo edita el conocimiento.
+  const system = await loadComposedSystem(store);
   const lang = safe(body.lang, 8);
-  const sys = lang && lang !== 'es' ? `${SYSTEM}\n\nIDIOMA DEL USUARIO: ${lang}. Responde en ese idioma.` : SYSTEM;
+  const sys = lang && lang !== 'es' ? `${system}\n\nIDIOMA DEL USUARIO: ${lang}. Responde en ese idioma.` : system;
 
   const r = await callClaude({ system: sys, messages: msgs, maxTokens: 700, temperature: 0.4 });
   if (!r.ok) return json({ error: 'ai', message: r.message }, r.status || 502);
