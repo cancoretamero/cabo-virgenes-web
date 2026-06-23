@@ -19,8 +19,10 @@
     <p class="login__lede">Inicia sesión para gestionar las noticias y el contenido del sitio.</p>
     <form class="login__form" id="loginForm" autocomplete="on">
       <label class="field">
-        <span class="field__label">Email</span>
-        <input type="email" id="userInput" class="field__input" placeholder="tu.correo@cabovirgenes.com" autocomplete="username" autocapitalize="off" spellcheck="false" required>
+        <span class="field__label">Email o usuario</span>
+        <!-- type=text (no email): el acceso de emergencia usa el usuario 'admin',
+             que con type=email fallaba la validación y el formulario no se enviaba. -->
+        <input type="text" inputmode="email" id="userInput" class="field__input" placeholder="tu.correo@cabovirgenes.com" autocomplete="username" autocapitalize="off" spellcheck="false" required>
       </label>
       <label class="field">
         <span class="field__label">Contraseña</span>

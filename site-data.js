@@ -46,7 +46,10 @@
     return serverArr.concat(preserved);
   }
 
-  window.CV_SITE_READY = fetch('/api/public?what=site', { headers: { accept: 'application/json' } })
+  // cache:'no-store' + sello de tiempo: el visitante ve SIEMPRE lo último que
+  // publicó el admin, sin caché de navegador/CDN (el servidor también manda
+  // 'no-store'). Antes los cambios tardaban ~60 s en reflejarse.
+  window.CV_SITE_READY = fetch('/api/public?what=site&_=' + Date.now(), { headers: { accept: 'application/json' }, cache: 'no-store' })
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (d) {
       if (!d || !d.ok) return null;

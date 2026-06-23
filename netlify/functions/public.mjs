@@ -55,7 +55,11 @@ export default async (req) => {
     if (what !== 'site') return json({ ok: false, error: 'what' }, 400);
     try {
       const site = await getSite(db);
-      return json({ ok: true, ...site }, 200, { 'cache-control': 'public, max-age=30, s-maxage=60' });
+      // Sin caché: este endpoint alimenta la web pública con lo que el admin
+      // acaba de editar. Cualquier caché de CDN/navegador (antes max-age=30 +
+      // s-maxage=60) hacía que los cambios tardaran ~60 s en verse → parecía
+      // "no funcional". El sitio es de bajo tráfico; la frescura prima.
+      return json({ ok: true, ...site }, 200, { 'cache-control': 'no-store, max-age=0, must-revalidate' });
     } catch (e) {
       return json({ ok: false, error: 'db', message: String((e && e.message) || e).slice(0, 200) }, 500);
     }

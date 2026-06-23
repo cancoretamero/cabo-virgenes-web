@@ -57,6 +57,20 @@
     return DEFAULT_TEAM.map(m => normMember(Object.assign({}, m, ov[m.key] || {})));
   }
   const setTeam = (arr) => write(K.team, arr);
+  // member_key estable y único (slug del nombre): la BD lo usa como clave natural
+  // del upsert y la web pública lo usa de ancla. Sin él, los miembros nuevos no
+  // se podían guardar en Supabase (id no-UUID → error de columna uuid).
+  function slugify(s) {
+    return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
+  }
+  function uniqueTeamKey(name, team) {
+    let base = slugify(name) || ('m' + Math.abs(Date.now() % 1e6).toString(36));
+    const taken = new Set((team || []).map(m => m && m.key).filter(Boolean));
+    let k = base, i = 2;
+    while (taken.has(k)) { k = base + '-' + i; i++; }
+    return k;
+  }
   const getMsgs = () => read(K.msgs, []);
   const setMsgs = (v) => write(K.msgs, v);
   const uid = () => 'n' + Math.abs(Date.now() % 1e9).toString(36) + Math.floor(performance.now()).toString(36);
@@ -114,6 +128,13 @@
       } catch (_) {}
     }
   }
+  // Un solo "Guardar" del editor visual emite varios mensajes (cv:saved/cv-saved);
+  // debounce → un único ciclo de subida (antes se disparaba ~6× por guardado).
+  let _ovPushT = null;
+  function cloudPushOverridesDebounced() {
+    clearTimeout(_ovPushT);
+    _ovPushT = setTimeout(() => { try { cloudPushOverrides(); } catch (_) {} }, 400);
+  }
 
   async function cloudPushEntity(entity) {
     try {
@@ -140,11 +161,14 @@
 
   async function cloudMigrateOnce() {
     if (localStorage.getItem('cv_cloud_migrated') === '1') return;
-    // Sube lo que el navegador ya tenga (sin pisar el seed con vacíos).
+    // Sube SOLO lo que el navegador ya tenga REALMENTE guardado (no los defaults
+    // sintetizados por los getters, p.ej. DEFAULT_TEAM): un 'replace' con el seed
+    // por defecto borraría/pisaría el equipo real del servidor. Por eso miramos el
+    // valor crudo de localStorage, no el getter.
     for (const entity of Object.keys(CLOUD)) {
       try {
-        const arr = CLOUD[entity].get();
-        if (Array.isArray(arr) && arr.length) await dataApi({ entity, action: 'replace', payload: arr });
+        const raw = read(CLOUD[entity].key, null);
+        if (Array.isArray(raw) && raw.length) await dataApi({ entity, action: 'replace', payload: CLOUD[entity].get() });
       } catch (_) {}
     }
     try {
@@ -1526,7 +1550,7 @@
     };
     const i = id ? team.findIndex(x => String(x.id) === String(id)) : -1;
     if (i >= 0) { const prev = team[i]; team[i] = Object.assign({}, prev, data); logAudit('team', name, prev.role || '', data.role || ''); }
-    else { team.push(normMember(Object.assign({ id: uid() }, data))); logAudit('team', name, '∅', 'nuevo miembro'); }
+    else { team.push(normMember(Object.assign({ id: uid(), key: uniqueTeamKey(name, team) }, data))); logAudit('team', name, '∅', 'nuevo miembro'); }
     setTeam(team); closeModal(teamModal); renderEquipo();
     toast(i >= 0 ? 'Miembro actualizado' : 'Miembro añadido', 'ok');
   });
@@ -3245,9 +3269,9 @@
   }
   $('#editReload').addEventListener('click', () => { editorReady = false; setDirty(false); $('#siteFrame').src = '../?editor=1&_=' + Date.now(); });
   $('#editSave').addEventListener('click', () => {
+    // Un solo mensaje: el editor responde con cv:saved → subida debounced.
+    // (Antes se enviaba también 'cv-save' → el editor guardaba dos veces.)
     postToEditor({ type: 'cv:save' });
-    // compat legacy
-    const f = $('#siteFrame'); try { f.contentWindow.postMessage({ type: 'cv-save' }, '*'); } catch (_) {}
   });
   $('#undoBtn') && $('#undoBtn').addEventListener('click', () => postToEditor({ type: 'cv:undo' }));
   $('#redoBtn') && $('#redoBtn').addEventListener('click', () => postToEditor({ type: 'cv:redo' }));
@@ -3272,7 +3296,7 @@
         toast(d.ok === false ? 'No se pudo guardar' : 'Cambios guardados', d.ok === false ? 'err' : 'ok');
         // El editor guardó overrides (cv_content/cv_imgs/cv_styles/cv_legal) en
         // localStorage: súbelos a Supabase para que los vean TODOS los visitantes.
-        try { cloudPushOverrides(); } catch (_) {}
+        cloudPushOverridesDebounced();
         break;
       case 'cv:history':
         setHistory(!!d.canUndo, !!d.canRedo);
@@ -3282,7 +3306,7 @@
         break;
       case 'cv-saved': // legacy
         setDirty(false); toast('Cambios guardados', 'ok');
-        try { cloudPushOverrides(); } catch (_) {}
+        cloudPushOverridesDebounced();
         break;
     }
   });

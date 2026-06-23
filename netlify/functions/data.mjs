@@ -12,7 +12,10 @@ import { service, configured } from './_supabase.mjs';
 // entidad → { table, perm, pk(columna id), singleton?(keyed por 'key') }
 const MAP = {
   news:        { table: 'cv_news',        perm: 'noticias' },
-  team:        { table: 'cv_team',        perm: 'equipo' },
+  // altKey: clave natural única además del id (cv_team.member_key). El upsert se
+  // resuelve por ella para que la migración del seed por defecto (ids no-UUID
+  // como 'basavilbaso') no choque con la fila ya existente (mismo member_key).
+  team:        { table: 'cv_team',        perm: 'equipo', altKey: 'member_key' },
   consultas:   { table: 'cv_consultas',   perm: 'consultas' },
   subscribers: { table: 'cv_subscribers', perm: 'suscriptores' },
   jobs:        { table: 'cv_jobs',        perm: 'empleo' },
@@ -58,6 +61,27 @@ const COLS = {
   cv_pages: ['slug','layout','updated_at'],
   cv_legal: ['key','title','html','doc_updated','updated_at'],
 };
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (v) => typeof v === 'string' && UUID_RE.test(v);
+const slugify = (s) => String(s || '').toLowerCase().normalize('NFD')
+  .replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
+// Red de seguridad: ninguna fila de una entidad con clave natural alterna
+// (team.member_key) debe quedarse SIN ella — si no, el sync la descartaría y
+// luego la borraría del servidor. Genera una clave única en el lote.
+function ensureAltKeys(entity, rows) {
+  const ak = MAP[entity] && MAP[entity].altKey;
+  if (!ak) return rows;
+  const used = new Set(rows.map(r => r[ak]).filter(Boolean).map(String));
+  for (const r of rows) {
+    if (r[ak]) continue;
+    let base = slugify(r.name) || ('m' + Math.random().toString(36).slice(2, 8));
+    let k = base, i = 2;
+    while (used.has(k)) { k = base + '-' + i++; }
+    used.add(k); r[ak] = k;
+  }
+  return rows;
+}
 
 const SYS = new Set(['extra', 'created_at', 'updated_at']);
 function toDb(entity, obj) {
@@ -125,9 +149,19 @@ export default async (req) => {
       const row = toDb(entity, body.payload || {});
       // singletons: garantizar la clave
       if (m.keyed && !row[m.keyed] && (body.id || body.key)) row[m.keyed] = body.id || body.key;
-      const onConflict = m.keyed || 'id';
-      // Si no hay pk y no es singleton, deja que la BD genere el uuid (no enviar id null).
-      if (!m.keyed && (row.id === null || row.id === undefined || row.id === '')) delete row.id;
+      let onConflict = m.keyed || 'id';
+      // Garantiza member_key (no dejar que caiga al upsert por id no-UUID).
+      if (m.altKey && !row[m.altKey]) ensureAltKeys(entity, [row]);
+      // Entidad con clave natural alterna (team.member_key): resuelve el upsert
+      // por ella y descarta el id si no es UUID (seed/local) → la fila existente
+      // se actualiza en vez de intentar insertar un duplicado.
+      if (m.altKey && row[m.altKey]) {
+        onConflict = m.altKey;
+        if (!isUuid(row.id)) delete row.id;
+      } else if (!m.keyed && (row.id === null || row.id === undefined || row.id === '')) {
+        // Si no hay pk y no es singleton, deja que la BD genere el uuid (no enviar id null).
+        delete row.id;
+      }
       const { data, error } = await db.from(m.table).upsert(row, { onConflict }).select().maybeSingle();
       if (error) throw error;
       await audit(db, who, entity, 'save', body.payload);
@@ -146,12 +180,20 @@ export default async (req) => {
       // Sincroniza el array COMPLETO de una entidad: upsert de todo + borra lo
       // que ya no esté (por la clave de conflicto). Lo usa el write-through del admin.
       const arr = Array.isArray(body.payload) ? body.payload : [];
-      const conflict = m.keyed || 'id';
-      const rows = arr.map(o => {
+      // Para entidades con clave natural alterna (team.member_key) el sync se
+      // resuelve por ella, descartando ids no-UUID (seed/local) que romperían
+      // el upsert contra las filas ya existentes.
+      const conflict = m.altKey || m.keyed || 'id';
+      const mapped = arr.map(o => {
         const r = toDb(entity, o);
-        if (!m.keyed && (r.id === null || r.id === undefined || r.id === '')) delete r.id;
+        if (m.altKey) { if (!isUuid(r.id)) delete r.id; }
+        else if (!m.keyed && (r.id === null || r.id === undefined || r.id === '')) delete r.id;
         return r;
-      }).filter(r => r[conflict] != null && r[conflict] !== '');
+      });
+      // Rellena member_key a las filas que lleguen sin ella ANTES de filtrar:
+      // así no se descartan (y, por tanto, no se borran del servidor).
+      if (m.altKey) ensureAltKeys(entity, mapped);
+      const rows = mapped.filter(r => r[conflict] != null && r[conflict] !== '');
       if (rows.length) {
         const { error } = await db.from(m.table).upsert(rows, { onConflict: conflict });
         if (error) throw error;
@@ -165,7 +207,8 @@ export default async (req) => {
         const { error: delErr } = await db.from(m.table).delete().in(conflict, toDelete);
         if (delErr) throw delErr;
       }
-      await audit(db, who, entity, 'replace', { count: rows.length, deleted: toDelete.length });
+      // Audita las claves borradas (rastro de recuperación ante un sync erróneo).
+      await audit(db, who, entity, 'replace', { count: rows.length, deleted: toDelete.length, deletedKeys: toDelete.slice(0, 50) });
       return json({ ok: true, count: rows.length, deleted: toDelete.length });
     }
 
