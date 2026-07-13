@@ -2,7 +2,8 @@
 //   POST /api/auth { action:'login', email, password }                 → { ok, token, user }
 //   POST /api/auth { action:'logout' }                                 → { ok }
 //   GET  /api/auth                                                     → { ok, user }  (valida la sesión actual)
-//   GET  /api/auth?action=review_request&id=…&d=…&sig=…                → HTML (enlaces firmados del email de solicitud)
+//   GET  /api/auth?action=review_request&id=…&d=…&sig=…                → HTML de confirmación (no ejecuta; los escáneres de email hacen GET)
+//   POST /api/auth { action:'review_confirm', id, d, sig }             → HTML (ejecuta la decisión; acepta JSON o x-www-form-urlencoded)
 //   POST /api/auth { action:'changePassword', current, next }          → { ok }        (requiere sesión)
 //   POST /api/auth { action:'create', email, name, pass, role, notify }→ { ok, user, notified } (token maestro o sesión owner)
 //   POST /api/auth { action:'request_access', nombre, apellidos, cargo, email, pass, message } → { ok, notified } (pública)
@@ -233,8 +234,10 @@ async function writeRequests(requests) {
 }
 
 // Firma HMAC de los enlaces Autorizar/Rechazar de los emails.
+// Fail closed: sin secreto configurado no se puede firmar ni verificar.
 function signReview(id, decision) {
-  const secret = process.env.CABO_ADMIN_TOKEN || 'no-secret';
+  const secret = process.env.CABO_ADMIN_TOKEN;
+  if (!secret) return null;
   return createHmac('sha256', secret).update(id + '.' + decision).digest('hex');
 }
 
@@ -291,22 +294,57 @@ function htmlResponse(html, status = 200) {
   return new Response(html, { status, headers: { 'content-type': 'text/html; charset=utf-8' } });
 }
 
-// GET /api/auth?action=review_request&id=…&d=approve|reject&sig=…
-async function handleReviewRequest(url) {
-  const id = url.searchParams.get('id') || '';
-  const decision = url.searchParams.get('d') === 'approve' ? 'approve' : url.searchParams.get('d') === 'reject' ? 'reject' : '';
-  const sig = url.searchParams.get('sig') || '';
-  if (!id || !decision) return htmlResponse(reviewPageHtml('Enlace no válido', 'Faltan parámetros en el enlace. Usa los botones del email de solicitud.'), 400);
-  if (!constEq(sig, signReview(id, decision))) return htmlResponse(reviewPageHtml('Enlace no válido', 'La firma del enlace no es correcta o ha sido alterada.'), 403);
-
+// Valida id+decisión+firma de un enlace/formulario de revisión.
+// Devuelve { error: Response } o { r, requests, decision, sig, fullName }.
+async function validateReview(id, d, sig) {
+  const decision = d === 'approve' ? 'approve' : d === 'reject' ? 'reject' : '';
+  if (!id || !decision) return { error: htmlResponse(reviewPageHtml('Enlace no válido', 'Faltan parámetros en el enlace. Usa los botones del email de solicitud.'), 400) };
+  const expected = signReview(id, decision);
+  if (!expected) return { error: htmlResponse(reviewPageHtml('No disponible', 'El servidor no tiene configurado el secreto de firma. Contacta con el administrador.'), 503) };
+  if (!constEq(String(sig || ''), expected)) return { error: htmlResponse(reviewPageHtml('Enlace no válido', 'La firma del enlace no es correcta o ha sido alterada.'), 403) };
   const requests = await readRequests();
   const r = requests.find(x => x.id === id);
-  if (!r) return htmlResponse(reviewPageHtml('Solicitud no encontrada', 'La solicitud ya no existe.'), 404);
+  if (!r) return { error: htmlResponse(reviewPageHtml('Solicitud no encontrada', 'La solicitud ya no existe.'), 404) };
   const fullName = `${r.nombre} ${r.apellidos}`.trim();
   if (r.status !== 'pending') {
     const label = r.status === 'approved' ? 'ya fue autorizada' : 'ya fue rechazada';
-    return htmlResponse(reviewPageHtml('Solicitud ya procesada', `La solicitud de ${fullName} ${label} el ${new Date(r.resolvedAt).toLocaleDateString('es-ES')}.`));
+    return { error: htmlResponse(reviewPageHtml('Solicitud ya procesada', `La solicitud de ${fullName} ${label} el ${new Date(r.resolvedAt).toLocaleDateString('es-ES')}.`)) };
   }
+  return { r, requests, decision, sig, fullName };
+}
+
+// GET /api/auth?action=review_request&id=…&d=approve|reject&sig=…
+// NO ejecuta nada (los escáneres de enlaces del correo hacen GET automáticos).
+// Muestra una confirmación; la acción real es el POST review_confirm.
+async function handleReviewRequest(url) {
+  const v = await validateReview(url.searchParams.get('id') || '', url.searchParams.get('d') || '', url.searchParams.get('sig') || '');
+  if (v.error) return v.error;
+  const { r, decision, sig, fullName } = v;
+  const approving = decision === 'approve';
+  const btnStyle = approving
+    ? 'background:#1CB5B0;color:#FFFFFF;border:none;'
+    : 'background:transparent;color:#F7F9FA;border:1px solid rgba(247,249,250,.4);';
+  return htmlResponse(`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Confirmar decisión</title></head>
+<body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0A2233;color:#F7F9FA;font-family:Georgia,'Times New Roman',serif;text-align:center;padding:24px;">
+<div><div style="font-family:'Courier New',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#7FE3DF;margin-bottom:14px;">Cabo Vírgenes — Panel de administración</div>
+<h1 style="font-weight:600;font-size:30px;margin:0 0 12px;">${approving ? 'Autorizar acceso' : 'Rechazar solicitud'}</h1>
+<p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:rgba(247,249,250,.75);max-width:52ch;margin:0 auto 10px;">Solicitud de <b style="color:#F7F9FA;">${escH(fullName)}</b> (${escH(r.email)}) — ${escH(r.cargo || 'sin cargo indicado')}.</p>
+<p style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:rgba(247,249,250,.6);max-width:52ch;margin:0 auto 26px;">${approving ? 'Se creará su usuario con perfil de Editor y se le avisará por email.' : 'Se descartará la solicitud y se le avisará por email.'}</p>
+<form method="POST" action="/api/auth" style="margin:0;">
+  <input type="hidden" name="action" value="review_confirm">
+  <input type="hidden" name="id" value="${escH(r.id)}">
+  <input type="hidden" name="d" value="${escH(decision)}">
+  <input type="hidden" name="sig" value="${escH(sig)}">
+  <button type="submit" style="display:inline-block;${btnStyle}font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;padding:13px 34px;border-radius:100px;cursor:pointer;">${approving ? 'Confirmar autorización →' : 'Confirmar rechazo'}</button>
+</form></div>
+</body></html>`);
+}
+
+// POST review_confirm (desde la página de confirmación): ejecuta la decisión.
+async function handleReviewConfirm(body) {
+  const v = await validateReview(String(body.id || ''), String(body.d || ''), String(body.sig || ''));
+  if (v.error) return v.error;
+  const { r, requests, decision, fullName } = v;
 
   if (decision === 'approve') {
     const users = await loadUsers();
@@ -333,6 +371,7 @@ async function handleReviewRequest(url) {
 
 // POST { action:'request_access', … } — pública, desde la pantalla de login.
 async function handleAccessRequest(body) {
+  if (!process.env.CABO_ADMIN_TOKEN) return json({ ok: false, error: 'unconfigured', message: 'El servidor no puede procesar solicitudes en este momento.' }, 503);
   const nombre = safe(body.nombre, 120).trim();
   const apellidos = safe(body.apellidos, 120).trim();
   const cargo = safe(body.cargo, 160).trim();
@@ -391,11 +430,19 @@ export default async (req) => {
 
   if (req.method !== 'POST') return json({ error: 'method' }, 405);
 
-  let body; try { body = await req.json(); } catch { return json({ error: 'bad-json' }, 400); }
+  let body;
+  const ctype = (req.headers.get('content-type') || '').toLowerCase();
+  if (ctype.includes('application/x-www-form-urlencoded')) {
+    // Formulario de confirmación de revisión (página HTML del enlace del email).
+    try { body = Object.fromEntries(new URLSearchParams(await req.text())); } catch { return json({ error: 'bad-form' }, 400); }
+  } else {
+    try { body = await req.json(); } catch { return json({ error: 'bad-json' }, 400); }
+  }
   const action = String(body.action || 'login');
 
   // ---- Solicitud de acceso (pública, desde la pantalla de login) ----
   if (action === 'request_access') return handleAccessRequest(body);
+  if (action === 'review_confirm') return handleReviewConfirm(body);
 
   if (action === 'logout') {
     const token = tokenFrom(req);
