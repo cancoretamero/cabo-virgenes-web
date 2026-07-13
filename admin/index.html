@@ -33,6 +33,43 @@
       </label>
       <button type="submit" class="btn btn--solid login__submit" id="loginSubmit"><span class="btn__label">Entrar</span><span class="ar" data-ico="arrow-right"></span></button>
       <p class="login__msg" id="loginMsg" role="status"></p>
+      <p class="login__alt">¿No tienes cuenta? <button type="button" class="login__alt-link" id="reqOpen">Solicitar acceso</button></p>
+    </form>
+
+    <form class="login__form" id="requestForm" hidden novalidate>
+      <p class="login__lede login__lede--tight">Completa tus datos y enviaremos tu solicitud a los administradores. Recibirás un email cuando sea autorizada.</p>
+      <div class="grid2">
+        <label class="field">
+          <span class="field__label">Nombre</span>
+          <input type="text" id="reqNombre" class="field__input" autocomplete="given-name" required>
+        </label>
+        <label class="field">
+          <span class="field__label">Apellidos</span>
+          <input type="text" id="reqApellidos" class="field__input" autocomplete="family-name" required>
+        </label>
+      </div>
+      <label class="field">
+        <span class="field__label">Cargo en la empresa</span>
+        <input type="text" id="reqCargo" class="field__input" autocomplete="organization-title" required>
+      </label>
+      <label class="field">
+        <span class="field__label">Email</span>
+        <input type="email" id="reqEmail" class="field__input" autocomplete="email" autocapitalize="off" spellcheck="false" required>
+      </label>
+      <label class="field">
+        <span class="field__label">Crear contraseña</span>
+        <div class="field__pw">
+          <input type="password" id="reqPass" class="field__input" placeholder="Mínimo 8 caracteres" autocomplete="new-password" minlength="8" required>
+          <button type="button" class="field__eye" id="reqTogglePass" aria-label="Mostrar contraseña" title="Mostrar / ocultar"><span data-ico="eye" data-ico-size="16"></span></button>
+        </div>
+      </label>
+      <label class="field">
+        <span class="field__label">Mensaje</span>
+        <textarea id="reqMensaje" class="field__area" rows="3" placeholder="Cuéntanos para qué necesitas acceso (opcional)"></textarea>
+      </label>
+      <button type="submit" class="btn btn--solid login__submit" id="reqSubmit"><span class="btn__label">Enviar solicitud</span><span class="ar" data-ico="arrow-right"></span></button>
+      <p class="login__msg" id="reqMsg" role="status"></p>
+      <p class="login__alt"><button type="button" class="login__alt-link" id="reqBack">← Volver al inicio de sesión</button></p>
     </form>
     <p class="login__hint">Inicia sesión con tu <strong>email</strong> y tu contraseña del equipo de Cabo Vírgenes. ¿Problemas de acceso? Escribe a <a href="mailto:info@cabovirgenes.com">info@cabovirgenes.com</a>.</p>
   </div>

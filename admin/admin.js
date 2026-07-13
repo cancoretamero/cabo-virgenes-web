@@ -117,16 +117,141 @@
 
   async function dataApi(obj) { return adminApi('/api/data', 'POST', obj); }
 
+  // Escritura CRUDA a localStorage (sin disparar el write-through a la nube). La
+  // usa la hidratación para volcar lo del servidor sin re-encolarlo (evita bucles).
+  const rawWrite = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} };
+
+  // ============ OUTBOX DURABLE (nada se pierde en silencio) ============
+  // Cada escritura a la nube se ENCOLA (persistente en localStorage) y se
+  // reintenta hasta confirmarse. Si algo no se guarda, el indicador de estado lo
+  // dice; nunca hay un falso "guardado". La cola sobrevive a recargas y cierres.
+  const OUTBOX_KEY = 'cv_outbox';
+  let _flushing = false, _flushTimer = null, _authExpired = false;
+  function readOutbox() { try { const v = JSON.parse(localStorage.getItem(OUTBOX_KEY)); return (v && typeof v === 'object') ? v : {}; } catch { return {}; } }
+  function writeOutbox(o) { try { localStorage.setItem(OUTBOX_KEY, JSON.stringify(o)); } catch (_) {} }
+  function outboxCount() { return Object.keys(readOutbox()).length; }
+  function pendingEntity(entity) {
+    const o = readOutbox();
+    if (entity === 'settings') return !!o['settings'];
+    return !!o['ent:' + entity];
+  }
+  // Coalescente por clave: para un 'replace' de un array o un 'save' de un
+  // singleton solo importa el ESTADO más reciente. Persiste de inmediato.
+  function enqueue(key, body) {
+    const o = readOutbox();
+    const prev = o[key];
+    o[key] = { key, body, ts: Date.now(), tries: prev ? (prev.tries || 0) : 0 };
+    writeOutbox(o);
+    renderSyncStatus();
+  }
+  function dequeue(key) { const o = readOutbox(); if (o[key]) { delete o[key]; writeOutbox(o); } renderSyncStatus(); }
+  function scheduleFlush(delay) { clearTimeout(_flushTimer); _flushTimer = setTimeout(() => { flushOutbox(); }, delay || 700); }
+
+  async function flushOutbox() {
+    if (_flushing || _authExpired) return;
+    let keys = Object.keys(readOutbox());
+    if (!keys.length) { renderSyncStatus(); return; }
+    _flushing = true; renderSyncStatus();
+    let retryLater = false;
+    try {
+      for (const key of keys) {
+        const op = readOutbox()[key]; if (!op) continue;
+        let r;
+        try { r = await dataApi(op.body); } catch (_) { r = { ok: false, status: 0 }; }
+        if (r && r.ok) { dequeue(key); continue; }
+        if (r && r.status === 401) { handleAuthExpired(); return; }   // sesión caducada: no borrar nada
+        // Otro error (red/500): mantener en cola, contar intento, reintentar luego.
+        const cur = readOutbox();
+        if (cur[key]) { cur[key].tries = (cur[key].tries || 0) + 1; cur[key].lastErr = (r && r.status) || 0; writeOutbox(cur); }
+        retryLater = true; break; // no martillear; reintento con backoff
+      }
+    } finally {
+      _flushing = false; renderSyncStatus();
+      if (retryLater) {
+        const worst = Math.max(0, ...Object.values(readOutbox()).map(o => o.tries || 0));
+        scheduleFlush(Math.min(30000, 1500 * Math.pow(2, Math.min(4, worst))));
+      }
+    }
+  }
+
+  // Construye la operación de nube de una entidad y la encola (no la envía en el
+  // acto: la cola + scheduleFlush deduplican ráfagas de escrituras).
+  function cloudEnqueueEntity(entity) {
+    try {
+      if (entity === 'ov') { cloudPushOverrides(); return; }
+      if (entity === 'settings') { enqueue('settings', { entity: 'settings', action: 'save', payload: { key: 'site', value: getSettings() } }); scheduleFlush(700); return; }
+      if (entity === 'pages') {
+        const pg = getPages();
+        for (const [slug, layout] of Object.entries(pg || {})) {
+          if (layout && typeof layout === 'object') enqueue('pg:' + slug, { entity: 'pages', action: 'save', payload: { slug, layout } });
+        }
+        scheduleFlush(700); return;
+      }
+      const arr = CLOUD[entity] ? CLOUD[entity].get() : null;
+      if (!Array.isArray(arr)) return;
+      enqueue('ent:' + entity, { entity, action: 'replace', payload: arr });
+      scheduleFlush(700);
+    } catch (_) {}
+  }
+
+  // Fuerza el reintento (indicador clicable, foco de ventana, reconexión).
+  function retrySyncNow() {
+    if (_authExpired) { if (localStorage.getItem(K.token)) { showLoginExpired(); } else { _authExpired = false; cloudSynced = false; renderSyncStatus(); cloudSync(); } return; }
+    scheduleFlush(1);
+  }
+  function handleAuthExpired() {
+    if (_authExpired) return;
+    const hadSession = !!localStorage.getItem(K.token);
+    _authExpired = true;
+    renderSyncStatus();
+    if (hadSession) {
+      // Sesión de equipo caducada (token de 14 días): vuelve al login para renovar.
+      // NO se borran datos ni la cola: al reentrar se suben los cambios pendientes.
+      localStorage.removeItem(K.token);
+      toast('Tu sesión caducó. Vuelve a entrar para guardar los cambios (no se ha perdido nada).', 'err');
+      try { showLoginExpired(); } catch (_) {}
+    } else {
+      // Acceso de emergencia/maestro: el servidor rechaza el guardado (config
+      // CABO_ADMIN_PASS). Reloguear haría bucle → no se hace. Los cambios quedan
+      // en este equipo (cola durable) y se suben en cuanto IT lo arregle.
+      toast('El servidor rechaza el guardado. Tus cambios quedan guardados en este equipo; avisa a soporte (CABO_ADMIN_PASS).', 'err');
+    }
+  }
+  // Crea el indicador de estado de guardado si no existe (se inyecta por JS para
+  // no depender del HTML — así el arreglo es autónomo).
+  function ensureSyncPill() {
+    let el = $('#syncStatus');
+    if (el) return el;
+    const right = $('.topbar__right'); if (!right) return null;
+    el = document.createElement('span');
+    el.id = 'syncStatus'; el.className = 'syncpill'; el.hidden = true;
+    el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite');
+    el.title = 'Estado de guardado';
+    el.addEventListener('click', retrySyncNow);
+    const who = $('#whoami');
+    if (who) right.insertBefore(el, who); else right.appendChild(el);
+    return el;
+  }
+  // Indicador HONESTO de estado de guardado en la barra superior.
+  function renderSyncStatus() {
+    const el = ensureSyncPill(); if (!el) return;
+    const n = outboxCount();
+    el.hidden = false;
+    if (_authExpired) { el.textContent = '⚠ Sesión caducada'; el.className = 'syncpill syncpill--err'; el.title = 'Vuelve a iniciar sesión para guardar los cambios pendientes.'; return; }
+    if (_flushing) { el.textContent = 'Guardando…'; el.className = 'syncpill syncpill--busy'; el.title = 'Subiendo cambios a la nube.'; return; }
+    if (n > 0) { el.textContent = '⚠ Sin guardar (' + n + ')'; el.className = 'syncpill syncpill--warn'; el.title = 'Hay cambios sin subir. Clic para reintentar ahora.'; return; }
+    el.textContent = 'Guardado ✓'; el.className = 'syncpill syncpill--ok'; el.title = 'Todos los cambios están guardados en la nube.';
+  }
+
   // Overrides del editor visual + legales: se guardan como filas de cv_pages
   // (slug 'ov-*', layout = el objeto completo) y /api/public las sirve a todos.
   const OV_MAP = { 'ov-content': 'cv_content', 'ov-imgs': 'cv_imgs', 'ov-styles': 'cv_styles', 'ov-legal': 'cv_legal' };
-  async function cloudPushOverrides() {
+  function cloudPushOverrides() {
     for (const [slug, key] of Object.entries(OV_MAP)) {
-      try {
-        const v = read(key, null);
-        await dataApi({ entity: 'pages', action: 'save', payload: { slug, layout: (v && typeof v === 'object') ? v : {} } });
-      } catch (_) {}
+      const v = read(key, null);
+      enqueue('pg:' + slug, { entity: 'pages', action: 'save', payload: { slug, layout: (v && typeof v === 'object') ? v : {} } });
     }
+    scheduleFlush(400);
   }
   // Un solo "Guardar" del editor visual emite varios mensajes (cv:saved/cv-saved);
   // debounce → un único ciclo de subida (antes se disparaba ~6× por guardado).
@@ -136,89 +261,116 @@
     _ovPushT = setTimeout(() => { try { cloudPushOverrides(); } catch (_) {} }, 400);
   }
 
-  async function cloudPushEntity(entity) {
-    try {
-      if (entity === 'settings') { await dataApi({ entity: 'settings', action: 'save', payload: { key: 'site', value: getSettings() } }); return; }
-      if (entity === 'ov') { await cloudPushOverrides(); return; }
-      if (entity === 'pages') {
-        const pg = getPages();
-        for (const [slug, layout] of Object.entries(pg || {})) {
-          if (layout && typeof layout === 'object') await dataApi({ entity: 'pages', action: 'save', payload: { slug, layout } });
-        }
-        return;
-      }
-      const arr = CLOUD[entity] ? CLOUD[entity].get() : null;
-      if (Array.isArray(arr)) await dataApi({ entity, action: 'replace', payload: arr });
-    } catch (_) { /* offline → queda en localStorage */ }
-  }
+  // El write-through ahora ENCOLA (outbox durable). Ya no hay push directo que se
+  // pueda perder en silencio: cloudEnqueueEntity + flushOutbox garantizan la
+  // entrega o lo marcan como pendiente en el indicador de estado.
   function cloudWriteThrough(k) {
-    if (cloudSuppress) return;
     const entity = KEY2ENT[k];
     if (!entity) return;
-    clearTimeout(cloudTimers[entity]);
-    cloudTimers[entity] = setTimeout(() => cloudPushEntity(entity), 700);
+    cloudEnqueueEntity(entity);
   }
 
   async function cloudMigrateOnce() {
     if (localStorage.getItem('cv_cloud_migrated') === '1') return;
     // Sube SOLO lo que el navegador ya tenga REALMENTE guardado (no los defaults
-    // sintetizados por los getters, p.ej. DEFAULT_TEAM): un 'replace' con el seed
-    // por defecto borraría/pisaría el equipo real del servidor. Por eso miramos el
-    // valor crudo de localStorage, no el getter.
+    // sintetizados por los getters, p.ej. DEFAULT_TEAM). Se encola en el outbox
+    // (durable): si la primera subida falla, se reintenta — antes se perdía.
     for (const entity of Object.keys(CLOUD)) {
       try {
         const raw = read(CLOUD[entity].key, null);
-        if (Array.isArray(raw) && raw.length) await dataApi({ entity, action: 'replace', payload: CLOUD[entity].get() });
+        if (Array.isArray(raw) && raw.length) enqueue('ent:' + entity, { entity, action: 'replace', payload: CLOUD[entity].get() });
       } catch (_) {}
     }
     try {
       const s = read(K.settings, null);
-      if (s && Object.keys(s).length) await dataApi({ entity: 'settings', action: 'save', payload: { key: 'site', value: getSettings() } });
+      if (s && Object.keys(s).length) enqueue('settings', { entity: 'settings', action: 'save', payload: { key: 'site', value: getSettings() } });
     } catch (_) {}
-    try { const pg = read(K.pages, null); if (pg && Object.keys(pg).length) await cloudPushEntity('pages'); } catch (_) {}
+    try {
+      const pg = read(K.pages, null);
+      if (pg && Object.keys(pg).length) for (const [slug, layout] of Object.entries(getPages() || {})) { if (layout && typeof layout === 'object') enqueue('pg:' + slug, { entity: 'pages', action: 'save', payload: { slug, layout } }); }
+    } catch (_) {}
     localStorage.setItem('cv_cloud_migrated', '1');
   }
 
+  // Vuelca lo del servidor a localStorage SIN destruir trabajo local sin subir:
+  //  - si la entidad tiene una operación pendiente en el outbox → NO se pisa;
+  //  - fusiona por id (conserva items locales cuyo id no está en el servidor);
+  //  - nunca pisa con un array vacío sospechoso; guarda una copia *_prev.
+  function hydrateArr(key, entity, arr) {
+    if (!Array.isArray(arr)) return;
+    if (pendingEntity(entity)) return;                                  // hay cambios locales sin subir
+    const local = read(key, null);
+    if (!arr.length && Array.isArray(local) && local.length) return;    // no pisar con vacío
+    let merged = arr;
+    if (Array.isArray(local) && local.length) {
+      const ids = new Set(arr.map(x => (x && x.id != null) ? String(x.id) : null).filter(Boolean));
+      const localOnly = local.filter(x => x && x.id != null && !ids.has(String(x.id)));
+      if (localOnly.length) merged = arr.concat(localOnly);
+    }
+    rawWrite(key + '_prev', local);
+    rawWrite(key, merged);
+  }
+
   async function cloudHydrate() {
-    cloudSuppress = true;
-    let serverHasOv = false;
+    let serverHasOv = false, authFailed = false;
     try {
       for (const [entity, info] of Object.entries(CLOUD)) {
         const r = await dataApi({ entity, action: 'list' });
-        if (r && r.ok && r.data && Array.isArray(r.data.data)) write(info.key, r.data.data);
+        if (r && r.status === 401) { authFailed = true; break; }
+        if (r && r.ok && r.data && Array.isArray(r.data.data)) hydrateArr(info.key, entity, r.data.data);
       }
-      const rs = await dataApi({ entity: 'settings', action: 'get', key: 'site' });
-      if (rs && rs.ok && rs.data && rs.data.data && rs.data.data.value) write(K.settings, rs.data.data.value);
-      // Páginas + overrides del editor: las filas ov-* van a sus claves; el resto a cv_pages.
-      const rp = await dataApi({ entity: 'pages', action: 'list' });
-      if (rp && rp.ok && rp.data && Array.isArray(rp.data.data)) {
-        const pagesObj = {};
-        for (const row of rp.data.data) {
-          if (!row || !row.slug) continue;
-          if (OV_MAP[row.slug]) { serverHasOv = true; write(OV_MAP[row.slug], row.layout || {}); }
-          else pagesObj[row.slug] = row.layout || {};
+      if (!authFailed) {
+        const rs = await dataApi({ entity: 'settings', action: 'get', key: 'site' });
+        if (rs && rs.status === 401) authFailed = true;
+        else if (rs && rs.ok && rs.data && rs.data.data && rs.data.data.value && !pendingEntity('settings')) {
+          // FUSIÓN (no reemplazo): conserva los ajustes cambiados localmente que aún
+          // no subieron (newsEnabled/jobsEnabled/…). Antes reemplazaba TODO el objeto
+          // → un valor obsoleto del servidor ocultaba el panel de noticias.
+          rawWrite(K.settings + '_prev', read(K.settings, {}));
+          rawWrite(K.settings, Object.assign({}, read(K.settings, {}), rs.data.data.value));
         }
-        if (Object.keys(pagesObj).length) write(K.pages, pagesObj);
       }
-    } finally { cloudSuppress = false; }
-    return { serverHasOv };
+      if (!authFailed) {
+        const rp = await dataApi({ entity: 'pages', action: 'list' });
+        if (rp && rp.status === 401) authFailed = true;
+        else if (rp && rp.ok && rp.data && Array.isArray(rp.data.data)) {
+          const pagesObj = {};
+          for (const row of rp.data.data) {
+            if (!row || !row.slug) continue;
+            if (OV_MAP[row.slug]) { serverHasOv = true; rawWrite(OV_MAP[row.slug], row.layout || {}); }
+            else pagesObj[row.slug] = row.layout || {};
+          }
+          if (Object.keys(pagesObj).length) rawWrite(K.pages, pagesObj);
+        }
+      }
+    } catch (_) {}
+    return { serverHasOv, authFailed };
   }
 
   let cloudSynced = false;
   async function cloudSync() {
     if (cloudSynced) return; cloudSynced = true;
+    // Sonda de credenciales: ¿la sesión sirve para ESCRIBIR? (caducada = 401).
+    // Distingue una sesión válida / acceso de emergencia (200) de un token
+    // caducado (401) — así no se trabaja "al vacío" creyendo que se guarda.
+    const probe = await dataApi({ entity: 'settings', action: 'get', key: 'site' });
+    if (probe && probe.status === 401) { handleAuthExpired(); return; }
     try {
       await cloudMigrateOnce();
+      await flushOutbox();               // sube lo local/pendiente ANTES de hidratar
+      if (_authExpired) return;
       const h = await cloudHydrate();
-      // Primera subida de los overrides del editor: si el servidor aún no los
-      // tiene pero este navegador sí (ediciones visuales previas), súbelos ya.
+      if (h && h.authFailed) { handleAuthExpired(); return; }
+      // Primera subida de los overrides del editor si el servidor aún no los tiene.
       if (h && !h.serverHasOv) {
         const hasLocalOv = Object.values(OV_MAP).some(k => { const v = read(k, null); return v && typeof v === 'object' && Object.keys(v).length; });
-        if (hasLocalOv) await cloudPushOverrides();
+        if (hasLocalOv) cloudPushOverrides();
       }
       try { hydrate(); route(); refreshBadges(); } catch (_) {}
-      toast('Sincronizado con la nube ✓', 'ok');
-    } catch (_) { /* sin conexión: el panel sigue con localStorage */ }
+      await flushOutbox();               // entrega lo que quedara (overrides/reintentos)
+      renderSyncStatus();
+      if (outboxCount() === 0 && !_authExpired) toast('Sincronizado con la nube ✓', 'ok');
+    } catch (_) { renderSyncStatus(); }
   }
 
   // ---------- UI helpers ----------
@@ -319,18 +471,32 @@
   }
   function showApp() {
     loginEl.hidden = true; appEl.hidden = false;
+    _authExpired = false;
+    // Token efectivo para el iframe del estudio (mismo origen): sesión o
+    // acceso de emergencia. Así su empuje redundante también funciona sin sesión.
+    try { localStorage.setItem('cv_sync_token', authToken() || ''); } catch (_) {}
     setWhoami(); seedWelcomeNewsletter();
     if (!location.hash || location.hash === '#') location.hash = '#/inicio';
     route(); hydrate();
+    renderSyncStatus();
     cloudSync();
   }
   function showLogin() { appEl.hidden = true; loginEl.hidden = false; }
+  // Sesión caducada: vuelve al login SIN borrar datos ni la cola. Al reentrar,
+  // cloudSync vacía el outbox y sube lo pendiente.
+  function showLoginExpired() {
+    showLogin();
+    const msg = $('#loginMsg');
+    if (msg) { msg.textContent = 'Tu sesión caducó. Vuelve a entrar: tus cambios pendientes se guardarán al iniciar sesión.'; msg.className = 'login__msg'; }
+  }
 
   $('#loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = $('#userInput').value.trim(), p = $('#passInput').value;
     const msg = $('#loginMsg'); const btn = $('#loginSubmit');
     msg.textContent = ''; msg.className = 'login__msg';
+    // Reentrada tras caducar: permite que cloudSync vuelva a correr y vacíe el outbox.
+    cloudSynced = false; _authExpired = false;
     // Acceso de emergencia local (sin tocar el backend): admin / cabovirgenes.
     const emergency = () => {
       localStorage.setItem(K.auth, '1'); localStorage.removeItem(K.token);
@@ -362,10 +528,74 @@
   $('#togglePass').addEventListener('click', () => {
     const i = $('#passInput'); i.type = i.type === 'password' ? 'text' : 'password';
   });
+
+  // ---- "Solicitar acceso": formulario público que crea una solicitud
+  //      pendiente y avisa por email a los autorizadores del panel. ----
+  (function setupAccessRequest() {
+    const loginForm = $('#loginForm'), reqForm = $('#requestForm');
+    if (!loginForm || !reqForm) return;
+    const msg = $('#reqMsg'), submit = $('#reqSubmit');
+    const lbl = submit ? submit.querySelector('.btn__label') : null;
+
+    $('#reqOpen').addEventListener('click', () => {
+      loginForm.hidden = true; reqForm.hidden = false;
+      $('#reqNombre').focus();
+    });
+    $('#reqBack').addEventListener('click', () => {
+      reqForm.hidden = true; loginForm.hidden = false;
+    });
+    $('#reqTogglePass').addEventListener('click', () => {
+      const i = $('#reqPass'); i.type = i.type === 'password' ? 'text' : 'password'; i.focus();
+    });
+
+    reqForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        action: 'request_access',
+        nombre: $('#reqNombre').value.trim(),
+        apellidos: $('#reqApellidos').value.trim(),
+        cargo: $('#reqCargo').value.trim(),
+        email: $('#reqEmail').value.trim(),
+        pass: $('#reqPass').value,
+        message: $('#reqMensaje').value.trim()
+      };
+      msg.className = 'login__msg';
+      if (!payload.nombre || !payload.apellidos || !payload.cargo || !payload.email || !payload.pass) {
+        msg.textContent = 'Completa nombre, apellidos, cargo, email y contraseña.'; return;
+      }
+      if (payload.pass.length < 8) { msg.textContent = 'La contraseña debe tener al menos 8 caracteres.'; return; }
+
+      msg.textContent = '';
+      if (submit) submit.disabled = true;
+      if (lbl) lbl.textContent = 'Enviando…';
+      let res = null, data = null;
+      try {
+        res = await fetch('/api/auth', {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        data = await res.json().catch(() => null);
+      } catch (_) { res = null; }
+      if (submit) submit.disabled = false;
+      if (lbl) lbl.textContent = 'Enviar solicitud';
+
+      if (res && res.ok && data && data.ok) {
+        reqForm.reset();
+        msg.className = 'login__msg ok';
+        msg.textContent = 'Solicitud enviada. Recibirás un email cuando sea autorizada.';
+      } else if (data && data.message) {
+        msg.textContent = data.message;
+      } else {
+        msg.textContent = 'No se pudo enviar la solicitud. Inténtalo de nuevo.';
+      }
+    });
+  })();
   $('#logoutBtn').addEventListener('click', async () => {
+    // Entrega lo pendiente ANTES de cerrar sesión (con la sesión aún válida).
+    try { if (outboxCount() > 0) await flushOutbox(); } catch (_) {}
     const tok = localStorage.getItem(K.token);
     if (tok) { try { await fetch('/api/auth', { method: 'POST', headers: { 'content-type': 'application/json', 'x-cabo-admin-token': tok }, body: JSON.stringify({ action: 'logout' }) }); } catch {} }
-    localStorage.removeItem(K.auth); localStorage.removeItem(K.token); localStorage.removeItem(K.sessUser);
+    localStorage.removeItem(K.auth); localStorage.removeItem(K.token); localStorage.removeItem(K.sessUser); localStorage.removeItem('cv_sync_token');
     sessionUser = null; location.hash = ''; showLogin();
   });
 
@@ -4248,8 +4478,16 @@
 
   // ============ INIT ============
   bindPageDnd();
+  // Reintenta subir lo pendiente al recuperar conexión / volver a la pestaña.
+  window.addEventListener('online', () => { if (isAuthed() && !_authExpired) scheduleFlush(200); });
+  window.addEventListener('focus', () => { if (isAuthed() && !_authExpired && outboxCount()) scheduleFlush(200); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && isAuthed() && !_authExpired && outboxCount()) scheduleFlush(200); });
+  { const _sp = $('#syncStatus'); if (_sp) _sp.addEventListener('click', retrySyncNow); }
+  // Latido: si algo quedó pendiente, reintenta (flushOutbox lleva su propio backoff).
+  setInterval(() => { if (isAuthed() && !_authExpired && !_flushing && outboxCount()) scheduleFlush(50); }, 20000);
   if (isAuthed()) showApp(); else showLogin();
   document.body.classList.remove('is-loading');
   refreshBadges();
   hydrate();
+  renderSyncStatus();
 })();
