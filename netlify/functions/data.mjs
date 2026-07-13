@@ -8,6 +8,7 @@
 // claves camelCase; aquí se mapean a las columnas snake_case de Postgres.
 import { json, preflight, requireAdmin, requirePerm, resolveUser, safe } from './_lib.mjs';
 import { service, configured } from './_supabase.mjs';
+import { randomUUID } from 'node:crypto';
 
 // entidad → { table, perm, pk(columna id), singleton?(keyed por 'key') }
 const MAP = {
@@ -187,7 +188,10 @@ export default async (req) => {
       const mapped = arr.map(o => {
         const r = toDb(entity, o);
         if (m.altKey) { if (!isUuid(r.id)) delete r.id; }
-        else if (!m.keyed && (r.id === null || r.id === undefined || r.id === '')) delete r.id;
+        // Entidad normal sin id (item nuevo creado en el cliente sin id): NO se
+        // descarta — se le asigna un id para que se INSERTE (antes se filtraba y
+        // se perdía en silencio). Las columnas id son TEXT, un uuid vale.
+        else if (!m.keyed && (r.id === null || r.id === undefined || r.id === '')) r.id = randomUUID();
         return r;
       });
       // Rellena member_key a las filas que lleguen sin ella ANTES de filtrar:
@@ -198,11 +202,32 @@ export default async (req) => {
         const { error } = await db.from(m.table).upsert(rows, { onConflict: conflict });
         if (error) throw error;
       }
-      // Borra las filas del servidor que no vienen en el array entrante.
+      // Qué habría que borrar: filas del servidor ausentes del array entrante.
       const keep = new Set(rows.map(r => String(r[conflict])));
       const { data: existing, error: selErr } = await db.from(m.table).select(conflict);
       if (selErr) throw selErr;
+      const serverCount = (existing || []).length;
       const toDelete = (existing || []).map(x => x[conflict]).filter(k => !keep.has(String(k)));
+
+      // ── RED DE SEGURIDAD ANTI-BORRADO CATASTRÓFICO ──────────────────────────
+      // (a) Payload VACÍO contra un servidor con filas = casi seguro un cliente en
+      //     estado obsoleto (sesión caducada, hidratación a medias, storage pisado).
+      //     NUNCA es un "borra todo" legítimo → se ignora el borrado. Borrar de
+      //     verdad se hace con la acción 'delete'. (Esto es lo que causó la pérdida.)
+      if (rows.length === 0 && serverCount > 0) {
+        await audit(db, who, entity, 'replace', { count: 0, deleted: 0, guard: 'empty-payload', wouldDelete: toDelete.length });
+        return json({ ok: true, count: 0, deleted: 0, guard: 'empty-payload', wouldDelete: toDelete.length });
+      }
+      // (b) Borrado MASIVO (≥4 filas y más de las que se conservan) sin confirmar
+      //     explícitamente → se aplican los upserts pero NO se borra. Dirección
+      //     segura: nada se pierde; como mucho reaparece algo que el usuario puede
+      //     volver a borrar. El cliente recibe pruneBlocked y lo puede confirmar.
+      const massDelete = toDelete.length >= 4 && toDelete.length > rows.length;
+      if (massDelete && body.confirmDeletions !== true) {
+        await audit(db, who, entity, 'replace', { count: rows.length, deleted: 0, guard: 'mass-delete-blocked', wouldDelete: toDelete.slice(0, 50) });
+        return json({ ok: true, count: rows.length, deleted: 0, pruneBlocked: true, wouldDelete: toDelete.slice(0, 50) });
+      }
+
       if (toDelete.length) {
         const { error: delErr } = await db.from(m.table).delete().in(conflict, toDelete);
         if (delErr) throw delErr;

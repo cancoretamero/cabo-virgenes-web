@@ -56,7 +56,11 @@
       if (d.settings) { snapshot('cv_settings'); put('cv_settings', d.settings); }
       if (Array.isArray(d.news)) {
         snapshot('cv_news');
-        put('cv_news', merge(d.news, get('cv_news'), function (n) { return n.archived === true || (n.status && n.status !== 'published'); }));
+        // Conserva CUALQUIER noticia local cuyo id no esté en el servidor (borradores,
+        // archivadas y también publicadas AÚN SIN SUBIR). Antes se descartaban las
+        // publicadas locales → navegar por la web pública recortaba el localStorage
+        // compartido con el admin y hacía "desaparecer" trabajo sin sincronizar.
+        put('cv_news', merge(d.news, get('cv_news'), function () { return true; }));
       }
       if (Array.isArray(d.team) && d.team.length) {
         snapshot('cv_team');

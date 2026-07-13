@@ -252,7 +252,11 @@
     clearTimeout(_stPushT);
     _stPushT = setTimeout(() => {
       try {
-        const tok = localStorage.getItem('cv_auth_token') || '';
+        // Token EFECTIVO (sesión o acceso de emergencia) que el admin espeja en
+        // cv_sync_token → este empuje redundante funciona también sin sesión.
+        // La garantía real es el padre: cada studioAction hace postMessage
+        // 'cv:studio-changed' y el admin lo encola en su outbox durable.
+        const tok = localStorage.getItem('cv_sync_token') || localStorage.getItem('cv_auth_token') || '';
         if (!tok) return;
         fetch('/api/data', {
           method: 'POST',
