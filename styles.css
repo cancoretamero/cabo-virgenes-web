@@ -1118,7 +1118,7 @@ strong{font-weight:600;color:inherit}
 
 /* FLEET DECK — 5 ship cards */
 .fleet-deck{
-  display:grid;grid-template-columns:repeat(5,1fr);gap:14px;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:18px;
   margin-top:60px;
 }
 .ship-card-v2{
