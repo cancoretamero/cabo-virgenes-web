@@ -301,14 +301,19 @@
     if (pendingEntity(entity)) return;                                  // hay cambios locales sin subir
     const local = read(key, null);
     if (!arr.length && Array.isArray(local) && local.length) return;    // no pisar con vacío
-    let merged = arr;
+    let merged = arr, recover = false;
     if (Array.isArray(local) && local.length) {
       const ids = new Set(arr.map(x => (x && x.id != null) ? String(x.id) : null).filter(Boolean));
       const localOnly = local.filter(x => x && x.id != null && !ids.has(String(x.id)));
-      if (localOnly.length) merged = arr.concat(localOnly);
+      if (localOnly.length) { merged = arr.concat(localOnly); recover = true; }
     }
     rawWrite(key + '_prev', local);
     rawWrite(key, merged);
+    // RESCATE: items locales que nunca llegaron a sincronizar (p.ej. una noticia
+    // guardada con el código antiguo, antes de este arreglo). Al detectarlos en la
+    // hidratación se ENCOLAN para subirlos → tras una recarga aparecen en el servidor
+    // (y para todos los visitantes) sin tener que reescribir nada.
+    if (recover && CLOUD[entity]) enqueue('ent:' + entity, { entity, action: 'replace', payload: merged });
   }
 
   async function cloudHydrate() {
