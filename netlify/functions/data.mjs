@@ -85,6 +85,16 @@ function ensureAltKeys(entity, rows) {
 }
 
 const SYS = new Set(['extra', 'created_at', 'updated_at']);
+// Valores por defecto de columnas NOT NULL que el cliente puede no traer. En un
+// upsert MULTI-FILA, PostgREST incluye una columna si CUALQUIER fila la trae y
+// rellena con NULL las filas que no la traen → si esa columna es NOT NULL, el
+// LOTE ENTERO falla (p.ej. una noticia sin 'order' → sort_order NULL → 500 y no
+// se guardaba NADA). Garantizamos que cada fila lleve estas columnas.
+const NOTNULL_DEFAULTS = {
+  cv_news: { sort_order: 0, pinned: false, status: 'draft' },
+  cv_team: { sort_order: 0, hidden: false },
+  cv_jobs: { sort_order: 0 },
+};
 function toDb(entity, obj) {
   const a = ALIAS[entity] || {};
   const table = MAP[entity].table;
@@ -97,7 +107,9 @@ function toDb(entity, obj) {
     if (cols.includes(col)) out[col] = v;
     else if (hasExtra) extra[k] = v; // preserva campos sin columna propia
   }
-  if (hasExtra && Object.keys(extra).length) out.extra = extra;
+  if (hasExtra) out.extra = extra; // SIEMPRE (aunque {}) → columnas consistentes en el lote
+  const def = NOTNULL_DEFAULTS[table];
+  if (def) for (const [c, d] of Object.entries(def)) { if (out[c] == null) out[c] = d; }
   return out;
 }
 function fromDb(entity, row) {
