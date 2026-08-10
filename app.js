@@ -587,6 +587,7 @@ const initWorldMap = async () => {
   });
   const hqList = [
     { name: 'Puerto Rawson', country: 'Argentina', coords: [-43.30, -65.10], role: 'Núcleo productivo' },
+    { name: 'Puerto Madryn', country: 'Argentina', coords: [-42.77, -65.04], role: 'Proceso y valor agregado (Sea Fresh)' },
     { name: 'Palencia', country: 'España', coords: [42.00, -4.53], role: 'Logística + valor agregado' },
   ];
   hqList.forEach(hq => {
@@ -948,7 +949,7 @@ const KB = [
   { keys:['producto','productos','venden','vendes','vende','que vende','que producen','que produce','que hace','que hacen','catalogo','catálogo','oferta'],
     a:`Cabo Vírgenes es especialista en <strong>langostino austral salvaje</strong> (<em>Pleoticus muelleri</em>), capturado en el Atlántico Sudoccidental (FAO 41). Ofrecemos 5 formatos:<ul><li><strong>HOSO</strong> — entero con cabeza y caparazón</li><li><strong>HLSO</strong> — cola con caparazón</li><li><strong>EZP</strong> — easy peel</li><li><strong>P&D</strong> — pelado y desvenado</li><li><strong>PDTO</strong> — tail-on</li></ul>Y 6 calibres (L1, L2, L3, C1, C2, CR).`},
   { keys:['ubicacion','ubicación','donde estan','dónde están','donde están','sede','oficina','direccion','dirección','plantas','planta','localizacion'],
-    a:`Tenemos <strong>2 plantas operativas</strong>:<ul><li>🇦🇷 <strong>Puerto Rawson, Chubut (Argentina)</strong> — núcleo productivo. Congelación 100 t/día, almacenamiento 1.600 t.</li><li>🇪🇸 <strong>Palencia (España)</strong> — plataforma logística + valor agregado. 4.600 m², procesamiento 22.000 kg/día.</li></ul>Exportamos a 40 países en 4 continentes.`},
+    a:`Tenemos <strong>3 plantas operativas</strong>:<ul><li>🇦🇷 <strong>Puerto Rawson, Chubut (Argentina)</strong> — núcleo productivo. Predio 10.000 m², congelación 100 t/día, cámara frigorífica 1.600 t, producción 10.000 t/año.</li><li>🇦🇷 <strong>Puerto Madryn, Chubut (Sea Fresh)</strong> — proceso y valor agregado. Predio 7.000 m², proceso 25 t/día, cámara frigorífica 1.800 t, ~4.000 t/año, certificación HACCP.</li><li>🇪🇸 <strong>Palencia (España)</strong> — plataforma logística + valor agregado. 4.600 m², procesamiento 22.000 kg/día.</li></ul>Exportamos a 40 países en 4 continentes.`},
   { keys:['certificacion','certificación','certificaciones','calidad','iso','haccp','msc','brcgs','ifs','asc','fda'],
     a:`Tenemos <strong>6 certificaciones activas</strong>:<ul><li><strong>HACCP</strong> — análisis de peligros</li><li><strong>BRCGS</strong> — Global Food Safety v9</li><li><strong>IFS Food</strong> — Higher Level</li><li><strong>MSC</strong> — pesca sostenible (en proceso)</li><li><strong>ASC</strong> — acuicultura responsable</li><li><strong>FDA</strong> — habilitación EEUU</li></ul>Más SENASA (Argentina), CIQ (China) y EU Approved.`},
   { keys:['cotizacion','cotización','precio','presupuesto','comprar','pedido','muestra','muestras','quote'],
@@ -956,7 +957,7 @@ const KB = [
   { keys:['rasa','rawson ambiental','biosalina','efluentes','sostenibilidad','sostenible','ambiental','medio ambiente','reciclaje','circular'],
     a:`<strong>RASA (Rawson Ambiental S.A.)</strong> es nuestra apuesta de economía circular. Es la <strong>primera planta del país</strong> que combina tratamiento integral de efluentes pesqueros con una <strong>granja biosalina</strong>.<br/><br/>El agua tratada se reutiliza para cultivar 4 halófitos comercializables: <strong>Salicornia</strong> (gourmet), <strong>Microalgas</strong> (acuícola), <strong>Zampa</strong> (forraje) y <strong>Piquillín</strong> (bayas nativas). Cabo Vírgenes participa accionariamente. 0% de vertido al océano.`},
   { keys:['flota','barcos','barco','buques','buque','espartano','mar esmeralda','kaleu','cristo','iglu'],
-    a:`Operamos <strong>5 buques propios</strong>:<ul><li><strong>3 fresqueros</strong>: Espartano (21m), Cristo Redentor (31m), Iglú I (32m) — operan desde Puerto Rawson con ciclo corto.</li><li><strong>2 factoría</strong>: Mar Esmeralda (53m) y Kaleu Kaleu (56m) — congelan a bordo IQF.</li></ul>Captura total &gt; 10.000 t/año.`},
+    a:`Operamos <strong>6 buques propios</strong>:<ul><li><strong>3 fresqueros</strong>: Espartano (21m), Cristo Redentor (31m), Iglú I (32m) — operan desde Puerto Rawson con ciclo corto.</li><li><strong>3 tangoneros congeladores</strong>: Mar Esmeralda (53m), Kaleu Kaleu (56m) y Santiago I (31,65m) — congelan a bordo IQF.</li></ul>Captura total &gt; 10.000 t/año.`},
   { keys:['historia','fundacion','fundación','año','desde cuando','quienes son','quiénes son','empresa','aisa'],
     a:`Cabo Vírgenes fue <strong>fundada en 2008</strong>. En <strong>enero de 2025</strong> se incorporó a <strong>AISA Group</strong>, consolidando su posicionamiento en la industria pesquera internacional. Estructura binacional Argentina–España, especializada en langostino austral salvaje.`},
   { keys:['exportacion','exportación','exportan','paises','países','mercados','destino','europa','asia','estados unidos','china','japon','japón','msc countries','clientes'],

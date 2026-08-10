@@ -1719,7 +1719,7 @@ strong{font-weight:600;color:inherit}
 .ft-admin-link:hover{opacity:1;color:#7fe3df}
 
 /* ================ PLANTAS (legacy cards) ================ */
-.plants-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.plants-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 .plant-card{
   border-radius:22px;padding:28px;
   position:relative;overflow:hidden;
@@ -1730,6 +1730,10 @@ strong{font-weight:600;color:inherit}
 .plant-card h3{
   font-family:var(--serif);font-weight:500;font-size:30px;line-height:1.05;
   letter-spacing:-.02em;color:var(--ink);
+}
+.plant-card h3 .plant-sub{
+  display:inline-block;font-size:.52em;font-weight:600;letter-spacing:0;
+  color:var(--teal-strong);vertical-align:middle;opacity:.9;
 }
 .plant-tag{
   display:inline-block;margin-top:6px;
